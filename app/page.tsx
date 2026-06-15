@@ -336,7 +336,7 @@ export default function HomePage() {
 
               <div 
                 ref={courseRef}
-                onScroll={() => handleScroll(courseRef, setCourseIndex, ongoingCourses.length)}
+                onScroll={() => handleScroll(courseRef as any, setCourseIndex, ongoingCourses.length)}
                 className="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-6 md:grid md:grid-cols-3 md:gap-8 md:overflow-visible [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']"
               >
                 {ongoingCourses.map((course) => (
@@ -360,7 +360,7 @@ export default function HomePage() {
 
               <div className="mt-2 flex justify-center space-x-2.5 md:hidden">
                 {ongoingCourses.map((_, idx) => (
-                  <button key={idx} onClick={() => scrollToIndex(courseRef, idx, ongoingCourses.length)} className={`h-2 rounded-full transition-all duration-300 ${courseIndex === idx ? "w-6 bg-blue-600" : (isDarkMode ? "w-2 bg-slate-700" : "w-2 bg-slate-200")}`} />
+                  <button key={idx} onClick={() => scrollToIndex(courseRef as any, idx, ongoingCourses.length)} className={`h-2 rounded-full transition-all duration-300 ${courseIndex === idx ? "w-6 bg-blue-600" : (isDarkMode ? "w-2 bg-slate-700" : "w-2 bg-slate-200")}`} />
                 ))}
               </div>
             </div>
@@ -377,7 +377,7 @@ export default function HomePage() {
 
               <div 
                 ref={resultRef}
-                onScroll={() => handleScroll(resultRef, setResultIndex, resultsData.length)}
+                onScroll={() => handleScroll(resultRef as any, setResultIndex, resultsData.length)}
                 className="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-6 md:grid md:grid-cols-3 md:gap-8 md:overflow-visible [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']"
               >
                 {resultsData.map((item) => (
@@ -395,7 +395,7 @@ export default function HomePage() {
 
               <div className="mt-2 flex justify-center space-x-2.5 md:hidden">
                 {resultsData.map((_, idx) => (
-                  <button key={idx} onClick={() => scrollToIndex(resultRef, idx, resultsData.length)} className={`h-2 rounded-full transition-all duration-300 ${resultIndex === idx ? "w-6 bg-blue-600" : (isDarkMode ? "w-2 bg-slate-700" : "w-2 bg-slate-200")}`} />
+                  <button key={idx} onClick={() => scrollToIndex(resultRef as any, idx, resultsData.length)} className={`h-2 rounded-full transition-all duration-300 ${resultIndex === idx ? "w-6 bg-blue-600" : (isDarkMode ? "w-2 bg-slate-700" : "w-2 bg-slate-200")}`} />
                 ))}
               </div>
             </div>
@@ -411,7 +411,7 @@ export default function HomePage() {
 
               <div 
                 ref={testiRef}
-                onScroll={() => handleScroll(testiRef, setTestiIndex, testimonialsData.length)}
+                onScroll={() => handleScroll(testiRef as any, setTestiIndex, testimonialsData.length)}
                 className="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-6 md:grid md:grid-cols-3 md:gap-8 md:overflow-visible [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']"
               >
                 {testimonialsData.map((videoIndex) => (
@@ -429,7 +429,7 @@ export default function HomePage() {
 
               <div className="mt-2 flex justify-center space-x-2.5 md:hidden">
                 {testimonialsData.map((_, idx) => (
-                  <button key={idx} onClick={() => scrollToIndex(testiRef, idx, testimonialsData.length)} className={`h-2 rounded-full transition-all duration-300 ${testiIndex === idx ? "w-6 bg-blue-600" : (isDarkMode ? "w-2 bg-slate-700" : "w-2 bg-slate-200")}`} />
+                  <button key={idx} onClick={() => scrollToIndex(testiRef as any, idx, testimonialsData.length)} className={`h-2 rounded-full transition-all duration-300 ${testiIndex === idx ? "w-6 bg-blue-600" : (isDarkMode ? "w-2 bg-slate-700" : "w-2 bg-slate-200")}`} />
                 ))}
               </div>
             </div>
