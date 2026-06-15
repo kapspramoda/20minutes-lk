@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { signOut, useSession } from "next-auth/react";
 
 export default function DashboardPage() {
