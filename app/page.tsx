@@ -78,7 +78,7 @@ export default function HomePage() {
   const nextSlide = () => setCurrentSlide((prev) => (prev === slides.length - 1 ? 0 : prev + 1));
   const prevSlide = () => setCurrentSlide((prev) => (prev === 0 ? slides.length - 1 : prev - 1));
 
-  const handleScroll = (ref: React.RefObject<HTMLDivElement>, setIndex: (idx: number) => void, totalItems: number) => {
+  const handleScroll = (ref: React.RefObject<HTMLDivElement | null>, setIndex: (idx: number) => void, totalItems: number) => {
     if (!ref.current) return;
     const { scrollLeft, scrollWidth } = ref.current;
     const itemWidth = scrollWidth / totalItems;
@@ -86,7 +86,7 @@ export default function HomePage() {
     setIndex(newIndex);
   };
 
-  const scrollToIndex = (ref: React.RefObject<HTMLDivElement>, index: number, totalItems: number) => {
+  const scrollToIndex = (ref: React.RefObject<HTMLDivElement | null>, index: number, totalItems: number) => {
     if (!ref.current) return;
     const itemWidth = ref.current.scrollWidth / totalItems;
     ref.current.scrollTo({ left: index * itemWidth, behavior: 'smooth' });
