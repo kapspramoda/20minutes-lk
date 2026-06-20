@@ -1,130 +1,128 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { useSession, signOut } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import React, { useState } from "react";
+import { signOut, useSession } from "next-auth/react";
 
-export default function Dashboard() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
-  const [isDarkMode, setIsDarkMode] = useState(false);
+export default function DashboardPage() {
+  // ළමයාගේ තොරතුරු ලබා ගැනීම (Session)
+  const { data: session } = useSession();
 
-  // ළමයා ලොග් වෙලා නැත්නම් ආයෙත් මුල් පිටුවට යවනවා
-  useEffect(() => {
-    if (status === "unauthenticated") {
-      router.push("/");
+  // --- Modal එක සඳහා අවශ්‍ය States ---
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedCourse, setSelectedCourse] = useState<any>(null);
+  const [slipFile, setSlipFile] = useState<File | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Mock Data (තාවකාලික දත්ත)
+  const myCourses = [
+    { id: 1, title: "තරග විභාග - සාමාන්‍ය දැනීම (General Knowledge)", progress: 45 },
+  ];
+
+  const pendingCourses = [
+    { id: 2, title: "තරග විභාග - බුද්ධි පරීක්ෂණය (IQ) සම්පූර්ණ පාඨමාලාව" },
+  ];
+
+  const availableCourses = [
+    { id: 3, title: "රාජ්‍ය කළමනාකරණ සහකාර විභාගය - පෙරහුරු", price: "රු. 2500" },
+    { id: 4, title: "ශ්‍රී ලංකා රේගු දෙපාර්තමේන්තු විභාගය", price: "රු. 3000" },
+  ];
+
+  // බොත්තම එබූ විට Modal එක විවෘත කිරීම
+  const handleEnrollClick = (course: any) => {
+    setSelectedCourse(course);
+    setIsModalOpen(true);
+  };
+
+  // Modal එක වැසීම
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedCourse(null);
+    setSlipFile(null);
+  };
+
+  // --- පින්තූරය Base64 බවට පත් කිරීමේ Function එක ---
+  const convertToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const fileReader = new FileReader();
+      fileReader.readAsDataURL(file);
+      fileReader.onload = () => {
+        resolve(fileReader.result as string);
+      };
+      fileReader.onerror = (error) => {
+        reject(error);
+      };
+    });
+  };
+
+  // --- Slip එක Database එකට යැවීම (API Call) ---
+  const handleSubmitSlip = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!slipFile) {
+      alert("කරුණාකර ඔබගේ බැංකු රිසිට් පත (Bank Slip) ඇතුළත් කරන්න.");
+      return;
     }
-  }, [status, router]);
 
-  // Dark/Light Mode මාරු කරන Function එක
-  const toggleTheme = () => {
-    setIsDarkMode(!isDarkMode);
-    if (!isDarkMode) {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
+    // ළමයාගේ දුරකථන අංකය Session එකෙන් ගැනීම (නැතිනම් නම හෝ ඊමේල් එක භාවිත කිරීම)
+    const userPhone = (session?.user as any)?.phone || session?.user?.name || session?.user?.email;
+
+    if (!userPhone) {
+      alert("ඔබේ ගිණුමේ තොරතුරු ලබාගැනීමට නොහැක. කරුණාකර නැවත ලොග් වන්න.");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      // 1. පින්තූරය කේතයක් (Base64) බවට පත් කිරීම
+      const base64Image = await convertToBase64(slipFile);
+
+      // 2. අපි හදපු අලුත් API එකට දත්ත යැවීම
+      const res = await fetch("/api/enroll", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userPhone: userPhone,
+          courseTitle: selectedCourse.title,
+          slipImage: base64Image,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        alert(data.message || "ඔබේ රිසිට් පත සාර්ථකව යොමු කරන ලදී! Admin අනුමත කළ පසු ඔබට පාඩම් නැරඹිය හැක.");
+        handleCloseModal();
+      } else {
+        alert(data.message || "දෝෂයක් මතු විය. කරුණාකර නැවත උත්සාහ කරන්න.");
+      }
+    } catch (error) {
+      console.error("Upload error:", error);
+      alert("තාක්ෂණික දෝෂයකි. කරුණාකර පසුව නැවත උත්සාහ කරන්න.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  // පන්තියට අදාළ විස්තර (මේවා පස්සේ Database එකෙන් ගන්න පුළුවන්)
-  const availableCourses = [
-    {
-      id: 1,
-      title: "2026 A/L Chemistry - Theory",
-      description: "සම්පූර්ණ සිද්ධාන්ත සහ ප්‍රායෝගික පරීක්ෂණ සහිතයි.",
-      image: "🧪",
-      status: "Available",
-    },
-    {
-      id: 2,
-      title: "2026 A/L Chemistry - Revision",
-      description: "පසුගිය ප්‍රශ්න පත්‍ර සාකච්ඡාව සහ කෙටි ක්‍රම.",
-      image: "📚",
-      status: "Coming Soon",
-    },
-  ];
-
-  // ලොග් වෙනකම් Loading පෙන්වීම
-  if (status === "loading") {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
-
-  // ලොග් වුණාට පස්සේ පෙන්වන පිටුව
   return (
-    <div className={`min-h-screen transition-colors duration-300 ${isDarkMode ? "dark bg-gray-900 text-white" : "bg-gray-50 text-gray-900"}`}>
+    <div className="min-h-screen bg-gray-50 flex flex-col relative modern-font">
       
-      {/* Header කොටස */}
-      <header className="sticky top-0 z-50 flex justify-between items-center p-4 md:px-8 bg-white/80 dark:bg-gray-800/80 backdrop-blur-md shadow-sm">
+      {/* --- Main Page Header --- */}
+      <header className="sticky top-0 z-50 flex justify-between items-center p-4 md:px-8 bg-white/80 backdrop-blur-md shadow-sm border-b border-gray-100">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 bg-blue-600 text-white rounded-lg flex items-center justify-center font-bold text-xl">
             20
           </div>
-          <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-cyan-500">
+          <h1 className="text-xl md:text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-cyan-500 logo-font">
             minutes.lk
           </h1>
         </div>
 
         <div className="flex items-center gap-4">
-          {/* Theme Toggle බොත්තම */}
-          <button
-            onClick={toggleTheme}
-            className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-            title="Toggle Dark/Light Mode"
-          >
-            {isDarkMode ? "☀️" : "🌙"}
-          </button>
-
-          {/* User Name & Logout */}
-          <div className="hidden md:block font-medium">
-            ආයුබෝවන්, <span className="text-blue-600 dark:text-blue-400">{session?.user?.name || "ශිෂ්‍යයා"}</span>
+          <div className="hidden md:block font-medium text-slate-600">
+            ආයුබෝවන්, <span className="text-blue-600 font-bold">{session?.user?.name || "ශිෂ්‍යයා"}</span>
           </div>
           <button
-            onClick={() => signOut({ callbackUrl: '/' })}
-            className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-semibold rounded-lg transition-all shadow-md hover:shadow-lg"
-          >
-            ඉවත් වන්න (Logout)
-          </button>
-        </div>
-      </header>
-
-      {/* Main Content (Courses පෙන්වන කොටස) */}
-      <main className="max-w-6xl mx-auto p-6 md:p-8 mt-4">
-        <div className="mb-8">
-          <h2 className="text-2xl md:text-3xl font-bold mb-2">ඔබේ පාඨමාලා (Courses)</h2>
-          <p className="text-gray-600 dark:text-gray-400">ඔබට සම්බන්ධ විය හැකි පන්ති පහතින් තෝරන්න.</p>
-        </div>
-
-        {/* Courses Grid එක */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {availableCourses.map((course) => (
-            <div
-              key={course.id}
-              className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"
-            >
-              <div className="text-4xl mb-4">{course.image}</div>
-              <h3 className="text-xl font-bold mb-2">{course.title}</h3>
-              <p className="text-gray-600 dark:text-gray-400 text-sm mb-6 h-10">
-                {course.description}
-              </p>
-              <button 
-                className={`w-full py-3 rounded-xl font-bold transition-colors ${
-                  course.status === "Available" 
-                    ? "bg-blue-600 hover:bg-blue-700 text-white" 
-                    : "bg-gray-200 dark:bg-gray-700 text-gray-500 cursor-not-allowed"
-                }`}
-                disabled={course.status !== "Available"}
-              >
-                {course.status === "Available" ? "පන්තියට ඇතුළු වන්න" : "ළඟදීම..."}
-              </button>
-            </div>
-          ))}
-        </div>
-      </main>
-
-    </div>
-  );
-}
+            onClick={() => signOut({ callbackUrl: "/" })}
+            className="px-4 py-2 bg-red-50 hover:bg-red-5
