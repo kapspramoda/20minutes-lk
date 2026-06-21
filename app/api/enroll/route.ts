@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-// මෙතන ඔයාගේ mongodb සම්බන්ධ කරන ෆයිල් එකේ නම හරියට දෙන්න
-import { connectMongoDB } from "@/lib/mongodb"; 
+// මෙතන නම connectToDatabase ලෙස වෙනස් කළා සහ සඟල වරහන් අයින් කළා
+import connectToDatabase from "@/lib/mongodb"; 
 import Enrollment from "@/models/Enrollment";
 
 export async function POST(req: Request) {
@@ -13,8 +13,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: "කරුණාකර රිසිට්පතක් ලබා දෙන්න." }, { status: 400 });
     }
 
-    // MongoDB එකට සම්බන්ධ වීම
-    await connectMongoDB();
+    // නිවැරදි function නම පාවිච්චි කර MongoDB එකට සම්බන්ධ වීම
+    await connectToDatabase();
 
     // අලුත් Slip එක Database එකට Save කිරීම
     await Enrollment.create({
