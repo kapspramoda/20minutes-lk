@@ -104,6 +104,14 @@ export default function HomePage() {
     setError("");
 
     if (heroView === "login") {
+      // --- Admin Login (විශේෂ ඇතුළුවීම) ---
+      if (phone === "admin" && password === "admin123") {
+        router.push("/admin");
+        setLoading(false);
+        return; // සාමාන්‍ය ළමයින්ගේ ලොගින් එකට යන්නේ නැතුව මෙතනින්ම නවතිනවා
+      }
+      // ------------------------------------
+
       const res = await signIn("credentials", { redirect: false, phone, password });
       if (res?.error) {
         setError(res.error);
