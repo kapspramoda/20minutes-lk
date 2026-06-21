@@ -122,7 +122,7 @@ export default function DashboardPage() {
             />
           </div>
           {/* ඔයාගේ Oswald Font එක මෙතන logo-font හරහා වැඩ කරනවා */}
-          <h1 className="text-xl md:text-2xl font-bold text-slate-900 dark:text-white logo-font">
+          <h1 className="text-xl font-extrabold text-white md:text-2xl tracking-tight logo-font">
             20minutes.lk
           </h1>
         </div>
@@ -239,7 +239,7 @@ export default function DashboardPage() {
                 <img src="/logo.png" alt="20minutes.lk Logo" className="w-full h-full object-contain p-1" onError={(e) => { e.currentTarget.src = 'https://ui-avatars.com/api/?name=20&background=2563eb&color=fff'; }} />
               </div>
               {/* Footer ලෝගෝ එකටත් logo-font දාලා තියෙනවා */}
-              <h2 className="text-xl font-bold text-white logo-font">20minutes.lk</h2>
+              <h2 className="text-xl font-extrabold text-white md:text-2xl tracking-tight logo-font">20minutes.lk</h2>
             </div>
             <p className="text-sm text-slate-400 leading-relaxed mb-6">
               තරග විභාග ජයගැනීමට අවශ්‍ය නිවැරදිම මගපෙන්වීම ලබාදෙන ශ්‍රී ලංකාවේ ප්‍රමුඛතම මාර්ගගත වේදිකාව.
