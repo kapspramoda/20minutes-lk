@@ -121,14 +121,14 @@ export default function DashboardPage() {
               onError={(e) => { e.currentTarget.src = 'https://ui-avatars.com/api/?name=20&background=2563eb&color=fff'; }} 
             />
           </div>
-          <h1 className="text-xl md:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight logo-font">
+          {/* ඔයාගේ Oswald Font එක මෙතන logo-font හරහා වැඩ කරනවා */}
+          <h1 className="text-xl md:text-2xl font-bold text-slate-900 dark:text-white logo-font">
             20minutes.lk
           </h1>
         </div>
 
         {/* Right side options */}
         <div className="flex items-center gap-3 md:gap-5">
-          {/* Theme Toggle Button */}
           <button
             onClick={toggleTheme}
             className="p-2.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition"
@@ -238,7 +238,8 @@ export default function DashboardPage() {
               <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center overflow-hidden">
                 <img src="/logo.png" alt="20minutes.lk Logo" className="w-full h-full object-contain p-1" onError={(e) => { e.currentTarget.src = 'https://ui-avatars.com/api/?name=20&background=2563eb&color=fff'; }} />
               </div>
-              <h2 className="text-xl font-bold text-white tracking-tight logo-font">20minutes.lk</h2>
+              {/* Footer ලෝගෝ එකටත් logo-font දාලා තියෙනවා */}
+              <h2 className="text-xl font-bold text-white logo-font">20minutes.lk</h2>
             </div>
             <p className="text-sm text-slate-400 leading-relaxed mb-6">
               තරග විභාග ජයගැනීමට අවශ්‍ය නිවැරදිම මගපෙන්වීම ලබාදෙන ශ්‍රී ලංකාවේ ප්‍රමුඛතම මාර්ගගත වේදිකාව.
