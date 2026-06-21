@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { signOut, useSession } from "next-auth/react";
 
 export default function DashboardPage() {
@@ -13,6 +13,15 @@ export default function DashboardPage() {
   const [slipFile, setSlipFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // --- Slider States & Refs ---
+  const [myCourseIndex, setMyCourseIndex] = useState(0);
+  const [pendingIndex, setPendingIndex] = useState(0);
+  const [availableIndex, setAvailableIndex] = useState(0);
+
+  const myCourseRef = useRef<HTMLDivElement>(null);
+  const pendingRef = useRef<HTMLDivElement>(null);
+  const availableRef = useRef<HTMLDivElement>(null);
+
   // Theme check on load
   useEffect(() => {
     if (document.documentElement.classList.contains("dark")) {
@@ -20,7 +29,6 @@ export default function DashboardPage() {
     }
   }, []);
 
-  // Theme Toggle Function
   const toggleTheme = () => {
     setIsDarkMode(!isDarkMode);
     if (!isDarkMode) {
@@ -28,6 +36,21 @@ export default function DashboardPage() {
     } else {
       document.documentElement.classList.remove("dark");
     }
+  };
+
+  // Mobile Slider Functions
+  const handleScroll = (ref: React.RefObject<HTMLDivElement | null>, setIndex: (idx: number) => void, totalItems: number) => {
+    if (!ref.current) return;
+    const { scrollLeft, scrollWidth } = ref.current;
+    const itemWidth = scrollWidth / totalItems;
+    const newIndex = Math.round(scrollLeft / itemWidth);
+    setIndex(newIndex);
+  };
+
+  const scrollToIndex = (ref: React.RefObject<HTMLDivElement | null>, index: number, totalItems: number) => {
+    if (!ref.current) return;
+    const itemWidth = ref.current.scrollWidth / totalItems;
+    ref.current.scrollTo({ left: index * itemWidth, behavior: 'smooth' });
   };
 
   // Mock Data
@@ -84,7 +107,7 @@ export default function DashboardPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          userPhone: userPhone,
+          userPhone,
           courseTitle: selectedCourse.title,
           slipImage: base64Image,
         }),
@@ -92,132 +115,163 @@ export default function DashboardPage() {
 
       const data = await res.json();
       if (res.ok) {
-        alert(data.message || "ඔබේ රිසිට් පත සාර්ථකව යොමු කරන ලදී! Admin අනුමත කළ පසු ඔබට පාඩම් නැරඹිය හැක.");
+        alert(data.message || "ඔබේ රිසිට් පත සාර්ථකව යොමු කරන ලදී!");
         handleCloseModal();
       } else {
-        alert(data.message || "දෝෂයක් මතු විය. කරුණාකර නැවත උත්සාහ කරන්න.");
+        alert(data.message || "දෝෂයක් මතු විය.");
       }
     } catch (error) {
-      console.error("Upload error:", error);
-      alert("තාක්ෂණික දෝෂයකි. කරුණාකර පසුව නැවත උත්සාහ කරන්න.");
+      alert("තාක්ෂණික දෝෂයකි.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  // --- Theme Classes (Day/Night අනුව වෙනස් වන වර්ණ - Home Page එකේ විදිහටම) ---
+  const themeBg = isDarkMode ? "bg-slate-900 text-slate-100" : "bg-slate-50 text-slate-800";
+  const headerBg = isDarkMode ? "bg-slate-900/80 border-slate-800" : "bg-white/80 border-slate-200";
+  const logoTextColor = isDarkMode ? "text-white" : "text-slate-900";
+  const sectionTitleColor = isDarkMode ? "text-white" : "text-slate-900";
+  const cardBg = isDarkMode ? "bg-slate-800 border-slate-700" : "bg-white border-slate-100";
+  const cardTitle = isDarkMode ? "text-white" : "text-slate-800";
+  const inputBg = isDarkMode ? "bg-slate-700 border-slate-600 text-white placeholder-slate-400" : "bg-slate-50 border-slate-200 text-slate-900";
+  const modalOverlayBg = isDarkMode ? "bg-slate-950/80" : "bg-slate-900/60";
+  const modalBodyBg = isDarkMode ? "bg-slate-800 border-slate-700" : "bg-white border-transparent";
+  const modalBoxBg = isDarkMode ? "bg-slate-700/50 border-slate-600" : "bg-slate-50 border-slate-200";
+
   return (
-    <div className={`min-h-screen flex flex-col relative modern-font transition-colors duration-300 ${isDarkMode ? "dark bg-[#0f172a]" : "bg-gray-50"}`}>
+    <div className={`modern-font flex min-h-screen flex-col transition-colors duration-300 ${themeBg}`}>
       
       {/* --- Home Page Style Header --- */}
-      <header className="sticky top-0 z-50 flex justify-between items-center px-4 py-3 md:px-8 bg-white dark:bg-[#1e293b] shadow-sm border-b border-gray-100 dark:border-gray-800 transition-colors">
-        
-        {/* Logo Section */}
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center overflow-hidden shadow-sm border border-gray-100">
-            <img 
-              src="/logo.png" 
-              alt="20minutes.lk Logo" 
-              className="w-full h-full object-contain p-1" 
-              onError={(e) => { e.currentTarget.src = 'https://ui-avatars.com/api/?name=20&background=2563eb&color=fff'; }} 
-            />
+      <header className={`sticky top-0 z-50 w-full border-b backdrop-blur-md transition-all duration-300 ${headerBg}`}>
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 md:px-6 md:py-4">
+          <div className="flex items-center gap-2 md:gap-3">
+            <img src="/logo.png" alt="20minutes.lk Logo" className="h-7 w-auto sm:h-8 md:h-10 rounded-xl shadow-sm opacity-95" />
+            <span className={`logo-font text-lg md:text-2xl font-semibold truncate ${logoTextColor}`}>20minutes.lk</span>
           </div>
-          {/* ඔයාගේ Oswald Font එක මෙතන logo-font හරහා වැඩ කරනවා */}
-          <h1 className="text-xl font-extrabold text-white md:text-2xl tracking-tight logo-font">
-            20minutes.lk
-          </h1>
-        </div>
 
-        {/* Right side options */}
-        <div className="flex items-center gap-3 md:gap-5">
-          <button
-            onClick={toggleTheme}
-            className="p-2.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition"
-          >
-            {isDarkMode ? (
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
-            ) : (
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
-            )}
-          </button>
+          <div className="flex items-center space-x-3 md:space-x-5 flex-shrink-0">
+            <button 
+              onClick={toggleTheme}
+              className={`rounded-full p-2 transition-colors focus:outline-none ${isDarkMode ? 'bg-slate-800 text-yellow-400 hover:bg-slate-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+            >
+              {isDarkMode ? (
+                <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" /></svg>
+              ) : (
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+              )}
+            </button>
 
-          <div className="hidden md:block font-medium text-slate-600 dark:text-slate-300">
-            ආයුබෝවන්, <span className="text-blue-600 dark:text-blue-400 font-bold">{session?.user?.name || "ශිෂ්‍යයා"}</span>
+            <div className="hidden md:block font-medium text-sm">
+              ආයුබෝවන්, <span className="text-blue-500 font-bold">{session?.user?.name || "ශිෂ්‍යයා"}</span>
+            </div>
+            
+            <button
+              onClick={() => signOut({ callbackUrl: "/" })}
+              className="rounded-full bg-red-500/10 border border-red-500/50 px-4 py-1.5 text-xs md:text-sm font-semibold text-red-500 transition hover:bg-red-500 hover:text-white"
+            >
+              ඉවත් වන්න
+            </button>
           </div>
-          
-          <button
-            onClick={() => signOut({ callbackUrl: "/" })}
-            className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-full transition-all shadow-md"
-          >
-            ලොග් අවුට්
-          </button>
         </div>
       </header>
 
       {/* --- Main Content --- */}
-      <main className="flex-grow mx-auto w-full max-w-6xl p-4 md:p-6 mt-4">
+      <main className="flex-grow mx-auto w-full max-w-7xl p-4 md:p-6 mt-4">
         
-        {/* My Courses */}
-        <section className="mb-10">
-          <h2 className="mb-4 text-lg md:text-xl font-bold text-slate-800 dark:text-white border-l-4 border-emerald-500 pl-3">මගේ පාඨමාලා (My Courses)</h2>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {/* 1. මගේ පාඨමාලා */}
+        <section className="mb-12 md:mb-16">
+          <h2 className={`mb-6 text-xl md:text-2xl font-bold border-l-4 border-emerald-500 pl-3 ${sectionTitleColor}`}>මගේ පාඨමාලා (My Courses)</h2>
+          
+          {/* Desktop එකේදී justify-center හරහා මැදට ගැනීම මෙතන සිදු වේ */}
+          <div 
+            ref={myCourseRef}
+            onScroll={() => handleScroll(myCourseRef as any, setMyCourseIndex, myCourses.length)}
+            className="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-4 md:flex-wrap md:justify-center md:gap-8 md:overflow-visible [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']"
+          >
             {myCourses.map((course) => (
-              <div key={course.id} className="overflow-hidden rounded-2xl bg-white dark:bg-[#1e293b] shadow-sm border border-slate-100 dark:border-slate-800 hover:-translate-y-1 duration-300">
-                <div className="bg-emerald-50 dark:bg-emerald-900/20 h-28 md:h-32 flex items-center justify-center">
-                   <svg className="w-12 h-12 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              <div key={course.id} className={`flex-none w-[75%] sm:w-[45%] md:w-[30%] snap-center overflow-hidden rounded-2xl shadow-sm transition hover:shadow-md border ${cardBg}`}>
+                <div className="bg-emerald-500/10 h-28 md:h-32 flex items-center justify-center">
+                   <svg className="w-10 h-10 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                 </div>
                 <div className="p-5">
-                  <h3 className="mb-2 text-base font-bold text-slate-800 dark:text-slate-100 line-clamp-2">{course.title}</h3>
-                  <div className="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-2 mb-4">
+                  <h3 className={`mb-3 text-sm md:text-base font-bold line-clamp-2 ${cardTitle}`}>{course.title}</h3>
+                  <div className={`w-full rounded-full h-2 mb-4 ${isDarkMode ? 'bg-slate-700' : 'bg-slate-100'}`}>
                     <div className="bg-emerald-500 h-2 rounded-full" style={{ width: `${course.progress}%` }}></div>
                   </div>
-                  <button className="w-full rounded-full bg-emerald-500 py-2 text-sm font-bold text-white hover:bg-emerald-600 transition shadow-sm">
+                  <button className="w-full rounded-full bg-emerald-500 py-2.5 text-xs md:text-sm font-bold text-white hover:bg-emerald-600 transition shadow-sm">
                     පාඩම් නරඹන්න (Watch)
                   </button>
                 </div>
               </div>
             ))}
           </div>
+          {/* Mobile Dots */}
+          {myCourses.length > 1 && (
+            <div className="mt-2 flex justify-center space-x-2.5 md:hidden">
+              {myCourses.map((_, idx) => (
+                <button key={idx} onClick={() => scrollToIndex(myCourseRef as any, idx, myCourses.length)} className={`h-2 rounded-full transition-all duration-300 ${myCourseIndex === idx ? "w-6 bg-blue-600" : (isDarkMode ? "w-2 bg-slate-700" : "w-2 bg-slate-200")}`} />
+              ))}
+            </div>
+          )}
         </section>
 
-        {/* Pending Approvals */}
-        <section className="mb-10">
-          <h2 className="mb-4 text-lg md:text-xl font-bold text-slate-800 dark:text-white border-l-4 border-amber-500 pl-3">අනුමැතිය පවතින (Pending Approvals)</h2>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {/* 2. අනුමැතිය පවතින */}
+        <section className="mb-12 md:mb-16">
+          <h2 className={`mb-6 text-xl md:text-2xl font-bold border-l-4 border-amber-500 pl-3 ${sectionTitleColor}`}>අනුමැතිය පවතින (Pending Approvals)</h2>
+          
+          <div 
+            ref={pendingRef}
+            onScroll={() => handleScroll(pendingRef as any, setPendingIndex, pendingCourses.length)}
+            className="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-4 md:flex-wrap md:justify-center md:gap-8 md:overflow-visible [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']"
+          >
             {pendingCourses.map((course) => (
-              <div key={course.id} className="overflow-hidden rounded-2xl bg-white dark:bg-[#1e293b] shadow-sm border border-slate-100 dark:border-slate-800 relative opacity-80">
-                <div className="absolute top-3 right-3 bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 text-xs font-bold px-2.5 py-1 rounded-full">Pending</div>
-                <div className="bg-slate-50 dark:bg-slate-800/50 h-28 md:h-32 flex items-center justify-center">
-                   <svg className="w-12 h-12 text-slate-300 dark:text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              <div key={course.id} className={`flex-none w-[75%] sm:w-[45%] md:w-[30%] snap-center overflow-hidden rounded-2xl shadow-sm border relative opacity-80 ${cardBg}`}>
+                <div className="absolute top-3 right-3 bg-amber-500/20 text-amber-500 text-xs font-bold px-2.5 py-1 rounded-full">Pending</div>
+                <div className="bg-slate-500/10 h-28 md:h-32 flex items-center justify-center">
+                   <svg className={`w-10 h-10 ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                 </div>
                 <div className="p-5">
-                  <h3 className="mb-2 text-base font-bold text-slate-800 dark:text-slate-100 line-clamp-2">{course.title}</h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">Admin විසින් ඔබේ රිසිට් පත පරීක්ෂා කරමින් පවතී.</p>
-                  <button disabled className="w-full rounded-full bg-slate-100 dark:bg-slate-800 py-2 text-sm font-bold text-slate-400 dark:text-slate-500 cursor-not-allowed">
+                  <h3 className={`mb-2 text-sm md:text-base font-bold line-clamp-2 ${cardTitle}`}>{course.title}</h3>
+                  <p className={`text-xs mb-4 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Admin විසින් ඔබේ රිසිට් පත පරීක්ෂා කරමින් පවතී.</p>
+                  <button disabled className={`w-full rounded-full py-2.5 text-xs md:text-sm font-bold cursor-not-allowed ${isDarkMode ? 'bg-slate-700 text-slate-500' : 'bg-slate-100 text-slate-400'}`}>
                     අනුමත වනතුරු රැඳෙන්න
                   </button>
                 </div>
               </div>
             ))}
           </div>
+          {pendingCourses.length > 1 && (
+            <div className="mt-2 flex justify-center space-x-2.5 md:hidden">
+              {pendingCourses.map((_, idx) => (
+                <button key={idx} onClick={() => scrollToIndex(pendingRef as any, idx, pendingCourses.length)} className={`h-2 rounded-full transition-all duration-300 ${pendingIndex === idx ? "w-6 bg-blue-600" : (isDarkMode ? "w-2 bg-slate-700" : "w-2 bg-slate-200")}`} />
+              ))}
+            </div>
+          )}
         </section>
 
-        {/* Available Courses */}
+        {/* 3. ලබාගත හැකි අලුත් පාඨමාලා */}
         <section>
-          <h2 className="mb-4 text-lg md:text-xl font-bold text-slate-800 dark:text-white border-l-4 border-blue-500 pl-3">අලුත් පාඨමාලා (Available Courses)</h2>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <h2 className={`mb-6 text-xl md:text-2xl font-bold border-l-4 border-blue-500 pl-3 ${sectionTitleColor}`}>අලුත් පාඨමාලා (Available Courses)</h2>
+          
+          <div 
+            ref={availableRef}
+            onScroll={() => handleScroll(availableRef as any, setAvailableIndex, availableCourses.length)}
+            className="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-4 md:flex-wrap md:justify-center md:gap-8 md:overflow-visible [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']"
+          >
             {availableCourses.map((course) => (
-              <div key={course.id} className="overflow-hidden rounded-2xl bg-white dark:bg-[#1e293b] shadow-sm border border-slate-100 dark:border-slate-800 hover:-translate-y-1 duration-300 flex flex-col">
-                <div className="bg-blue-50 dark:bg-blue-900/20 h-28 md:h-32 flex items-center justify-center">
-                   <svg className="w-12 h-12 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
+              <div key={course.id} className={`flex-none w-[75%] sm:w-[45%] md:w-[30%] snap-center flex flex-col overflow-hidden rounded-2xl shadow-sm transition hover:shadow-md border hover:-translate-y-1 duration-300 ${cardBg}`}>
+                <div className="bg-blue-500/10 h-28 md:h-32 flex items-center justify-center">
+                   <svg className="w-10 h-10 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
                 </div>
                 <div className="p-5 flex flex-col flex-grow justify-between">
                   <div>
-                    <h3 className="mb-2 text-base font-bold text-slate-800 dark:text-slate-100 line-clamp-2">{course.title}</h3>
-                    <p className="text-lg font-extrabold text-blue-600 dark:text-blue-400 mb-4">{course.price}</p>
+                    <h3 className={`mb-2 text-sm md:text-base font-bold line-clamp-2 ${cardTitle}`}>{course.title}</h3>
+                    <p className="text-lg font-extrabold text-blue-500 mb-4">{course.price}</p>
                   </div>
                   <button 
                     onClick={() => handleEnrollClick(course)}
-                    className="w-full rounded-full bg-blue-600 py-2 text-sm font-bold text-white hover:bg-blue-700 transition shadow-sm"
+                    className="w-full rounded-full bg-blue-600 py-2.5 text-xs md:text-sm font-bold text-white hover:bg-blue-700 transition shadow-sm"
                   >
                     ඇතුළත් වන්න (Enroll)
                   </button>
@@ -225,92 +279,73 @@ export default function DashboardPage() {
               </div>
             ))}
           </div>
+          {availableCourses.length > 1 && (
+            <div className="mt-2 flex justify-center space-x-2.5 md:hidden">
+              {availableCourses.map((_, idx) => (
+                <button key={idx} onClick={() => scrollToIndex(availableRef as any, idx, availableCourses.length)} className={`h-2 rounded-full transition-all duration-300 ${availableIndex === idx ? "w-6 bg-blue-600" : (isDarkMode ? "w-2 bg-slate-700" : "w-2 bg-slate-200")}`} />
+              ))}
+            </div>
+          )}
         </section>
       </main>
 
       {/* --- Home Page Style Footer --- */}
-      <footer className="bg-[#0f172a] text-slate-300 py-10 mt-12">
-        <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-10">
-          
-          {/* Brand & Description */}
+      <footer className={`px-4 py-10 transition-colors duration-300 md:px-6 md:py-16 mt-12 ${isDarkMode ? 'bg-black text-slate-400 border-t border-slate-900' : 'bg-slate-900 text-slate-300'}`}>
+        <div className="mx-auto grid max-w-7xl gap-10 md:grid-cols-3 md:gap-12">
           <div>
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center overflow-hidden">
-                <img src="/logo.png" alt="20minutes.lk Logo" className="w-full h-full object-contain p-1" onError={(e) => { e.currentTarget.src = 'https://ui-avatars.com/api/?name=20&background=2563eb&color=fff'; }} />
-              </div>
-              {/* Footer ලෝගෝ එකටත් logo-font දාලා තියෙනවා */}
-              <h2 className="text-xl font-extrabold text-white md:text-2xl tracking-tight logo-font">20minutes.lk</h2>
+            <div className="flex items-center gap-3 mb-4 md:mb-6">
+              <img src="/logo.png" alt="20minutes.lk Logo" className="h-8 w-auto md:h-10 opacity-90 rounded-xl" />
+              <h3 className="logo-font text-xl font-extrabold text-white md:text-2xl tracking-tight">20minutes.lk</h3>
             </div>
-            <p className="text-sm text-slate-400 leading-relaxed mb-6">
-              තරග විභාග ජයගැනීමට අවශ්‍ය නිවැරදිම මගපෙන්වීම ලබාදෙන ශ්‍රී ලංකාවේ ප්‍රමුඛතම මාර්ගගත වේදිකාව.
+            <p className="text-sm leading-relaxed text-slate-400">
+              තරග විභාග ජයගැනීමට අවශ්‍ය නිවැරදිම මඟපෙන්වීම ලබාදෙන ශ්‍රී ලංකාවේ ප්‍රමුඛතම මාර්ගගත වේදිකාව.
             </p>
-            {/* Social Icons */}
-            <div className="flex gap-4">
-              <a href="#" className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center hover:bg-blue-600 transition"><svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.469h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg></a>
-              <a href="#" className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center hover:bg-red-600 transition"><svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg></a>
-              <a href="#" className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center hover:bg-black transition"><svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.34 2.88 2.88 0 0 1 2.9-3.22c.16 0 .32.02.48.05v-3.32a6.3 6.3 0 0 0-.64-.03 6.34 6.34 0 0 0-6.15 7.6 6.34 6.34 0 0 0 8.7 4.54 6.34 6.34 0 0 0 3.34-5.58V8.66a8.2 8.2 0 0 0 3.79 1.15V6.43a4.8 4.8 0 0 1-.05.26z"/></svg></a>
-            </div>
           </div>
-
-          {/* Quick Links */}
+          
           <div>
-            <h3 className="text-white font-bold mb-5 text-lg">ඉක්මන් සබැඳි</h3>
+            <h4 className="mb-4 text-base font-bold text-white md:mb-6 md:text-lg">ඉක්මන් සබැඳි</h4>
             <ul className="space-y-3 text-sm text-slate-400">
-              <li><a href="#" className="hover:text-white transition">ලොග් වන්න</a></li>
-              <li><a href="#" className="hover:text-white transition">ලියාපදිංචි වන්න</a></li>
-              <li><a href="#" className="hover:text-white transition">පාඨමාලා</a></li>
+              <li><a href="#" className="hover:text-white transition-colors">ලොග් වන්න</a></li>
+              <li><a href="#" className="hover:text-white transition-colors">ලියාපදිංචි වන්න</a></li>
+              <li><a href="#" className="hover:text-white transition-colors">පාඨමාලා</a></li>
             </ul>
           </div>
-
-          {/* Contact Details */}
+          
           <div>
-            <h3 className="text-white font-bold mb-5 text-lg">අපව සම්බන්ධ කරගන්න</h3>
+            <h4 className="mb-4 text-base font-bold text-white md:mb-6 md:text-lg">අපව සම්බන්ධ කරගන්න</h4>
             <ul className="space-y-4 text-sm text-slate-400">
-              <li className="flex items-start gap-3">
-                <span className="text-pink-500 mt-1">📍</span>
-                <span>Sewana Mawatha, Gagabada Road,<br/>Suwarapola, Piliyandala</span>
-              </li>
-              <li className="flex items-center gap-3">
-                <span className="text-green-400">💬</span>
-                <span>071 968 9513 (WhatsApp)</span>
-              </li>
-              <li className="flex items-center gap-3">
-                <span className="text-pink-500">📞</span>
-                <span>077 531 5799 (Call)</span>
-              </li>
-              <li className="flex items-center gap-3">
-                <span className="text-purple-400">✉️</span>
-                <a href="mailto:20minuteslkinstituteclass@gmail.com" className="hover:text-white transition break-all">20minuteslkinstituteclass@gmail.com</a>
-              </li>
+              <li className="flex items-start"><span className="mr-3 text-lg mt-0.5">📍</span><span>Sewana Mawatha, Gagabada Road,<br/>Suwarapola, Piliyandala</span></li>
+              <li className="flex items-center"><span className="mr-3 text-lg">💬</span><span>071 968 9513 (WhatsApp)</span></li>
+              <li className="flex items-center"><span className="mr-3 text-lg">📞</span><span>077 531 5799 (Call)</span></li>
             </ul>
           </div>
         </div>
         
-        <div className="max-w-6xl mx-auto px-6 mt-10 pt-6 border-t border-slate-800 text-center text-xs text-slate-500">
-          © {new Date().getFullYear()} 20minutes.lk. All rights reserved.
+        <div className={`mx-auto mt-10 max-w-7xl border-t pt-6 text-center text-xs md:mt-16 md:pt-8 md:text-sm ${isDarkMode ? 'border-slate-800 text-slate-600' : 'border-slate-800 text-slate-500'}`}>
+          &copy; {new Date().getFullYear()} 20minutes.lk. All rights reserved.
         </div>
       </footer>
 
-      {/* --- Payment Modal --- */}
+      {/* --- Payment Modal (Dark Mode Supported) --- */}
       {isModalOpen && selectedCourse && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-          <div className="w-full max-w-lg rounded-3xl bg-white dark:bg-slate-900 p-6 md:p-8 shadow-2xl animate-in fade-in zoom-in border border-slate-200 dark:border-slate-700">
+        <div className={`fixed inset-0 z-[60] flex items-center justify-center p-4 backdrop-blur-sm ${modalOverlayBg}`}>
+          <div className={`w-full max-w-lg rounded-3xl p-6 md:p-8 shadow-2xl animate-in fade-in zoom-in border ${modalBodyBg}`}>
             
-            <div className="mb-5 flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
-              <h3 className="text-lg md:text-xl font-extrabold text-slate-800 dark:text-white">පාඨමාලාවට ඇතුළත් වීම</h3>
-              <button onClick={handleCloseModal} className="rounded-full bg-slate-100 dark:bg-slate-800 p-1.5 text-slate-400 hover:text-red-500 transition-colors">
+            <div className={`mb-5 flex items-center justify-between border-b pb-4 ${isDarkMode ? 'border-slate-700' : 'border-slate-100'}`}>
+              <h3 className={`text-lg md:text-xl font-extrabold ${sectionTitleColor}`}>පාඨමාලාවට ඇතුළත් වීම</h3>
+              <button onClick={handleCloseModal} className={`rounded-full p-1.5 transition-colors ${isDarkMode ? 'bg-slate-700 text-slate-400 hover:text-red-400' : 'bg-slate-100 text-slate-400 hover:text-red-500'}`}>
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
 
-            <div className="mb-6 rounded-2xl bg-blue-50/50 dark:bg-blue-900/10 p-4 border border-blue-100/50 dark:border-blue-800/30">
-              <p className="font-bold text-slate-700 dark:text-slate-300 text-sm">{selectedCourse.title}</p>
-              <p className="mt-2 font-extrabold text-blue-600 dark:text-blue-400 text-lg">ගෙවිය යුතු මුදල: {selectedCourse.price}</p>
+            <div className={`mb-6 rounded-2xl p-4 border ${isDarkMode ? 'bg-blue-900/20 border-blue-800/30' : 'bg-blue-50/50 border-blue-100/50'}`}>
+              <p className={`font-bold text-sm ${cardTitle}`}>{selectedCourse.title}</p>
+              <p className="mt-2 font-extrabold text-blue-500 text-lg">ගෙවිය යුතු මුදල: {selectedCourse.price}</p>
             </div>
 
             <div className="mb-6">
-              <h4 className="mb-2 text-sm font-bold text-slate-600 dark:text-slate-400">පහත බැංකු ගිණුමට මුදල් තැන්පත් කරන්න:</h4>
-              <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 p-4 text-xs md:text-sm text-slate-700 dark:text-slate-300 space-y-1.5">
+              <h4 className={`mb-2 text-sm font-bold ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>පහත බැංකු ගිණුමට මුදල් තැන්පත් කරන්න:</h4>
+              <div className={`rounded-xl p-4 text-xs md:text-sm space-y-1.5 border ${modalBoxBg} ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
                 <p><strong className="font-bold">බැංකුව:</strong> BOC (Bank of Ceylon)</p>
                 <p><strong className="font-bold">ශාඛාව:</strong> Colombo 01</p>
                 <p><strong className="font-bold">ගිණුම් අංකය:</strong> 1234567890</p>
@@ -320,18 +355,18 @@ export default function DashboardPage() {
 
             <form onSubmit={handleSubmitSlip}>
               <div className="mb-6">
-                <label className="mb-2 block text-sm font-bold text-slate-600 dark:text-slate-400">බැංකු රිසිට් පත (Bank Slip) උඩුගත කරන්න</label>
+                <label className={`mb-2 block text-sm font-bold ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>බැංකු රිසිට් පත (Bank Slip) උඩුගත කරන්න</label>
                 <input
                   type="file"
                   accept="image/*,application/pdf"
                   onChange={(e) => setSlipFile(e.target.files ? e.target.files[0] : null)}
-                  className="block w-full text-sm text-slate-500 dark:text-slate-400 file:mr-4 file:rounded-full file:border-0 file:bg-blue-50 dark:file:bg-blue-900/30 file:px-4 file:py-2 file:text-xs file:font-bold file:text-blue-600 dark:file:text-blue-400 hover:file:bg-blue-100"
+                  className={`block w-full text-sm file:mr-4 file:rounded-full file:border-0 file:px-4 file:py-2 file:text-xs file:font-bold transition-all ${inputBg} ${isDarkMode ? 'file:bg-blue-900/40 file:text-blue-400 hover:file:bg-blue-800/50' : 'file:bg-blue-50 file:text-blue-600 hover:file:bg-blue-100'}`}
                 />
               </div>
 
               <div className="flex justify-end space-x-3 mt-8">
-                <button type="button" onClick={handleCloseModal} className="rounded-full bg-slate-100 dark:bg-slate-800 px-5 py-2.5 text-sm font-bold text-slate-600 dark:text-slate-300">අවලංගු කරන්න</button>
-                <button type="submit" disabled={isSubmitting} className="rounded-full bg-blue-600 px-5 py-2.5 text-sm font-bold text-white shadow-md disabled:opacity-70">{isSubmitting ? "යොමු කරමින් පවතී..." : "Slip එක යොමු කරන්න"}</button>
+                <button type="button" onClick={handleCloseModal} className={`rounded-full px-5 py-2.5 text-sm font-bold ${isDarkMode ? 'bg-slate-700 text-slate-300 hover:bg-slate-600' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>අවලංගු කරන්න</button>
+                <button type="submit" disabled={isSubmitting} className="rounded-full bg-blue-600 px-5 py-2.5 text-sm font-bold text-white shadow-md disabled:opacity-70 hover:bg-blue-700">{isSubmitting ? "යොමු කරමින් පවතී..." : "Slip එක යොමු කරන්න"}</button>
               </div>
             </form>
           </div>
