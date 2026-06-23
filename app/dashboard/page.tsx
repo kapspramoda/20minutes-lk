@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { signOut, useSession } from "next-auth/react";
+// අලුතින් එකතු කළ කොටස
+import imageCompression from "browser-image-compression";
 
 export default function DashboardPage() {
   const { data: session } = useSession();
@@ -78,7 +80,7 @@ export default function DashboardPage() {
     setSlipFile(null);
   };
 
-  const convertToBase64 = (file: File): Promise<string> => {
+  const convertToBase64 = (file: File | Blob): Promise<string> => {
     return new Promise((resolve, reject) => {
       const fileReader = new FileReader();
       fileReader.readAsDataURL(file);
@@ -102,7 +104,24 @@ export default function DashboardPage() {
 
     setIsSubmitting(true);
     try {
-      const base64Image = await convertToBase64(slipFile);
+      let fileToUpload: File | Blob = slipFile;
+
+      // පින්තූරයක් නම් පමණක් Compress කිරීම (PDF නම් ඒ විදිහටම යවනවා)
+      if (slipFile.type.startsWith("image/")) {
+        const options = {
+          maxSizeMB: 1, // උපරිම සයිස් එක 1MB වලට සීමා කිරීම
+          maxWidthOrHeight: 1920, // පින්තූරයේ උපරිම පළල හෝ උස
+          useWebWorker: true,
+        };
+        
+        console.log(`Original size: ${(slipFile.size / 1024 / 1024).toFixed(2)} MB`);
+        fileToUpload = await imageCompression(slipFile, options);
+        console.log(`Compressed size: ${(fileToUpload.size / 1024 / 1024).toFixed(2)} MB`);
+      }
+
+      // Compress කරපු ෆයිල් එක Base64 වලට හැරවීම
+      const base64Image = await convertToBase64(fileToUpload);
+      
       const res = await fetch("/api/enroll", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -121,7 +140,8 @@ export default function DashboardPage() {
         alert(data.message || "දෝෂයක් මතු විය.");
       }
     } catch (error) {
-      alert("තාක්ෂණික දෝෂයකි.");
+      console.error("Upload Error:", error);
+      alert("තාක්ෂණික දෝෂයකි. කරුණාකර නැවත උත්සාහ කරන්න.");
     } finally {
       setIsSubmitting(false);
     }
