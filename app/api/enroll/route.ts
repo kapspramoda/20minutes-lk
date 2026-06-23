@@ -1,7 +1,14 @@
 import { NextResponse } from "next/server";
-// මෙතන නම connectToDatabase ලෙස වෙනස් කළා සහ සඟල වරහන් අයින් කළා
 import connectToDatabase from "@/lib/mongodb"; 
 import Enrollment from "@/models/Enrollment";
+import { v2 as cloudinary } from "cloudinary";
+
+// Cloudinary සැකසුම්
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 export async function POST(req: Request) {
   try {
@@ -13,18 +20,27 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: "කරුණාකර රිසිට්පතක් ලබා දෙන්න." }, { status: 400 });
     }
 
-    // නිවැරදි function නම පාවිච්චි කර MongoDB එකට සම්බන්ධ වීම
+    // 1. පින්තූරය Cloudinary එකට Upload කිරීම
+    // මෙහිදී 'bank_slips' කියලා අලුත් ෆෝල්ඩරයක් Cloudinary එකේ හැදෙනවා
+    const uploadResponse = await cloudinary.uploader.upload(slipImage, {
+      folder: "bank_slips", 
+    });
+
+    // Cloudinary එකෙන් දෙන ආරක්ෂිත ලින්ක් එක (URL එක)
+    const imageUrl = uploadResponse.secure_url; 
+
+    // 2. MongoDB එකට සම්බන්ධ වීම
     await connectToDatabase();
 
-    // අලුත් Slip එක Database එකට Save කිරීම
+    // අලුත් Slip එක Database එකට Save කිරීම (මෙවර Save වෙන්නේ URL එකයි)
     await Enrollment.create({
       userPhone,
       courseTitle,
-      slipImage,
+      slipImage: imageUrl, 
       status: "pending", 
     });
 
-    console.log("අලුත් Slip එකක් Database එකට Save වුණා! දුරකථන අංකය:", userPhone);
+    console.log("අලුත් Slip එකක් සාර්ථකව Save වුණා! ලින්ක් එක:", imageUrl);
 
     return NextResponse.json({ message: "ඔබගේ රිසිට්පත සාර්ථකව යවන ලදී!", success: true }, { status: 201 });
 
