@@ -162,7 +162,7 @@ export default function DashboardPage() {
     }
   };
 
-  // --- Theme Classes ---
+ // --- Theme Classes ---
   const themeBg = isDarkMode ? "bg-slate-900 text-slate-100" : "bg-slate-50 text-slate-800";
   const headerBg = isDarkMode ? "bg-slate-900/80 border-slate-800" : "bg-white/80 border-slate-200";
   const logoTextColor = isDarkMode ? "text-white" : "text-slate-900";
@@ -173,6 +173,9 @@ export default function DashboardPage() {
   const modalOverlayBg = isDarkMode ? "bg-slate-950/80" : "bg-slate-900/60";
   const modalBodyBg = isDarkMode ? "bg-slate-800 border-slate-700" : "bg-white border-transparent";
   const modalBoxBg = isDarkMode ? "bg-slate-700/50 border-slate-600" : "bg-slate-50 border-slate-200";
+  // අලුතින් එකතු කළ පේළි දෙක
+  const textPrimary = isDarkMode ? "text-white" : "text-slate-900";
+  const textSecondary = isDarkMode ? "text-slate-400" : "text-slate-500";
 
   return (
     <div className={`modern-font flex min-h-screen flex-col transition-colors duration-300 ${themeBg}`}>
