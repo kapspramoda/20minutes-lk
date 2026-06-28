@@ -155,27 +155,27 @@ export default function CoursePlayerPage({ params }: PageProps) {
                 <div key={lesson.id} className={`flex flex-col overflow-hidden rounded-2xl border shadow-sm ${cardBg}`}>
                   
                   {/* --- 🛡️ ආරක්ෂිත වීඩියෝ ප්ලේයර් කොටස --- */}
-                  <div 
+                    <div 
                     className="aspect-video w-full bg-black relative overflow-hidden select-none"
                     onContextMenu={(e) => {
-                      e.preventDefault();
-                      alert("ආරක්ෂාව හේතුවෙන් මෙහි Right-click කිරීම තහනම් කර ඇත.");
+                        e.preventDefault();
+                        alert("ආරක්ෂාව හේතුවෙන් මෙහි Right-click කිරීම තහනම් කර ඇත.");
                     }}
-                  >
-                    {/* 1. Share බටන් එක වසන ඉහළ දකුණු විනිවිද පෙනෙන ආවරණය */}
-                    <div className="absolute top-0 right-0 w-[40%] h-[25%] bg-transparent z-10 cursor-default" />
+                    >
+                    {/* 1. Share බටන් එක සහ Title එක සම්පූර්ණයෙන්ම වසන ඉහළ ආවරණය (උස පික්සෙල් 70ක්) */}
+                    <div className="absolute top-0 left-0 w-full h-[70px] z-50 bg-transparent cursor-not-allowed" title="මෙම වීඩියෝව පිටපත් කිරීම තහනම් කර ඇත"></div>
                     
-                    {/* 2. YouTube ලෝගෝ එක වසන පහළ දකුණු විනිවිද පෙනෙන ආවරණය */}
-                    <div className="absolute bottom-0 right-0 w-[25%] h-[20%] bg-transparent z-10 cursor-default" />
+                    {/* 2. YouTube ලෝගෝ එක වසන පහළ වම් ආවරණය */}
+                    <div className="absolute bottom-0 left-0 w-[120px] h-[60px] z-50 bg-transparent cursor-not-allowed"></div>
 
                     <iframe 
-                      src={getSecuredVideoUrl(lesson.videoEmbed)} 
-                      title={lesson.title}
-                      className="w-full h-full z-0"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                      allowFullScreen
+                        src={getSecuredVideoUrl(lesson.videoEmbed)} 
+                        title={lesson.title}
+                        className="w-full h-full relative z-0 pointer-events-auto"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                        allowFullScreen
                     ></iframe>
-                  </div>
+                    </div>
                   
                   <div className="p-5 flex flex-col flex-grow">
                     <h3 className={`text-lg font-bold mb-4 ${textPrimary}`}>{lesson.title}</h3>
