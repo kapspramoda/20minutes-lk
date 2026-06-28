@@ -240,9 +240,12 @@ export default function DashboardPage() {
                       </div>
                       <div className="p-5 flex flex-col justify-between h-[150px]">
                         <h3 className={`mb-3 text-sm md:text-base font-bold line-clamp-2 ${cardTitle}`}>{course.courseTitle}</h3>
-                        <button className="w-full rounded-full bg-emerald-500 py-2.5 text-xs md:text-sm font-bold text-white hover:bg-emerald-600 transition shadow-sm mt-auto">
-                          පාඩම් නරඹන්න (Watch)
-                        </button>
+                        <button 
+                            onClick={() => window.location.href = `/course/${course._id}`} 
+                         className="w-full rounded-full bg-emerald-500 py-2.5 text-xs md:text-sm font-bold text-white hover:bg-emerald-600 transition shadow-sm mt-auto"
+                            >
+                      පාඨමාලාවට පිවිසෙන්න (Enter)
+                      </button>
                       </div>
                     </div>
                   ))}
