@@ -13,13 +13,11 @@ export default function CoursePlayerPage({ params }: PageProps) {
   const [activeSubjectId, setActiveSubjectId] = useState<string>("sub1");
   const [courseId, setCourseId] = useState<string>("");
 
-  // Video Player Ref සහ Sound States
   const playerRef = useRef<HTMLIFrameElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [volumeLevel, setVolumeLevel] = useState(100);
 
-  // --- තාවකාලික පාඨමාලා දත්ත ---
   const courseData = {
     title: "තරග විභාග - සාමාන්‍ය දැනීම සහ IQ සම්පූර්ණ පාඨමාලාව",
     whatsappLink: "https://chat.whatsapp.com/your-hidden-invite-link", 
@@ -64,6 +62,16 @@ export default function CoursePlayerPage({ params }: PageProps) {
     resolveParams();
   }, [params]);
 
+  // --- 🌙 Dark Mode මාරු කරන Function එක ---
+  const toggleTheme = () => {
+    setIsDarkMode(!isDarkMode);
+    if (!isDarkMode) {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  };
+
   const handleSubjectChange = (subId: string) => {
     setActiveSubjectId(subId);
     const selectedSub = courseData.subjects.find(s => s.id === subId);
@@ -74,7 +82,6 @@ export default function CoursePlayerPage({ params }: PageProps) {
     }
   };
 
-  // --- Theme Classes ---
   const themeBg = isDarkMode ? "bg-slate-900 text-slate-100" : "bg-slate-50 text-slate-800";
   const headerBg = isDarkMode ? "bg-slate-900/80 border-slate-800" : "bg-white/80 border-slate-200";
   const cardBg = isDarkMode ? "bg-slate-800 border-slate-700" : "bg-white border-slate-200";
@@ -92,12 +99,10 @@ export default function CoursePlayerPage({ params }: PageProps) {
 
   const activeSubject = courseData.subjects.find((s) => s.id === activeSubjectId);
 
-  // YouTube ආරක්ෂිත Parameters (+ enablejsapi=1 එකතු කර ඇත Sound පාලනය සඳහා)
   const getSecuredVideoUrl = (originalUrl: string) => {
     return `${originalUrl}?rel=0&modestbranding=1&showinfo=0&controls=1&disablekb=1&iv_load_policy=3&fs=0&enablejsapi=1`;
   };
 
-  // --- 🔊 YouTube Sound පාලනය කිරීමේ කේතයන් ---
   const sendYouTubeCommand = (func: string, args: any[] = []) => {
     if (playerRef.current && playerRef.current.contentWindow) {
       playerRef.current.contentWindow.postMessage(
@@ -137,7 +142,6 @@ export default function CoursePlayerPage({ params }: PageProps) {
     }
   };
 
-  // Fullscreen පාලනය
   const toggleFullScreen = () => {
     if (!isFullscreen) {
       setIsFullscreen(true);
@@ -167,6 +171,20 @@ export default function CoursePlayerPage({ params }: PageProps) {
             </button>
             <h1 className={`text-base md:text-xl font-bold truncate max-w-[200px] sm:max-w-md md:max-w-lg ${textPrimary}`}>{courseData.title}</h1>
           </div>
+          
+          {/* --- 🌙 Dark/Light Mode Button --- */}
+          <div className="flex items-center flex-shrink-0">
+            <button 
+              onClick={toggleTheme} 
+              className={`rounded-full p-2 transition-colors focus:outline-none ${isDarkMode ? 'bg-slate-800 text-yellow-400 hover:bg-slate-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+            >
+              {isDarkMode ? (
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" /></svg>
+              ) : (
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+              )}
+            </button>
+          </div>
         </div>
       </header>
 
@@ -175,29 +193,33 @@ export default function CoursePlayerPage({ params }: PageProps) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 md:mb-8">
           <div className={`flex items-center justify-between rounded-2xl p-4 border shadow-sm ${isDarkMode ? 'bg-emerald-900/10 border-emerald-800/30' : 'bg-emerald-50/60 border-emerald-100'}`}>
             <div className="flex items-center gap-3 truncate">
-              <div className="bg-emerald-500 rounded-full p-2 text-white flex-shrink-0">
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.16 5.338 5.495 0 12.05 0a11.94 11.94 0 018.513 3.532 11.85 11.85 0 013.48 8.413c-.003 6.557-5.338 11.892-11.893 11.892-2.096-.002-4.142-.549-5.945-1.59L0 24zm6.305-1.654a9.92 9.92 0 005.683 1.448h.005c5.454 0 9.888-4.435 9.89-9.889a9.85 9.85 0 00-2.893-6.994A9.87 9.87 0 0012.05 1.958c-5.451 0-9.887 4.434-9.889 9.888 0 2.22.58 4.38 1.683 6.286l-.235.374-3.648.997 1.012-3.692-.361-.214a9.9 9.9 0 00-1.51-5.26c0 .01 0 0 0 0z"/></svg>
+              <div className="bg-[#25D366] rounded-full p-2.5 text-white flex-shrink-0 shadow-sm">
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12.031 0C5.385 0 0 5.383 0 12.032c0 2.128.552 4.195 1.6 6.012L.15 24l6.105-1.597A11.964 11.964 0 0012.031 24c6.643 0 12.032-5.385 12.032-12.032C24.063 5.383 18.674 0 12.031 0zm7.143 17.15c-.302.854-1.745 1.622-2.42 1.706-.527.067-1.196.126-3.414-.795-2.65-1.1-4.329-3.82-4.46-3.993-.134-.176-1.066-1.423-1.066-2.715 0-1.291.674-1.93 9.17-2.18.232-.174.526-.298.777-.074.251.222.79 1.107.962 1.328.172.222.155.397-.094.646-.248.248-.567.58-.826.855-.276.294-.567.616-.251 1.157.316.541 1.405 2.321 3.003 3.766 2.062 1.865 3.864 2.457 4.417 2.712.553.254.877.206 1.206-.178.328-.383 1.41-1.642 1.79-2.204.381-.564.76-.469 1.258-.293.498.177 3.153 1.488 3.693 1.754.541.266.903.398 1.036.621.132.222.132 1.288-.17 2.143z" />
+                </svg>
               </div>
               <div className="truncate">
                 <h4 className="text-sm font-bold">WhatsApp Group</h4>
                 <p className={`text-xs truncate ${textSecondary}`}>නිල නිවේදන ලබාගැනීමට</p>
               </div>
             </div>
-            <button onClick={handleJoinWhatsApp} className="rounded-xl bg-emerald-500 text-white px-4 py-2 text-xs font-bold hover:bg-emerald-600 transition-all flex-shrink-0">Join</button>
+            <button onClick={handleJoinWhatsApp} className="rounded-xl bg-[#25D366] text-white px-4 py-2 text-xs font-bold hover:bg-[#20b858] transition-all flex-shrink-0 shadow-sm">Join</button>
           </div>
 
           {activeSubject && (
             <div className={`flex items-center justify-between rounded-2xl p-4 border shadow-sm ${isDarkMode ? 'bg-blue-900/10 border-blue-800/30' : 'bg-blue-50/60 border-blue-100'}`}>
               <div className="flex items-center gap-3 truncate">
-                <div className="bg-blue-600 rounded-full p-2 text-white flex-shrink-0">
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M21.378 12.012l-6.86-4.526a.5.5 0 00-.77.418v9.052a.5.5 0 00.77.418l6.86-4.526a.5.5 0 000-.836zM11 5H3a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2z"/></svg>
+                <div className="bg-[#2D8CFF] rounded-full p-2.5 text-white flex-shrink-0 shadow-sm">
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M17.064 7.604a1.442 1.442 0 00-1.428.169l-2.915 1.943v-2.3a1.944 1.944 0 00-1.943-1.943H2.943A1.944 1.944 0 001 7.417v9.166A1.944 1.944 0 002.943 18.53h7.835a1.944 1.944 0 001.943-1.943v-2.3l2.915 1.943a1.44 1.44 0 002.264-1.196V9.166a1.44 1.44 0 00-1.836-1.162z" />
+                  </svg>
                 </div>
                 <div className="truncate">
                   <h4 className="text-sm font-bold">සජීවී Zoom පන්තිය</h4>
                   <p className={`text-xs truncate ${textSecondary}`}>{activeSubject.liveClass.time}</p>
                 </div>
               </div>
-              <button onClick={() => handleJoinZoom(activeSubject.liveClass.zoomLink)} className="rounded-xl bg-blue-600 text-white px-4 py-2 text-xs font-bold hover:bg-blue-700 transition-all flex-shrink-0">Zoom</button>
+              <button onClick={() => handleJoinZoom(activeSubject.liveClass.zoomLink)} className="rounded-xl bg-[#2D8CFF] text-white px-4 py-2 text-xs font-bold hover:bg-[#257ae0] transition-all flex-shrink-0 shadow-sm">Zoom</button>
             </div>
           )}
         </div>
@@ -231,7 +253,6 @@ export default function CoursePlayerPage({ params }: PageProps) {
                   <span className="text-[10px] md:text-xs font-bold text-slate-500/80 mb-2 mr-1">20minutes.lk</span>
                 </div>
 
-                {/* 🔴 iframe එකට ref=playerRef එකතු කර ඇත */}
                 <iframe 
                   ref={playerRef}
                   src={getSecuredVideoUrl(activeVideoUrl)} 
@@ -242,7 +263,6 @@ export default function CoursePlayerPage({ params }: PageProps) {
               </div>
             </div>
 
-            {/* වීඩියෝවට යටින් Control Bar එක */}
             <div className={`p-4 md:p-5 rounded-xl md:rounded-2xl border shadow-sm flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 ${cardBg}`}>
               <div className="truncate">
                 <span className="text-[10px] md:text-xs font-bold uppercase tracking-wider text-blue-500">දැන් ධාවනය වේ (Now Playing)</span>
@@ -251,15 +271,10 @@ export default function CoursePlayerPage({ params }: PageProps) {
               
               <div className="flex items-center gap-2 md:gap-3 flex-wrap">
                 
-                {/* 🔊 Custom Sound Controls (අලුතින් එකතු කළ කොටස) */}
                 <div className={`flex items-center rounded-xl border overflow-hidden shadow-sm flex-shrink-0 ${isDarkMode ? 'bg-slate-800 border-slate-600' : 'bg-slate-100 border-slate-300'}`}>
-                  
-                  {/* Volume Down */}
                   <button onClick={handleVolumeDown} title="Sound අඩු කරන්න" className={`px-3 py-2.5 md:py-3 transition-colors ${isDarkMode ? 'hover:bg-slate-700 text-slate-300' : 'hover:bg-slate-200 text-slate-700'}`}>
                     <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M18 12H6" /></svg>
                   </button>
-                  
-                  {/* Mute/Unmute */}
                   <button onClick={handleToggleMute} title={isMuted ? "Sound දාන්න" : "Mute කරන්න"} className={`px-3 py-2.5 md:py-3 transition-colors border-x ${isDarkMode ? 'hover:bg-slate-700 border-slate-600' : 'hover:bg-slate-200 border-slate-300'}`}>
                     {isMuted ? (
                       <svg className="w-4 h-4 md:w-5 md:h-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" /></svg>
@@ -267,8 +282,6 @@ export default function CoursePlayerPage({ params }: PageProps) {
                       <svg className="w-4 h-4 md:w-5 md:h-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg>
                     )}
                   </button>
-                  
-                  {/* Volume Up */}
                   <button onClick={handleVolumeUp} title="Sound වැඩි කරන්න" className={`px-3 py-2.5 md:py-3 transition-colors ${isDarkMode ? 'hover:bg-slate-700 text-slate-300' : 'hover:bg-slate-200 text-slate-700'}`}>
                     <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
                   </button>
