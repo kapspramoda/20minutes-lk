@@ -13,7 +13,6 @@ export default function CoursePlayerPage({ params }: PageProps) {
   const [activeSubjectId, setActiveSubjectId] = useState<string>("sub1");
   const [courseId, setCourseId] = useState<string>("");
 
-  // Next.js 版本 Compatibility (Build Error මඟහැරවීමට)
   useEffect(() => {
     if (document.documentElement.classList.contains("dark")) setIsDarkMode(true);
     
@@ -72,7 +71,7 @@ export default function CoursePlayerPage({ params }: PageProps) {
 
   const activeSubject = courseData.subjects.find((s) => s.id === activeSubjectId);
 
-  // YouTube ආරක්ෂිත Parameters එකතු කිරීම
+  // YouTube ආරක්ෂිත Parameters
   const getSecuredVideoUrl = (originalUrl: string) => {
     return `${originalUrl}?rel=0&modestbranding=1&showinfo=0&controls=1&disablekb=1&iv_load_policy=3`;
   };
@@ -80,7 +79,6 @@ export default function CoursePlayerPage({ params }: PageProps) {
   return (
     <div className={`modern-font min-h-screen transition-colors duration-300 ${themeBg}`}>
       
-      {/* Header */}
       <header className={`sticky top-0 z-50 w-full border-b backdrop-blur-md ${headerBg}`}>
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 md:px-6">
           <div className="flex items-center gap-3">
@@ -94,7 +92,6 @@ export default function CoursePlayerPage({ params }: PageProps) {
 
       <main className="mx-auto max-w-7xl p-4 md:p-6 lg:p-8 mt-4">
         
-        {/* WhatsApp Banner */}
         <div className={`mb-8 flex flex-col md:flex-row items-center justify-between rounded-2xl p-6 border shadow-sm ${isDarkMode ? 'bg-emerald-900/20 border-emerald-800/30' : 'bg-emerald-50 border-emerald-100'}`}>
           <div className="flex items-center gap-4 mb-4 md:mb-0">
             <div className="bg-emerald-500 rounded-full p-3 shadow-md flex-shrink-0">
@@ -113,7 +110,6 @@ export default function CoursePlayerPage({ params }: PageProps) {
           </button>
         </div>
 
-        {/* Subjects Tabs */}
         <div className="mb-8 flex space-x-2 overflow-x-auto pb-2 [&::-webkit-scrollbar]:hidden border-b border-slate-200 dark:border-slate-800">
           {courseData.subjects.map((subject) => (
             <button 
@@ -133,7 +129,6 @@ export default function CoursePlayerPage({ params }: PageProps) {
         {activeSubject && (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             
-            {/* Live Class Card */}
             <div className={`mb-8 flex flex-col md:flex-row items-center justify-between rounded-2xl p-6 border shadow-sm ${isDarkMode ? 'bg-blue-900/10 border-blue-800/30' : 'bg-blue-50 border-blue-100'}`}>
               <div className="flex flex-col mb-4 md:mb-0">
                 <span className="text-xs font-bold uppercase tracking-wider text-blue-500 mb-1">Live Class (සජීවී පන්තිය)</span>
@@ -148,34 +143,32 @@ export default function CoursePlayerPage({ params }: PageProps) {
               </button>
             </div>
 
-            {/* Recorded Lessons List */}
             <h2 className={`mb-6 text-xl font-bold border-l-4 border-slate-500 pl-3 ${textPrimary}`}>පටිගත කළ පාඩම් (Recorded Lessons)</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               {activeSubject.lessons.map((lesson) => (
                 <div key={lesson.id} className={`flex flex-col overflow-hidden rounded-2xl border shadow-sm ${cardBg}`}>
                   
-                  {/* --- 🛡️ ආරක්ෂිත වීඩියෝ ප්ලේයර් කොටස --- */}
-                    <div 
+                  {/* --- 🛡️ අලුත් ආරක්ෂිත වීඩියෝ ප්ලේයර් කොටස --- */}
+                  <div 
                     className="aspect-video w-full bg-black relative overflow-hidden select-none"
                     onContextMenu={(e) => {
-                        e.preventDefault();
-                        alert("ආරක්ෂාව හේතුවෙන් මෙහි Right-click කිරීම තහනම් කර ඇත.");
+                      e.preventDefault();
                     }}
-                    >
-                    {/* 1. Share බටන් එක සහ Title එක සම්පූර්ණයෙන්ම වසන ඉහළ ආවරණය (උස පික්සෙල් 70ක්) */}
-                    <div className="absolute top-0 left-0 w-full h-[70px] z-50 bg-transparent cursor-not-allowed" title="මෙම වීඩියෝව පිටපත් කිරීම තහනම් කර ඇත"></div>
+                  >
+                    {/* 1. Share බටන් එක සහ Title එක වසන ප්‍රබල ඉහළ ආවරණය (z-[999]) */}
+                    <div className="absolute top-0 left-0 w-full h-[80px] z-[999] bg-transparent cursor-default"></div>
                     
                     {/* 2. YouTube ලෝගෝ එක වසන පහළ වම් ආවරණය */}
-                    <div className="absolute bottom-0 left-0 w-[120px] h-[60px] z-50 bg-transparent cursor-not-allowed"></div>
+                    <div className="absolute bottom-0 left-0 w-[120px] h-[60px] z-[999] bg-transparent cursor-default"></div>
 
                     <iframe 
-                        src={getSecuredVideoUrl(lesson.videoEmbed)} 
-                        title={lesson.title}
-                        className="w-full h-full relative z-0 pointer-events-auto"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                        allowFullScreen
+                      src={getSecuredVideoUrl(lesson.videoEmbed)} 
+                      title={lesson.title}
+                      className="w-full h-full relative z-0 pointer-events-auto"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                      allowFullScreen
                     ></iframe>
-                    </div>
+                  </div>
                   
                   <div className="p-5 flex flex-col flex-grow">
                     <h3 className={`text-lg font-bold mb-4 ${textPrimary}`}>{lesson.title}</h3>
