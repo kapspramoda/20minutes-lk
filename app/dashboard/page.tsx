@@ -2,12 +2,16 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { signOut, useSession } from "next-auth/react";
-// අලුතින් එකතු කළ කොටස
 import imageCompression from "browser-image-compression";
 
 export default function DashboardPage() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const [isDarkMode, setIsDarkMode] = useState(false);
+
+  // --- අලුතින් එකතු කළ States (Database දත්ත සඳහා) ---
+  const [myCourses, setMyCourses] = useState<any[]>([]);
+  const [pendingCourses, setPendingCourses] = useState<any[]>([]);
+  const [isLoadingCourses, setIsLoadingCourses] = useState(true);
 
   // --- Modal States ---
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -40,6 +44,32 @@ export default function DashboardPage() {
     }
   };
 
+  // --- Database එකෙන් ළමයාගේ පාඨමාලා ගෙන්වා ගැනීම ---
+  useEffect(() => {
+    const fetchCourses = async () => {
+      const userPhone = (session?.user as any)?.phone || session?.user?.name || session?.user?.email;
+      if (!userPhone) return;
+
+      try {
+        const res = await fetch(`/api/student/courses?phone=${userPhone}`);
+        const data = await res.json();
+        if (res.ok) {
+          setMyCourses(data.approvedCourses);
+          setPendingCourses(data.pendingCourses);
+        }
+      } catch (error) {
+        console.error("Failed to fetch courses:", error);
+      } finally {
+        setIsLoadingCourses(false);
+      }
+    };
+
+    // User ලොග් වෙලා ඉන්නවා නම් විතරක් දත්ත ගේන්න
+    if (status === "authenticated") {
+      fetchCourses();
+    }
+  }, [status, session]);
+
   // Mobile Slider Functions
   const handleScroll = (ref: React.RefObject<HTMLDivElement | null>, setIndex: (idx: number) => void, totalItems: number) => {
     if (!ref.current) return;
@@ -55,15 +85,7 @@ export default function DashboardPage() {
     ref.current.scrollTo({ left: index * itemWidth, behavior: 'smooth' });
   };
 
-  // Mock Data
-  const myCourses = [
-    { id: 1, title: "තරග විභාග - සාමාන්‍ය දැනීම (General Knowledge)", progress: 45 },
-  ];
-
-  const pendingCourses = [
-    { id: 2, title: "තරග විභාග - බුද්ධි පරීක්ෂණය (IQ) සම්පූර්ණ පාඨමාලාව" },
-  ];
-
+  // ලබාගත හැකි අලුත් පාඨමාලා (මෙය ඉදිරියේදී Database එකෙන් ගෙනෙමු. දැනට Mock Data)
   const availableCourses = [
     { id: 3, title: "රාජ්‍ය කළමනාකරණ සහකාර විභාගය - පෙරහුරු", price: "රු. 2500" },
     { id: 4, title: "ශ්‍රී ලංකා රේගු දෙපාර්තමේන්තු විභාගය", price: "රු. 3000" },
@@ -106,20 +128,11 @@ export default function DashboardPage() {
     try {
       let fileToUpload: File | Blob = slipFile;
 
-      // පින්තූරයක් නම් පමණක් Compress කිරීම (PDF නම් ඒ විදිහටම යවනවා)
       if (slipFile.type.startsWith("image/")) {
-        const options = {
-          maxSizeMB: 1, // උපරිම සයිස් එක 1MB වලට සීමා කිරීම
-          maxWidthOrHeight: 1920, // පින්තූරයේ උපරිම පළල හෝ උස
-          useWebWorker: true,
-        };
-        
-        console.log(`Original size: ${(slipFile.size / 1024 / 1024).toFixed(2)} MB`);
+        const options = { maxSizeMB: 1, maxWidthOrHeight: 1920, useWebWorker: true };
         fileToUpload = await imageCompression(slipFile, options);
-        console.log(`Compressed size: ${(fileToUpload.size / 1024 / 1024).toFixed(2)} MB`);
       }
 
-      // Compress කරපු ෆයිල් එක Base64 වලට හැරවීම
       const base64Image = await convertToBase64(fileToUpload);
       
       const res = await fetch("/api/enroll", {
@@ -136,6 +149,8 @@ export default function DashboardPage() {
       if (res.ok) {
         alert(data.message || "ඔබේ රිසිට් පත සාර්ථකව යොමු කරන ලදී!");
         handleCloseModal();
+        // Slip එක දැම්මාට පස්සේ අලුත් දත්ත ටික ආයෙත් පෙන්වන්න පිටුව රීලෝඩ් කිරීම
+        window.location.reload(); 
       } else {
         alert(data.message || "දෝෂයක් මතු විය.");
       }
@@ -147,7 +162,7 @@ export default function DashboardPage() {
     }
   };
 
-  // --- Theme Classes (Day/Night අනුව වෙනස් වන වර්ණ - Home Page එකේ විදිහටම) ---
+  // --- Theme Classes ---
   const themeBg = isDarkMode ? "bg-slate-900 text-slate-100" : "bg-slate-50 text-slate-800";
   const headerBg = isDarkMode ? "bg-slate-900/80 border-slate-800" : "bg-white/80 border-slate-200";
   const logoTextColor = isDarkMode ? "text-white" : "text-slate-900";
@@ -162,7 +177,7 @@ export default function DashboardPage() {
   return (
     <div className={`modern-font flex min-h-screen flex-col transition-colors duration-300 ${themeBg}`}>
       
-      {/* --- Home Page Style Header --- */}
+      {/* Header */}
       <header className={`sticky top-0 z-50 w-full border-b backdrop-blur-md transition-all duration-300 ${headerBg}`}>
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 md:px-6 md:py-4">
           <div className="flex items-center gap-2 md:gap-3">
@@ -196,79 +211,80 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      {/* --- Main Content --- */}
       <main className="flex-grow mx-auto w-full max-w-7xl p-4 md:p-6 mt-4">
         
-        {/* 1. මගේ පාඨමාලා */}
-        <section className="mb-12 md:mb-16">
-          <h2 className={`mb-6 text-xl md:text-2xl font-bold border-l-4 border-emerald-500 pl-3 ${sectionTitleColor}`}>මගේ පාඨමාලා (My Courses)</h2>
-          
-          {/* Desktop එකේදී justify-center හරහා මැදට ගැනීම මෙතන සිදු වේ */}
-          <div 
-            ref={myCourseRef}
-            onScroll={() => handleScroll(myCourseRef as any, setMyCourseIndex, myCourses.length)}
-            className="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-4 md:flex-wrap md:justify-center md:gap-8 md:overflow-visible [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']"
-          >
-            {myCourses.map((course) => (
-              <div key={course.id} className={`flex-none w-[75%] sm:w-[45%] md:w-[30%] snap-center overflow-hidden rounded-2xl shadow-sm transition hover:shadow-md border ${cardBg}`}>
-                <div className="bg-emerald-500/10 h-28 md:h-32 flex items-center justify-center">
-                   <svg className="w-10 h-10 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                </div>
-                <div className="p-5">
-                  <h3 className={`mb-3 text-sm md:text-base font-bold line-clamp-2 ${cardTitle}`}>{course.title}</h3>
-                  <div className={`w-full rounded-full h-2 mb-4 ${isDarkMode ? 'bg-slate-700' : 'bg-slate-100'}`}>
-                    <div className="bg-emerald-500 h-2 rounded-full" style={{ width: `${course.progress}%` }}></div>
-                  </div>
-                  <button className="w-full rounded-full bg-emerald-500 py-2.5 text-xs md:text-sm font-bold text-white hover:bg-emerald-600 transition shadow-sm">
-                    පාඩම් නරඹන්න (Watch)
-                  </button>
-                </div>
-              </div>
-            ))}
+        {/* Loading State එකක් පෙන්වීම */}
+        {isLoadingCourses ? (
+          <div className="flex justify-center items-center h-40">
+            <p className="text-lg font-bold text-slate-400 animate-pulse">පාඨමාලා විස්තර ගෙනෙමින් පවතී...</p>
           </div>
-          {/* Mobile Dots */}
-          {myCourses.length > 1 && (
-            <div className="mt-2 flex justify-center space-x-2.5 md:hidden">
-              {myCourses.map((_, idx) => (
-                <button key={idx} onClick={() => scrollToIndex(myCourseRef as any, idx, myCourses.length)} className={`h-2 rounded-full transition-all duration-300 ${myCourseIndex === idx ? "w-6 bg-blue-600" : (isDarkMode ? "w-2 bg-slate-700" : "w-2 bg-slate-200")}`} />
-              ))}
-            </div>
-          )}
-        </section>
+        ) : (
+          <>
+            {/* 1. මගේ පාඨමාලා */}
+            {myCourses.length > 0 && (
+              <section className="mb-12 md:mb-16">
+                <h2 className={`mb-6 text-xl md:text-2xl font-bold border-l-4 border-emerald-500 pl-3 ${sectionTitleColor}`}>මගේ පාඨමාලා (My Courses)</h2>
+                
+                <div 
+                  ref={myCourseRef}
+                  onScroll={() => handleScroll(myCourseRef as any, setMyCourseIndex, myCourses.length)}
+                  className="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-4 md:flex-wrap md:justify-start md:gap-8 md:overflow-visible [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']"
+                >
+                  {myCourses.map((course) => (
+                    <div key={course._id} className={`flex-none w-[75%] sm:w-[45%] md:w-[30%] snap-center overflow-hidden rounded-2xl shadow-sm transition hover:shadow-md border ${cardBg}`}>
+                      <div className="bg-emerald-500/10 h-28 md:h-32 flex items-center justify-center">
+                         <svg className="w-10 h-10 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                      </div>
+                      <div className="p-5 flex flex-col justify-between h-[150px]">
+                        <h3 className={`mb-3 text-sm md:text-base font-bold line-clamp-2 ${cardTitle}`}>{course.courseTitle}</h3>
+                        <button className="w-full rounded-full bg-emerald-500 py-2.5 text-xs md:text-sm font-bold text-white hover:bg-emerald-600 transition shadow-sm mt-auto">
+                          පාඩම් නරඹන්න (Watch)
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
 
-        {/* 2. අනුමැතිය පවතින */}
-        <section className="mb-12 md:mb-16">
-          <h2 className={`mb-6 text-xl md:text-2xl font-bold border-l-4 border-amber-500 pl-3 ${sectionTitleColor}`}>අනුමැතිය පවතින (Pending Approvals)</h2>
-          
-          <div 
-            ref={pendingRef}
-            onScroll={() => handleScroll(pendingRef as any, setPendingIndex, pendingCourses.length)}
-            className="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-4 md:flex-wrap md:justify-center md:gap-8 md:overflow-visible [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']"
-          >
-            {pendingCourses.map((course) => (
-              <div key={course.id} className={`flex-none w-[75%] sm:w-[45%] md:w-[30%] snap-center overflow-hidden rounded-2xl shadow-sm border relative opacity-80 ${cardBg}`}>
-                <div className="absolute top-3 right-3 bg-amber-500/20 text-amber-500 text-xs font-bold px-2.5 py-1 rounded-full">Pending</div>
-                <div className="bg-slate-500/10 h-28 md:h-32 flex items-center justify-center">
-                   <svg className={`w-10 h-10 ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            {/* 2. අනුමැතිය පවතින */}
+            {pendingCourses.length > 0 && (
+              <section className="mb-12 md:mb-16">
+                <h2 className={`mb-6 text-xl md:text-2xl font-bold border-l-4 border-amber-500 pl-3 ${sectionTitleColor}`}>අනුමැතිය පවතින (Pending Approvals)</h2>
+                
+                <div 
+                  ref={pendingRef}
+                  onScroll={() => handleScroll(pendingRef as any, setPendingIndex, pendingCourses.length)}
+                  className="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-4 md:flex-wrap md:justify-start md:gap-8 md:overflow-visible [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']"
+                >
+                  {pendingCourses.map((course) => (
+                    <div key={course._id} className={`flex-none w-[75%] sm:w-[45%] md:w-[30%] snap-center overflow-hidden rounded-2xl shadow-sm border relative opacity-80 ${cardBg}`}>
+                      <div className="absolute top-3 right-3 bg-amber-500/20 text-amber-500 text-xs font-bold px-2.5 py-1 rounded-full">Pending</div>
+                      <div className="bg-slate-500/10 h-28 md:h-32 flex items-center justify-center">
+                         <svg className={`w-10 h-10 ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                      </div>
+                      <div className="p-5 flex flex-col justify-between h-[150px]">
+                        <h3 className={`mb-2 text-sm md:text-base font-bold line-clamp-2 ${cardTitle}`}>{course.courseTitle}</h3>
+                        <p className={`text-xs mb-4 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Admin විසින් රිසිට් පත පරීක්ෂා කරමින් පවතී.</p>
+                        <button disabled className={`w-full rounded-full py-2.5 text-xs md:text-sm font-bold cursor-not-allowed mt-auto ${isDarkMode ? 'bg-slate-700 text-slate-500' : 'bg-slate-100 text-slate-400'}`}>
+                          අනුමත වනතුරු රැඳෙන්න
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <div className="p-5">
-                  <h3 className={`mb-2 text-sm md:text-base font-bold line-clamp-2 ${cardTitle}`}>{course.title}</h3>
-                  <p className={`text-xs mb-4 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Admin විසින් ඔබේ රිසිට් පත පරීක්ෂා කරමින් පවතී.</p>
-                  <button disabled className={`w-full rounded-full py-2.5 text-xs md:text-sm font-bold cursor-not-allowed ${isDarkMode ? 'bg-slate-700 text-slate-500' : 'bg-slate-100 text-slate-400'}`}>
-                    අනුමත වනතුරු රැඳෙන්න
-                  </button>
-                </div>
+              </section>
+            )}
+
+            {/* ළමයාට කිසිම පාඨමාලාවක් නැත්නම් පෙන්වන පණිවිඩය */}
+            {myCourses.length === 0 && pendingCourses.length === 0 && (
+              <div className={`mb-12 p-8 text-center rounded-2xl border ${isDarkMode ? 'border-slate-700 bg-slate-800/50' : 'border-slate-200 bg-slate-50'}`}>
+                <h3 className={`text-lg font-bold mb-2 ${textPrimary}`}>ඔබ තවමත් කිසිදු පාඨමාලාවකට ඇතුළත් වී නොමැත! 📚</h3>
+                <p className={`text-sm ${textSecondary}`}>පහතින් ඇති පාඨමාලා වලින් ඔබට අවශ්‍ය පාඨමාලාව තෝරාගෙන ඇතුළත් වන්න.</p>
               </div>
-            ))}
-          </div>
-          {pendingCourses.length > 1 && (
-            <div className="mt-2 flex justify-center space-x-2.5 md:hidden">
-              {pendingCourses.map((_, idx) => (
-                <button key={idx} onClick={() => scrollToIndex(pendingRef as any, idx, pendingCourses.length)} className={`h-2 rounded-full transition-all duration-300 ${pendingIndex === idx ? "w-6 bg-blue-600" : (isDarkMode ? "w-2 bg-slate-700" : "w-2 bg-slate-200")}`} />
-              ))}
-            </div>
-          )}
-        </section>
+            )}
+          </>
+        )}
 
         {/* 3. ලබාගත හැකි අලුත් පාඨමාලා */}
         <section>
@@ -277,7 +293,7 @@ export default function DashboardPage() {
           <div 
             ref={availableRef}
             onScroll={() => handleScroll(availableRef as any, setAvailableIndex, availableCourses.length)}
-            className="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-4 md:flex-wrap md:justify-center md:gap-8 md:overflow-visible [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']"
+            className="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-4 md:flex-wrap md:justify-start md:gap-8 md:overflow-visible [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']"
           >
             {availableCourses.map((course) => (
               <div key={course.id} className={`flex-none w-[75%] sm:w-[45%] md:w-[30%] snap-center flex flex-col overflow-hidden rounded-2xl shadow-sm transition hover:shadow-md border hover:-translate-y-1 duration-300 ${cardBg}`}>
@@ -291,7 +307,7 @@ export default function DashboardPage() {
                   </div>
                   <button 
                     onClick={() => handleEnrollClick(course)}
-                    className="w-full rounded-full bg-blue-600 py-2.5 text-xs md:text-sm font-bold text-white hover:bg-blue-700 transition shadow-sm"
+                    className="w-full rounded-full bg-blue-600 py-2.5 text-xs md:text-sm font-bold text-white hover:bg-blue-700 transition shadow-sm mt-auto"
                   >
                     ඇතුළත් වන්න (Enroll)
                   </button>
@@ -299,17 +315,10 @@ export default function DashboardPage() {
               </div>
             ))}
           </div>
-          {availableCourses.length > 1 && (
-            <div className="mt-2 flex justify-center space-x-2.5 md:hidden">
-              {availableCourses.map((_, idx) => (
-                <button key={idx} onClick={() => scrollToIndex(availableRef as any, idx, availableCourses.length)} className={`h-2 rounded-full transition-all duration-300 ${availableIndex === idx ? "w-6 bg-blue-600" : (isDarkMode ? "w-2 bg-slate-700" : "w-2 bg-slate-200")}`} />
-              ))}
-            </div>
-          )}
         </section>
       </main>
 
-      {/* --- Home Page Style Footer --- */}
+      {/* Footer */}
       <footer className={`px-4 py-10 transition-colors duration-300 md:px-6 md:py-16 mt-12 ${isDarkMode ? 'bg-black text-slate-400 border-t border-slate-900' : 'bg-slate-900 text-slate-300'}`}>
         <div className="mx-auto grid max-w-7xl gap-10 md:grid-cols-3 md:gap-12">
           <div>
@@ -323,34 +332,19 @@ export default function DashboardPage() {
           </div>
           
           <div>
-            <h4 className="mb-4 text-base font-bold text-white md:mb-6 md:text-lg">ඉක්මන් සබැඳි</h4>
-            <ul className="space-y-3 text-sm text-slate-400">
-              <li><a href="#" className="hover:text-white transition-colors">ලොග් වන්න</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">ලියාපදිංචි වන්න</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">පාඨමාලා</a></li>
-            </ul>
-          </div>
-          
-          <div>
             <h4 className="mb-4 text-base font-bold text-white md:mb-6 md:text-lg">අපව සම්බන්ධ කරගන්න</h4>
             <ul className="space-y-4 text-sm text-slate-400">
               <li className="flex items-start"><span className="mr-3 text-lg mt-0.5">📍</span><span>Sewana Mawatha, Gagabada Road,<br/>Suwarapola, Piliyandala</span></li>
               <li className="flex items-center"><span className="mr-3 text-lg">💬</span><span>071 968 9513 (WhatsApp)</span></li>
-              <li className="flex items-center"><span className="mr-3 text-lg">📞</span><span>077 531 5799 (Call)</span></li>
             </ul>
           </div>
         </div>
-        
-        <div className={`mx-auto mt-10 max-w-7xl border-t pt-6 text-center text-xs md:mt-16 md:pt-8 md:text-sm ${isDarkMode ? 'border-slate-800 text-slate-600' : 'border-slate-800 text-slate-500'}`}>
-          &copy; {new Date().getFullYear()} 20minutes.lk. All rights reserved.
-        </div>
       </footer>
 
-      {/* --- Payment Modal (Dark Mode Supported) --- */}
+      {/* Payment Modal */}
       {isModalOpen && selectedCourse && (
         <div className={`fixed inset-0 z-[60] flex items-center justify-center p-4 backdrop-blur-sm ${modalOverlayBg}`}>
           <div className={`w-full max-w-lg rounded-3xl p-6 md:p-8 shadow-2xl animate-in fade-in zoom-in border ${modalBodyBg}`}>
-            
             <div className={`mb-5 flex items-center justify-between border-b pb-4 ${isDarkMode ? 'border-slate-700' : 'border-slate-100'}`}>
               <h3 className={`text-lg md:text-xl font-extrabold ${sectionTitleColor}`}>පාඨමාලාවට ඇතුළත් වීම</h3>
               <button onClick={handleCloseModal} className={`rounded-full p-1.5 transition-colors ${isDarkMode ? 'bg-slate-700 text-slate-400 hover:text-red-400' : 'bg-slate-100 text-slate-400 hover:text-red-500'}`}>
