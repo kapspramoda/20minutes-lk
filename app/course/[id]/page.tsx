@@ -19,19 +19,20 @@ export default function CoursePlayerPage() {
   const textPrimary = isDarkMode ? "text-white" : "text-slate-900";
   const textSecondary = isDarkMode ? "text-slate-400" : "text-slate-500";
 
-  // --- තාවකාලික පාඨමාලා දත්ත (ඉදිරියේදී මේවා Database එකෙන් ගෙනෙමු) ---
+  // --- තාවකාලික පාඨමාලා දත්ත ---
   const courseData = {
     title: "තරග විභාග - සාමාන්‍ය දැනීම සහ IQ සම්පූර්ණ පාඨමාලාව",
-    whatsappLink: "https://chat.whatsapp.com/your-hidden-invite-link", // මෙතනට ඔයාගේ ලින්ක් එක දාන්න
+    whatsappLink: "https://chat.whatsapp.com/your-hidden-invite-link", 
     subjects: [
       {
         id: "sub1",
         name: "සාමාන්‍ය දැනීම (GK)",
         liveClass: {
           time: "සෑම ඉරිදාවකම රාත්‍රී 8:00 ට",
-          zoomLink: "https://zoom.us/j/123456789" // මෙතනට Zoom ලින්ක් එක
+          zoomLink: "https://zoom.us/j/123456789"
         },
         lessons: [
+          // URL එක අගට කිසිවක් නැති සාමාන්‍ය Embed ලින්ක් එක
           { id: "l1", title: "1 වන පාඩම - ශ්‍රී ලංකාවේ ඉතිහාසය", videoEmbed: "https://www.youtube.com/embed/dQw4w9WgXcQ", pdfUrl: "#" },
           { id: "l2", title: "2 වන පාඩම - භූගෝල විද්‍යාව", videoEmbed: "https://www.youtube.com/embed/dQw4w9WgXcQ", pdfUrl: "#" }
         ]
@@ -50,9 +51,7 @@ export default function CoursePlayerPage() {
     ]
   };
 
-  // WhatsApp ලින්ක් එක ආරක්ෂිතව Open කිරීමේ Function එක (Right-click/Copy කරන්න බැහැ)
   const handleJoinWhatsApp = () => {
-    // URL එක බ්‍රවුසරයේ පේන්නෙ නැතුව කෙලින්ම අලුත් Tab එකකින් විවෘත වේ
     window.open(courseData.whatsappLink, "_blank", "noopener,noreferrer");
   };
 
@@ -62,10 +61,15 @@ export default function CoursePlayerPage() {
 
   const activeSubject = courseData.subjects.find((s) => s.id === activeSubjectId);
 
+  // වීඩියෝ ලින්ක් එකට ආරක්ෂිත කොටස් එකතු කරන Function එක
+  const getSecuredVideoUrl = (originalUrl: string) => {
+    // මේකෙන් YouTube Logo එක, Share බටන් එක, සහ වෙනත් චැනල් වල වීඩියෝ පෙන්වන එක අක්‍රිය කරනවා
+    return `${originalUrl}?rel=0&modestbranding=1&showinfo=0&disablekb=1`;
+  };
+
   return (
     <div className={`modern-font min-h-screen transition-colors duration-300 ${themeBg}`}>
       
-      {/* Header */}
       <header className={`sticky top-0 z-50 w-full border-b backdrop-blur-md ${headerBg}`}>
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 md:px-6">
           <div className="flex items-center gap-3">
@@ -79,7 +83,6 @@ export default function CoursePlayerPage() {
 
       <main className="mx-auto max-w-7xl p-4 md:p-6 lg:p-8 mt-4">
         
-        {/* WhatsApp Group Banner */}
         <div className={`mb-8 flex flex-col md:flex-row items-center justify-between rounded-2xl p-6 border shadow-sm ${isDarkMode ? 'bg-emerald-900/20 border-emerald-800/30' : 'bg-emerald-50 border-emerald-100'}`}>
           <div className="flex items-center gap-4 mb-4 md:mb-0">
             <div className="bg-emerald-500 rounded-full p-3 shadow-md flex-shrink-0">
@@ -90,7 +93,6 @@ export default function CoursePlayerPage() {
               <p className={`text-sm ${textSecondary}`}>සියලුම නිවේදන, Tutes සහ පන්ති වෙලාවන් සමූහයට එවනු ලැබේ.</p>
             </div>
           </div>
-          {/* මෙතන <a> tag එකක් නෙවෙයි තියෙන්නේ. ඒ නිසා Right-click කරලා link එක copy කරන්න බැහැ. */}
           <button 
             onClick={handleJoinWhatsApp}
             className="w-full md:w-auto rounded-full bg-emerald-500 px-8 py-3.5 text-sm font-bold text-white shadow-lg hover:bg-emerald-600 hover:-translate-y-1 transition-all duration-300"
@@ -99,7 +101,6 @@ export default function CoursePlayerPage() {
           </button>
         </div>
 
-        {/* Subjects Tabs */}
         <div className="mb-8 flex space-x-2 overflow-x-auto pb-2 [&::-webkit-scrollbar]:hidden border-b border-slate-200 dark:border-slate-800">
           {courseData.subjects.map((subject) => (
             <button 
@@ -116,11 +117,9 @@ export default function CoursePlayerPage() {
           ))}
         </div>
 
-        {/* Active Subject Content */}
         {activeSubject && (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             
-            {/* Live Class (Zoom) Card */}
             <div className={`mb-8 flex flex-col md:flex-row items-center justify-between rounded-2xl p-6 border shadow-sm ${isDarkMode ? 'bg-blue-900/10 border-blue-800/30' : 'bg-blue-50 border-blue-100'}`}>
               <div className="flex flex-col mb-4 md:mb-0">
                 <span className="text-xs font-bold uppercase tracking-wider text-blue-500 mb-1">Live Class (සජීවී පන්තිය)</span>
@@ -135,23 +134,28 @@ export default function CoursePlayerPage() {
               </button>
             </div>
 
-            {/* Recorded Videos List */}
             <h2 className={`mb-6 text-xl font-bold border-l-4 border-slate-500 pl-3 ${textPrimary}`}>පටිගත කළ පාඩම් (Recorded Lessons)</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               {activeSubject.lessons.map((lesson) => (
                 <div key={lesson.id} className={`flex flex-col overflow-hidden rounded-2xl border shadow-sm ${cardBg}`}>
-                  {/* YouTube Video Player */}
-                  <div className="aspect-video w-full bg-black">
+                  
+                  {/* Right-Click අක්‍රිය කිරීමේ කොටස (onContextMenu) */}
+                  <div 
+                    className="aspect-video w-full bg-black relative"
+                    onContextMenu={(e) => {
+                      e.preventDefault();
+                      alert("වීඩියෝව බාගත කිරීම හෝ පිටපත් කිරීම තහනම් කර ඇත.");
+                    }}
+                  >
                     <iframe 
-                      src={lesson.videoEmbed} 
+                      src={getSecuredVideoUrl(lesson.videoEmbed)} 
                       title={lesson.title}
-                      className="w-full h-full"
+                      className="w-full h-full pointer-events-auto"
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
                       allowFullScreen
                     ></iframe>
                   </div>
                   
-                  {/* Lesson Details & PDF Download */}
                   <div className="p-5 flex flex-col flex-grow">
                     <h3 className={`text-lg font-bold mb-4 ${textPrimary}`}>{lesson.title}</h3>
                     <div className="mt-auto">
