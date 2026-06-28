@@ -148,32 +148,29 @@ export default function CoursePlayerPage({ params }: PageProps) {
           
           {/* 🎬 [වම් පැත්ත] ප්‍රධාන වීඩියෝ ප්ලේයර් කොටස */}
           <div className="lg:col-span-2 space-y-4">
-           {/* --- 🛡️ අලුත් ආරක්ෂිත වීඩියෝ ප්ලේයර් කොටස --- */}
-            <div 
-            className="aspect-video w-full bg-black relative overflow-hidden select-none"
-            onContextMenu={(e) => {
-                e.preventDefault();
-            }}
-            >
-            {/* 1. Share බටන් එක සහ Title එක වසන ඉහළ කළු පැහැති ආවරණය (සම්පූර්ණයෙන්ම වැසේ) */}
-            <div className="absolute top-0 left-0 w-full h-[50px] z-[999] bg-black pointer-events-none"></div>
             
-            {/* 2. YouTube ලෝගෝ එක පෙනෙන පහළ දකුණු කෙළවර සම්පූර්ණයෙන්ම වසන කළු පැහැති කොටුව */}
-            {/* වීඩියෝව ප්ලේ වෙද්දී යූටියුබ් අකුරු මතුවන තැන මෙයින් වැසී යයි */}
-            <div className="absolute bottom-[40px] right-[10px] w-[110px] h-[35px] z-[999] bg-black pointer-events-none opacity-100"></div>
+            {/* --- 🛡️ අලුත් ආරක්ෂිත වීඩියෝ ප්ලේයර් කොටස --- */}
+            <div className="aspect-video w-full bg-black relative rounded-2xl overflow-hidden shadow-lg select-none"
+                 onContextMenu={(e) => e.preventDefault()}
+            >
+              {/* 1. Share බටන් එක සහ Title එක වසන ඉහළ කළු පැහැති ආවරණය (සම්පූර්ණයෙන්ම වැසේ) */}
+              <div className="absolute top-0 left-0 w-full h-[50px] z-[999] bg-black pointer-events-none"></div>
+              
+              {/* 2. YouTube ලෝගෝ එක පෙනෙන පහළ දකුණු කෙළවර සම්පූර්ණයෙන්ම වසන කළු පැහැති කොටුව */}
+              <div className="absolute bottom-[40px] right-[10px] w-[110px] h-[35px] z-[999] bg-black pointer-events-none"></div>
 
-            {/* (කැමති නම් කළු කොටුව වෙනුවට ඔයාගේ Brand Name එක මෙතන දාන්නත් පුළුවන්) */}
-            <div className="absolute bottom-[42px] right-[15px] z-[1000] pointer-events-none text-[11px] text-slate-500 font-bold bg-black px-2 py-1 rounded">
+              {/* 20minutes.lk Watermark */}
+              <div className="absolute bottom-[42px] right-[15px] z-[1000] pointer-events-none text-[11px] text-slate-500 font-bold bg-black px-2 py-1 rounded">
                 20minutes.lk
-            </div>
+              </div>
 
-            <iframe 
-                src={getSecuredVideoUrl(lesson.videoEmbed)} 
-                title={lesson.title}
+              <iframe 
+                src={getSecuredVideoUrl(activeVideoUrl)} 
+                title={activeVideoTitle}
                 className="w-full h-full relative z-0 pointer-events-auto"
                 style={{ marginTop: '-45px', height: 'calc(100% + 45px)' }} // උඩ තීරුව කැපී පෙනෙන ලෙස සකස් කිරීම
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-            ></iframe>
+              ></iframe>
             </div>
 
             {/* වීඩියෝවට යටින් මාතෘකාව සහ PDF බටන් එක */}
