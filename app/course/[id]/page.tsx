@@ -3,14 +3,26 @@
 import React, { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 
-export default function CoursePlayerPage() {
+type PageProps = {
+  params: Promise<{ id: string }> | { id: string };
+};
+
+export default function CoursePlayerPage({ params }: PageProps) {
   const { data: session } = useSession();
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [activeSubjectId, setActiveSubjectId] = useState<string>("sub1");
+  const [courseId, setCourseId] = useState<string>("");
 
+  // Next.js 版本 Compatibility (Build Error මඟහැරවීමට)
   useEffect(() => {
     if (document.documentElement.classList.contains("dark")) setIsDarkMode(true);
-  }, []);
+    
+    const resolveParams = async () => {
+      const resolved = await params;
+      setCourseId(resolved.id);
+    };
+    resolveParams();
+  }, [params]);
 
   // --- Theme Classes ---
   const themeBg = isDarkMode ? "bg-slate-900 text-slate-100" : "bg-slate-50 text-slate-800";
@@ -32,7 +44,6 @@ export default function CoursePlayerPage() {
           zoomLink: "https://zoom.us/j/123456789"
         },
         lessons: [
-          // URL එක අගට කිසිවක් නැති සාමාන්‍ය Embed ලින්ක් එක
           { id: "l1", title: "1 වන පාඩම - ශ්‍රී ලංකාවේ ඉතිහාසය", videoEmbed: "https://www.youtube.com/embed/dQw4w9WgXcQ", pdfUrl: "#" },
           { id: "l2", title: "2 වන පාඩම - භූගෝල විද්‍යාව", videoEmbed: "https://www.youtube.com/embed/dQw4w9WgXcQ", pdfUrl: "#" }
         ]
@@ -61,15 +72,15 @@ export default function CoursePlayerPage() {
 
   const activeSubject = courseData.subjects.find((s) => s.id === activeSubjectId);
 
-  // වීඩියෝ ලින්ක් එකට ආරක්ෂිත කොටස් එකතු කරන Function එක
+  // YouTube ආරක්ෂිත Parameters එකතු කිරීම
   const getSecuredVideoUrl = (originalUrl: string) => {
-    // මේකෙන් YouTube Logo එක, Share බටන් එක, සහ වෙනත් චැනල් වල වීඩියෝ පෙන්වන එක අක්‍රිය කරනවා
-    return `${originalUrl}?rel=0&modestbranding=1&showinfo=0&disablekb=1`;
+    return `${originalUrl}?rel=0&modestbranding=1&showinfo=0&controls=1&disablekb=1&iv_load_policy=3`;
   };
 
   return (
     <div className={`modern-font min-h-screen transition-colors duration-300 ${themeBg}`}>
       
+      {/* Header */}
       <header className={`sticky top-0 z-50 w-full border-b backdrop-blur-md ${headerBg}`}>
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 md:px-6">
           <div className="flex items-center gap-3">
@@ -83,6 +94,7 @@ export default function CoursePlayerPage() {
 
       <main className="mx-auto max-w-7xl p-4 md:p-6 lg:p-8 mt-4">
         
+        {/* WhatsApp Banner */}
         <div className={`mb-8 flex flex-col md:flex-row items-center justify-between rounded-2xl p-6 border shadow-sm ${isDarkMode ? 'bg-emerald-900/20 border-emerald-800/30' : 'bg-emerald-50 border-emerald-100'}`}>
           <div className="flex items-center gap-4 mb-4 md:mb-0">
             <div className="bg-emerald-500 rounded-full p-3 shadow-md flex-shrink-0">
@@ -101,6 +113,7 @@ export default function CoursePlayerPage() {
           </button>
         </div>
 
+        {/* Subjects Tabs */}
         <div className="mb-8 flex space-x-2 overflow-x-auto pb-2 [&::-webkit-scrollbar]:hidden border-b border-slate-200 dark:border-slate-800">
           {courseData.subjects.map((subject) => (
             <button 
@@ -120,6 +133,7 @@ export default function CoursePlayerPage() {
         {activeSubject && (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             
+            {/* Live Class Card */}
             <div className={`mb-8 flex flex-col md:flex-row items-center justify-between rounded-2xl p-6 border shadow-sm ${isDarkMode ? 'bg-blue-900/10 border-blue-800/30' : 'bg-blue-50 border-blue-100'}`}>
               <div className="flex flex-col mb-4 md:mb-0">
                 <span className="text-xs font-bold uppercase tracking-wider text-blue-500 mb-1">Live Class (සජීවී පන්තිය)</span>
@@ -134,23 +148,30 @@ export default function CoursePlayerPage() {
               </button>
             </div>
 
+            {/* Recorded Lessons List */}
             <h2 className={`mb-6 text-xl font-bold border-l-4 border-slate-500 pl-3 ${textPrimary}`}>පටිගත කළ පාඩම් (Recorded Lessons)</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               {activeSubject.lessons.map((lesson) => (
                 <div key={lesson.id} className={`flex flex-col overflow-hidden rounded-2xl border shadow-sm ${cardBg}`}>
                   
-                  {/* Right-Click අක්‍රිය කිරීමේ කොටස (onContextMenu) */}
+                  {/* --- 🛡️ ආරක්ෂිත වීඩියෝ ප්ලේයර් කොටස --- */}
                   <div 
-                    className="aspect-video w-full bg-black relative"
+                    className="aspect-video w-full bg-black relative overflow-hidden select-none"
                     onContextMenu={(e) => {
                       e.preventDefault();
-                      alert("වීඩියෝව බාගත කිරීම හෝ පිටපත් කිරීම තහනම් කර ඇත.");
+                      alert("ආරක්ෂාව හේතුවෙන් මෙහි Right-click කිරීම තහනම් කර ඇත.");
                     }}
                   >
+                    {/* 1. Share බටන් එක වසන ඉහළ දකුණු විනිවිද පෙනෙන ආවරණය */}
+                    <div className="absolute top-0 right-0 w-[40%] h-[25%] bg-transparent z-10 cursor-default" />
+                    
+                    {/* 2. YouTube ලෝගෝ එක වසන පහළ දකුණු විනිවිද පෙනෙන ආවරණය */}
+                    <div className="absolute bottom-0 right-0 w-[25%] h-[20%] bg-transparent z-10 cursor-default" />
+
                     <iframe 
                       src={getSecuredVideoUrl(lesson.videoEmbed)} 
                       title={lesson.title}
-                      className="w-full h-full pointer-events-auto"
+                      className="w-full h-full z-0"
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
                       allowFullScreen
                     ></iframe>
