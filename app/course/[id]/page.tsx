@@ -13,6 +13,9 @@ export default function CoursePlayerPage({ params }: PageProps) {
   const [activeSubjectId, setActiveSubjectId] = useState<string>("sub1");
   const [courseId, setCourseId] = useState<string>("");
 
+  // Full Screen Mode එක පාලනය කිරීම සඳහා State එක
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
   // --- තාවකාලික පාඨමාලා දත්ත ---
   const courseData = {
     title: "තරග විභාග - සාමාන්‍ය දැනීම සහ IQ සම්පූර්ණ පාඨමාලාව",
@@ -91,6 +94,26 @@ export default function CoursePlayerPage({ params }: PageProps) {
     return `${originalUrl}?rel=0&modestbranding=1&showinfo=0&controls=1&disablekb=1&iv_load_policy=3&fs=0`;
   };
 
+  // අපගේ Custom Fullscreen පාලක function එක
+  const toggleFullScreen = () => {
+    if (!isFullscreen) {
+      setIsFullscreen(true);
+      // ෆෝන් එකේ ස්වයංක්‍රීයව Landscape වීමට උපදෙස් දීම (Supported Devices වල පමණක් ක්‍රියා කරයි)
+      try {
+        if (screen.orientation && (screen.orientation as any).lock) {
+          (screen.orientation as any).lock("landscape").catch(() => {});
+        }
+      } catch (e) {}
+    } else {
+      setIsFullscreen(false);
+      try {
+        if (screen.orientation && (screen.orientation as any).unlock) {
+          (screen.orientation as any).unlock();
+        }
+      } catch (e) {}
+    }
+  };
+
   return (
     <div className={`modern-font min-h-screen transition-colors duration-300 ${themeBg}`}>
       
@@ -143,40 +166,75 @@ export default function CoursePlayerPage({ params }: PageProps) {
           {/* 🎬 [වම් පැත්ත] ප්‍රධාන වීඩියෝ ප්ලේයර් කොටස */}
           <div className="lg:col-span-2 space-y-4">
             
-            <div className="aspect-video w-full bg-black relative rounded-xl md:rounded-2xl overflow-hidden shadow-lg select-none"
+            {/* 
+              Fullscreen අවස්ථාවේදී මෙම කොටස මුළු තිරයම ආවරණය වන සේ වෙනස් වේ (fixed inset-0).
+              එසේ නොමැති නම් එය සාමාන්‍ය වීඩියෝ කොටුවකි.
+            */}
+            <div className={
+                  isFullscreen 
+                  ? "fixed inset-0 z-[99999] bg-black w-screen h-[100dvh] flex flex-col justify-center select-none" 
+                  : "aspect-video w-full bg-black relative rounded-xl md:rounded-2xl overflow-hidden shadow-lg select-none"
+                }
                  onContextMenu={(e) => e.preventDefault()}
             >
-              {/* 1. සම්පූර්ණ ඉහළ තීරුවම වසන කළු ආවරණය (Responsive: 12% height) */}
-              <div className="absolute top-0 left-0 w-full h-[12%] z-[999] bg-black pointer-events-none"></div>
               
-              {/* 2. සම්පූර්ණ පහළ තීරුවම වසන කළු ආවරණය (Responsive: 12% height) - Watermark එක සහිතව */}
-              <div className="absolute bottom-0 left-0 w-full h-[12%] z-[999] bg-black pointer-events-none flex items-center justify-end px-3 md:px-5">
-                <span className="text-[10px] md:text-xs font-bold text-slate-500/80">20minutes.lk</span>
-              </div>
+              {/* Fullscreen අවස්ථාවේදී පෙනෙන Close (X) බටන් එක */}
+              {isFullscreen && (
+                <button 
+                  onClick={toggleFullScreen} 
+                  className="absolute top-4 right-4 z-[1000] bg-white/20 p-2 rounded-full text-white hover:bg-white/40 border border-white/30 backdrop-blur-sm transition-all"
+                  title="Close Fullscreen"
+                >
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+              )}
 
-              <iframe 
-                src={getSecuredVideoUrl(activeVideoUrl)} 
-                title={activeVideoTitle}
-                className="w-full h-full relative z-0 pointer-events-auto"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-              ></iframe>
+              <div className="relative w-full h-full flex-grow">
+                {/* 1. සම්පූර්ණ ඉහළ තීරුවම වසන කළු ආවරණය (ස්ථාවර 65px උස) */}
+                <div className="absolute top-0 left-0 w-full h-[65px] md:h-[75px] z-[999] bg-black pointer-events-none"></div>
+                
+                {/* 2. සම්පූර්ණ පහළ තීරුවම වසන කළු ආවරණය (ස්ථාවර 60px උස) - Watermark එක සහිතව */}
+                <div className="absolute bottom-0 left-0 w-full h-[60px] md:h-[65px] z-[999] bg-black pointer-events-none flex items-center justify-end px-3 md:px-5">
+                  <span className="text-[10px] md:text-xs font-bold text-slate-500/80 mb-2 mr-1">20minutes.lk</span>
+                </div>
+
+                <iframe 
+                  src={getSecuredVideoUrl(activeVideoUrl)} 
+                  title={activeVideoTitle}
+                  className="w-full h-full relative z-0 pointer-events-auto"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                ></iframe>
+              </div>
             </div>
 
-            {/* වීඩියෝවට යටින් මාතෘකාව සහ PDF බටන් එක */}
+            {/* වීඩියෝවට යටින් Control Bar එක (Title + Buttons) */}
             <div className={`p-4 md:p-5 rounded-xl md:rounded-2xl border shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 ${cardBg}`}>
               <div className="truncate">
                 <span className="text-[10px] md:text-xs font-bold uppercase tracking-wider text-blue-500">දැන් ධාවනය වේ (Now Playing)</span>
                 <h3 className={`text-sm md:text-lg font-bold mt-0.5 truncate ${textPrimary}`}>{activeVideoTitle}</h3>
               </div>
-              <a 
-                href={activePdfUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 rounded-xl bg-red-600 hover:bg-red-700 text-white px-4 py-2.5 md:px-5 md:py-3 text-xs md:text-sm font-bold transition-all shadow-sm flex-shrink-0"
-              >
-                <svg className="w-4 h-4 md:w-5 md:h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 16l-5-5h3V4h4v7h3l-5 5zm9-2v6H3v-6H1v8h22v-8h-2z"/></svg>
-                Tute එක (PDF)
-              </a>
+              
+              <div className="flex items-center gap-2 md:gap-3 flex-wrap">
+                {/* අපගේ අලුත් Full Screen බටන් එක */}
+                <button 
+                  onClick={toggleFullScreen}
+                  className={`flex items-center justify-center gap-2 rounded-xl border px-3 py-2.5 md:px-5 md:py-3 text-xs md:text-sm font-bold transition-all shadow-sm flex-shrink-0 ${isDarkMode ? 'bg-slate-800 border-slate-600 text-white hover:bg-slate-700' : 'bg-white border-slate-300 text-slate-800 hover:bg-slate-50'}`}
+                >
+                  <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" /></svg>
+                  Full Screen
+                </button>
+
+                {/* PDF බටන් එක */}
+                <a 
+                  href={activePdfUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 rounded-xl bg-red-600 hover:bg-red-700 text-white px-4 py-2.5 md:px-5 md:py-3 text-xs md:text-sm font-bold transition-all shadow-sm flex-shrink-0"
+                >
+                  <svg className="w-4 h-4 md:w-5 md:h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 16l-5-5h3V4h4v7h3l-5 5zm9-2v6H3v-6H1v8h22v-8h-2z"/></svg>
+                  Tute එක (PDF)
+                </a>
+              </div>
             </div>
           </div>
 
