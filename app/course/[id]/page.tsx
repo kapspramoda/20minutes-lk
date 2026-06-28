@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 
 type PageProps = {
@@ -13,8 +13,11 @@ export default function CoursePlayerPage({ params }: PageProps) {
   const [activeSubjectId, setActiveSubjectId] = useState<string>("sub1");
   const [courseId, setCourseId] = useState<string>("");
 
-  // Full Screen Mode එක පාලනය කිරීම සඳහා State එක
+  // Video Player Ref සහ Sound States
+  const playerRef = useRef<HTMLIFrameElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const [volumeLevel, setVolumeLevel] = useState(100);
 
   // --- තාවකාලික පාඨමාලා දත්ත ---
   const courseData = {
@@ -89,16 +92,55 @@ export default function CoursePlayerPage({ params }: PageProps) {
 
   const activeSubject = courseData.subjects.find((s) => s.id === activeSubjectId);
 
-  // YouTube ආරක්ෂිත Parameters
+  // YouTube ආරක්ෂිත Parameters (+ enablejsapi=1 එකතු කර ඇත Sound පාලනය සඳහා)
   const getSecuredVideoUrl = (originalUrl: string) => {
-    return `${originalUrl}?rel=0&modestbranding=1&showinfo=0&controls=1&disablekb=1&iv_load_policy=3&fs=0`;
+    return `${originalUrl}?rel=0&modestbranding=1&showinfo=0&controls=1&disablekb=1&iv_load_policy=3&fs=0&enablejsapi=1`;
   };
 
-  // අපගේ Custom Fullscreen පාලක function එක
+  // --- 🔊 YouTube Sound පාලනය කිරීමේ කේතයන් ---
+  const sendYouTubeCommand = (func: string, args: any[] = []) => {
+    if (playerRef.current && playerRef.current.contentWindow) {
+      playerRef.current.contentWindow.postMessage(
+        JSON.stringify({ event: "command", func: func, args: args }),
+        "*"
+      );
+    }
+  };
+
+  const handleToggleMute = () => {
+    if (isMuted) {
+      sendYouTubeCommand("unMute");
+      setIsMuted(false);
+    } else {
+      sendYouTubeCommand("mute");
+      setIsMuted(true);
+    }
+  };
+
+  const handleVolumeDown = () => {
+    const newVol = Math.max(volumeLevel - 10, 0);
+    setVolumeLevel(newVol);
+    sendYouTubeCommand("setVolume", [newVol]);
+    if (newVol === 0) {
+      sendYouTubeCommand("mute");
+      setIsMuted(true);
+    }
+  };
+
+  const handleVolumeUp = () => {
+    const newVol = Math.min(volumeLevel + 10, 100);
+    setVolumeLevel(newVol);
+    sendYouTubeCommand("setVolume", [newVol]);
+    if (isMuted) {
+      sendYouTubeCommand("unMute");
+      setIsMuted(false);
+    }
+  };
+
+  // Fullscreen පාලනය
   const toggleFullScreen = () => {
     if (!isFullscreen) {
       setIsFullscreen(true);
-      // ෆෝන් එකේ ස්වයංක්‍රීයව Landscape වීමට උපදෙස් දීම (Supported Devices වල පමණක් ක්‍රියා කරයි)
       try {
         if (screen.orientation && (screen.orientation as any).lock) {
           (screen.orientation as any).lock("landscape").catch(() => {});
@@ -130,7 +172,6 @@ export default function CoursePlayerPage({ params }: PageProps) {
 
       <main className="mx-auto max-w-7xl p-4 md:p-6 lg:p-8 mt-2 md:mt-4">
         
-        {/* --- WhatsApp & Zoom ලින්ක් තීරුව --- */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 md:mb-8">
           <div className={`flex items-center justify-between rounded-2xl p-4 border shadow-sm ${isDarkMode ? 'bg-emerald-900/10 border-emerald-800/30' : 'bg-emerald-50/60 border-emerald-100'}`}>
             <div className="flex items-center gap-3 truncate">
@@ -163,13 +204,8 @@ export default function CoursePlayerPage({ params }: PageProps) {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8 items-start">
           
-          {/* 🎬 [වම් පැත්ත] ප්‍රධාන වීඩියෝ ප්ලේයර් කොටස */}
           <div className="lg:col-span-2 space-y-4">
             
-            {/* 
-              Fullscreen අවස්ථාවේදී මෙම කොටස මුළු තිරයම ආවරණය වන සේ වෙනස් වේ (fixed inset-0).
-              එසේ නොමැති නම් එය සාමාන්‍ය වීඩියෝ කොටුවකි.
-            */}
             <div className={
                   isFullscreen 
                   ? "fixed inset-0 z-[99999] bg-black w-screen h-[100dvh] flex flex-col justify-center select-none" 
@@ -178,7 +214,6 @@ export default function CoursePlayerPage({ params }: PageProps) {
                  onContextMenu={(e) => e.preventDefault()}
             >
               
-              {/* Fullscreen අවස්ථාවේදී පෙනෙන Close (X) බටන් එක */}
               {isFullscreen && (
                 <button 
                   onClick={toggleFullScreen} 
@@ -190,15 +225,15 @@ export default function CoursePlayerPage({ params }: PageProps) {
               )}
 
               <div className="relative w-full h-full flex-grow">
-                {/* 1. සම්පූර්ණ ඉහළ තීරුවම වසන කළු ආවරණය (ස්ථාවර 65px උස) */}
                 <div className="absolute top-0 left-0 w-full h-[65px] md:h-[75px] z-[999] bg-black pointer-events-none"></div>
                 
-                {/* 2. සම්පූර්ණ පහළ තීරුවම වසන කළු ආවරණය (ස්ථාවර 60px උස) - Watermark එක සහිතව */}
                 <div className="absolute bottom-0 left-0 w-full h-[60px] md:h-[65px] z-[999] bg-black pointer-events-none flex items-center justify-end px-3 md:px-5">
                   <span className="text-[10px] md:text-xs font-bold text-slate-500/80 mb-2 mr-1">20minutes.lk</span>
                 </div>
 
+                {/* 🔴 iframe එකට ref=playerRef එකතු කර ඇත */}
                 <iframe 
+                  ref={playerRef}
                   src={getSecuredVideoUrl(activeVideoUrl)} 
                   title={activeVideoTitle}
                   className="w-full h-full relative z-0 pointer-events-auto"
@@ -207,15 +242,38 @@ export default function CoursePlayerPage({ params }: PageProps) {
               </div>
             </div>
 
-            {/* වීඩියෝවට යටින් Control Bar එක (Title + Buttons) */}
-            <div className={`p-4 md:p-5 rounded-xl md:rounded-2xl border shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 ${cardBg}`}>
+            {/* වීඩියෝවට යටින් Control Bar එක */}
+            <div className={`p-4 md:p-5 rounded-xl md:rounded-2xl border shadow-sm flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 ${cardBg}`}>
               <div className="truncate">
                 <span className="text-[10px] md:text-xs font-bold uppercase tracking-wider text-blue-500">දැන් ධාවනය වේ (Now Playing)</span>
                 <h3 className={`text-sm md:text-lg font-bold mt-0.5 truncate ${textPrimary}`}>{activeVideoTitle}</h3>
               </div>
               
               <div className="flex items-center gap-2 md:gap-3 flex-wrap">
-                {/* අපගේ අලුත් Full Screen බටන් එක */}
+                
+                {/* 🔊 Custom Sound Controls (අලුතින් එකතු කළ කොටස) */}
+                <div className={`flex items-center rounded-xl border overflow-hidden shadow-sm flex-shrink-0 ${isDarkMode ? 'bg-slate-800 border-slate-600' : 'bg-slate-100 border-slate-300'}`}>
+                  
+                  {/* Volume Down */}
+                  <button onClick={handleVolumeDown} title="Sound අඩු කරන්න" className={`px-3 py-2.5 md:py-3 transition-colors ${isDarkMode ? 'hover:bg-slate-700 text-slate-300' : 'hover:bg-slate-200 text-slate-700'}`}>
+                    <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M18 12H6" /></svg>
+                  </button>
+                  
+                  {/* Mute/Unmute */}
+                  <button onClick={handleToggleMute} title={isMuted ? "Sound දාන්න" : "Mute කරන්න"} className={`px-3 py-2.5 md:py-3 transition-colors border-x ${isDarkMode ? 'hover:bg-slate-700 border-slate-600' : 'hover:bg-slate-200 border-slate-300'}`}>
+                    {isMuted ? (
+                      <svg className="w-4 h-4 md:w-5 md:h-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" /></svg>
+                    ) : (
+                      <svg className="w-4 h-4 md:w-5 md:h-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg>
+                    )}
+                  </button>
+                  
+                  {/* Volume Up */}
+                  <button onClick={handleVolumeUp} title="Sound වැඩි කරන්න" className={`px-3 py-2.5 md:py-3 transition-colors ${isDarkMode ? 'hover:bg-slate-700 text-slate-300' : 'hover:bg-slate-200 text-slate-700'}`}>
+                    <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
+                  </button>
+                </div>
+
                 <button 
                   onClick={toggleFullScreen}
                   className={`flex items-center justify-center gap-2 rounded-xl border px-3 py-2.5 md:px-5 md:py-3 text-xs md:text-sm font-bold transition-all shadow-sm flex-shrink-0 ${isDarkMode ? 'bg-slate-800 border-slate-600 text-white hover:bg-slate-700' : 'bg-white border-slate-300 text-slate-800 hover:bg-slate-50'}`}
@@ -224,7 +282,6 @@ export default function CoursePlayerPage({ params }: PageProps) {
                   Full Screen
                 </button>
 
-                {/* PDF බටන් එක */}
                 <a 
                   href={activePdfUrl}
                   target="_blank"
@@ -238,7 +295,6 @@ export default function CoursePlayerPage({ params }: PageProps) {
             </div>
           </div>
 
-          {/* 📑 [දකුණු පැත්ත] විෂයයන් සහ පාඩම් මාලා ලිස්ට් එක (Playlist) */}
           <div className={`rounded-xl md:rounded-2xl border p-4 shadow-sm h-[400px] md:h-[auto] md:max-h-[580px] overflow-y-auto ${cardBg}`}>
             <h3 className="text-xs md:text-sm font-extrabold uppercase tracking-wider text-slate-400 mb-3">විෂයයන් තෝරන්න</h3>
             
