@@ -2,17 +2,41 @@
 
 import React, { useState } from "react";
 
+// --- 🛠️ TypeScript සඳහා දත්ත ව්‍යුහය (Types) හඳුන්වා දීම ---
+type Lesson = {
+  lessonId: string;
+  title: string;
+  videoEmbed: string;
+  pdfUrl: string;
+};
+
+type Subject = {
+  subjectId: string;
+  name: string;
+  liveClass: {
+    time: string;
+    zoomLink: string;
+  };
+  lessons: Lesson[];
+};
+
+type CourseDataType = {
+  title: string;
+  whatsappLink: string;
+  subjects: Subject[];
+};
+
 export default function AddCoursePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
 
-  // පෝරමයේ මූලික දත්ත ව්‍යුහය (State එක)
-  const [courseData, setCourseData] = useState({
+  // පෝරමයේ මූලික දත්ත ව්‍යුහය (State එක) - මෙහිදී <CourseDataType> භාවිතා කර ඇත
+  const [courseData, setCourseData] = useState<CourseDataType>({
     title: "",
     whatsappLink: "",
     subjects: [
       {
-        subjectId: "sub_" + Date.now(), // ඉබේම ID එකක් හැදෙන්න
+        subjectId: "sub_" + Date.now(),
         name: "",
         liveClass: { time: "", zoomLink: "" },
         lessons: [],
@@ -20,7 +44,6 @@ export default function AddCoursePage() {
     ]
   });
 
-  // විෂයයක් (Subject) අලුතින් එකතු කිරීම
   const addSubject = () => {
     setCourseData({
       ...courseData,
@@ -31,19 +54,17 @@ export default function AddCoursePage() {
     });
   };
 
-  // විෂයයකට අලුත් පාඩමක් (Lesson) එකතු කිරීම
   const addLesson = (subjectIndex: number) => {
     const updatedSubjects = [...courseData.subjects];
     updatedSubjects[subjectIndex].lessons.push({
-      lessonId: "les_" + Date.now(), // ඉබේම ID එකක් හැදෙන්න
+      lessonId: "les_" + Date.now(),
       title: "",
       videoEmbed: "",
       pdfUrl: ""
-    } as never);
+    });
     setCourseData({ ...courseData, subjects: updatedSubjects });
   };
 
-  // දත්ත Database එකට යැවීම (Submit)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -60,7 +81,6 @@ export default function AddCoursePage() {
 
       if (response.ok) {
         setMessage({ type: "success", text: "✅ පාඨමාලාව සාර්ථකව Database එකට ඇතුළත් කළා!" });
-        // පෝරමය නැවත හිස් කිරීම
         setCourseData({
           title: "", whatsappLink: "", subjects: [{ subjectId: "sub_" + Date.now(), name: "", liveClass: { time: "", zoomLink: "" }, lessons: [] }]
         });
@@ -90,7 +110,6 @@ export default function AddCoursePage() {
 
         <form onSubmit={handleSubmit} className="space-y-8">
           
-          {/* 1. ප්‍රධාන පාඨමාලා විස්තර */}
           <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 space-y-4">
             <h2 className="text-lg font-bold text-slate-700">1. ප්‍රධාන විස්තර</h2>
             <div>
@@ -115,7 +134,6 @@ export default function AddCoursePage() {
             </div>
           </div>
 
-          {/* 2. විෂයයන් සහ පාඩම් */}
           <div>
             <h2 className="text-lg font-bold text-slate-700 mb-4">2. විෂයයන් (Subjects) සහ පාඩම් (Lessons)</h2>
             
@@ -167,11 +185,10 @@ export default function AddCoursePage() {
                   </div>
                 </div>
 
-                {/* අදාළ විෂයයේ පාඩම් ටික */}
                 <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
                   <h3 className="text-sm font-bold text-slate-600 mb-4 border-b pb-2">මෙම විෂයයේ පාඩම් ලැයිස්තුව</h3>
                   
-                  {subject.lessons.map((lesson: any, lIndex: number) => (
+                  {subject.lessons.map((lesson, lIndex) => (
                     <div key={lesson.lessonId} className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4 bg-white p-3 rounded-lg border">
                       <div>
                         <label className="block text-xs font-bold mb-1 text-slate-500">පාඩමේ මාතෘකාව *</label>
