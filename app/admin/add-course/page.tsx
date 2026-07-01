@@ -44,6 +44,9 @@ export default function AddCoursePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
 
+  // පවතින විෂයයන් ගෙන්වා ගැනීම සඳහා
+  const [availableSubjects, setAvailableSubjects] = useState<any[]>([]);
+
   useEffect(() => {
     if (document.documentElement.classList.contains("dark")) setIsDarkMode(true);
   }, []);
@@ -67,6 +70,28 @@ export default function AddCoursePage() {
       { subjectId: "sub_" + Date.now(), name: "", liveClass: { time: "", zoomLink: "" }, lessons: [] }
     ]
   });
+
+  // Database හි ඇති වෙනත් පන්ති වල විෂයයන් ගෙන්වා ගැනීම
+  useEffect(() => {
+    const fetchExistingSubjects = async () => {
+      try {
+        const res = await fetch("/api/courses");
+        const data = await res.json();
+        if (res.ok) {
+          const allSub: any[] = [];
+          data.data.forEach((course: any) => {
+            course.subjects?.forEach((sub: any) => {
+              allSub.push({ ...sub, sourceCourse: course.title }); // කොයි Course එකෙන්ද ආවේ කියලා සටහන් කිරීම
+            });
+          });
+          setAvailableSubjects(allSub);
+        }
+      } catch (error) {
+        console.error("Failed to load existing subjects", error);
+      }
+    };
+    fetchExistingSubjects();
+  }, []);
 
   // --- Image Upload & Convert ---
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -123,6 +148,30 @@ export default function AddCoursePage() {
     const updatedSubjects = [...courseData.subjects];
     updatedSubjects[subjectIndex].lessons = updatedSubjects[subjectIndex].lessons.filter((_, index) => index !== lessonIndexToRemove);
     setCourseData({ ...courseData, subjects: updatedSubjects });
+  };
+
+  // 🔴 පවතින විෂයයක් Import (Copy) කිරීමේ Function එක
+  const importSubject = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const subjectId = e.target.value;
+    if (!subjectId) return;
+
+    const subjectToImport = availableSubjects.find(s => (s.subjectId || s._id) === subjectId);
+    if (subjectToImport) {
+       // Database ID Clash වීම වැළැක්වීමට අලුත් ID එකක් සාදා කොපි කිරීම
+       const newSubject = {
+          subjectId: "sub_" + Date.now(),
+          name: subjectToImport.name,
+          liveClass: { ...subjectToImport.liveClass },
+          lessons: subjectToImport.lessons.map((l: any, i: number) => ({
+             lessonId: `les_${Date.now()}_${i}`,
+             title: l.title,
+             videoEmbed: l.videoEmbed,
+             pdfUrl: l.pdfUrl
+          }))
+       };
+       setCourseData({ ...courseData, subjects: [...courseData.subjects, newSubject] });
+    }
+    e.target.value = ""; // Dropdown එක Reset කිරීම
   };
 
   // --- Submit ---
@@ -257,9 +306,10 @@ export default function AddCoursePage() {
               <button type="button" onClick={addBankAccount} className="mt-2 text-sm bg-emerald-100 text-emerald-700 px-4 py-2 rounded-lg font-bold hover:bg-emerald-200 transition">+ තව බැංකු ගිණුමක්</button>
             </div>
 
-            {/* 3. විෂයයන් සහ පාඩම් (Existing UI style) */}
+            {/* 3. විෂයයන් සහ පාඩම් */}
             <div>
               <h2 className="text-lg font-bold mb-4">3. විෂයයන් සහ පාඩම්</h2>
+              
               {courseData.subjects.map((subject, sIndex) => (
                 <div key={subject.subjectId} className={`p-6 rounded-xl mb-6 shadow-sm border relative ${isDarkMode ? 'bg-blue-950/20 border-blue-900/50' : 'bg-white border-blue-100'}`}>
                   {sIndex > 0 && (
@@ -303,10 +353,28 @@ export default function AddCoursePage() {
                   </div>
                 </div>
               ))}
-              <button type="button" onClick={addSubject} className={`w-full py-3 border-2 border-dashed font-bold rounded-xl transition-colors ${isDarkMode ? 'border-slate-600 text-slate-400 hover:border-blue-500 hover:text-blue-400' : 'border-slate-300 text-slate-500 hover:border-blue-400 hover:text-blue-500'}`}>+ අලුත් විෂයයක් එකතු කරන්න</button>
+
+              {/* 🔴 අලුත්: Import Subject සහ Add Subject බොත්තම් */}
+              <div className="flex flex-col md:flex-row gap-4 mt-6">
+                <button type="button" onClick={addSubject} className="flex-1 py-3 border-2 border-dashed font-bold rounded-xl border-blue-300 text-blue-600 hover:bg-blue-50 transition-colors">
+                  + අලුතින්ම විෂයයක් හදන්න
+                </button>
+
+                <div className="flex-1 relative">
+                  <select onChange={importSubject} defaultValue="" className="w-full h-full py-3 px-4 border-2 border-dashed border-emerald-300 text-emerald-700 font-bold rounded-xl outline-none cursor-pointer hover:bg-emerald-50 appearance-none bg-transparent transition-colors">
+                    <option value="" disabled>+ පවතින විෂයයක් කොපි කරන්න (Import)</option>
+                    {availableSubjects.map((sub, idx) => (
+                        <option key={idx} value={sub.subjectId || sub._id}>
+                          {sub.name} (from {sub.sourceCourse})
+                        </option>
+                    ))}
+                  </select>
+                  <div className="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none text-emerald-500">▼</div>
+                </div>
+              </div>
             </div>
 
-            <button type="submit" disabled={isLoading} className="w-full bg-blue-600 text-white font-bold text-lg py-4 rounded-xl hover:bg-blue-700 transition shadow-lg disabled:bg-slate-400 flex justify-center items-center gap-2">
+            <button type="submit" disabled={isLoading} className="w-full bg-blue-600 text-white font-bold text-lg py-4 rounded-xl hover:bg-blue-700 transition shadow-lg disabled:bg-slate-400 flex justify-center items-center gap-2 mt-8">
               {isLoading ? "Save වෙමින් පවතී..." : <><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg> Course එක Save කරන්න</>}
             </button>
 
