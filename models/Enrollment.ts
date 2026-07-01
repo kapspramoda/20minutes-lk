@@ -2,6 +2,7 @@ import mongoose, { Schema, Document } from "mongoose";
 
 export interface IEnrollment extends Document {
   userPhone: string;     // ළමයාගේ දුරකථන අංකය
+  courseId: string;      // 🔴 පාඨමාලාවේ ID එක (අලුතින් එකතු කළ කොටස)
   courseTitle: string;   // පාඨමාලාවේ නම
   slipImage: string;     // Bank Slip එකේ පින්තූරය (Base64)
   status: string;        // "pending", "approved", හෝ "rejected"
@@ -10,6 +11,7 @@ export interface IEnrollment extends Document {
 const EnrollmentSchema = new Schema(
   {
     userPhone: { type: String, required: true },
+    courseId: { type: String, required: true }, // 🔴 අලුතින් එකතු කළ කොටස
     courseTitle: { type: String, required: true },
     slipImage: { type: String, required: true },
     status: { type: String, default: "pending" }, 

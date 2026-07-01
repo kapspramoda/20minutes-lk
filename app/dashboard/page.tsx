@@ -123,7 +123,7 @@ export default function DashboardPage() {
     });
   };
 
-  const handleSubmitSlip = async (e: React.FormEvent) => {
+const handleSubmitSlip = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!slipFile) {
       alert("කරුණාකර ඔබගේ බැංකු රිසිට් පත (Bank Slip) ඇතුළත් කරන්න.");
@@ -152,6 +152,7 @@ export default function DashboardPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           userPhone,
+          courseId: selectedCourse._id, // 🔴 වරද තිබුණේ මෙතනයි. දැන් Course ID එකත් යවනවා!
           courseTitle: selectedCourse.title,
           slipImage: base64Image,
         }),
