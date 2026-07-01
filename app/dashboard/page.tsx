@@ -3,15 +3,20 @@
 import React, { useState, useEffect, useRef } from "react";
 import { signOut, useSession } from "next-auth/react";
 import imageCompression from "browser-image-compression";
+import Link from "next/link";
 
 export default function DashboardPage() {
   const { data: session, status } = useSession();
   const [isDarkMode, setIsDarkMode] = useState(false);
 
-  // --- අලුතින් එකතු කළ States (Database දත්ත සඳහා) ---
+  // --- අලුතින් එකතු කළ States (ළමයාගේ Database දත්ත සඳහා) ---
   const [myCourses, setMyCourses] = useState<any[]>([]);
   const [pendingCourses, setPendingCourses] = useState<any[]>([]);
   const [isLoadingCourses, setIsLoadingCourses] = useState(true);
+
+  // --- Database එකෙන් ලබාගත හැකි පාඨමාලා (Available Courses) සඳහා ---
+  const [availableCourses, setAvailableCourses] = useState<any[]>([]);
+  const [isLoadingAvailable, setIsLoadingAvailable] = useState(true);
 
   // --- Modal States ---
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -44,9 +49,9 @@ export default function DashboardPage() {
     }
   };
 
-  // --- Database එකෙන් ළමයාගේ පාඨමාලා ගෙන්වා ගැනීම ---
+  // --- 1. Database එකෙන් ළමයාගේ පාඨමාලා ගෙන්වා ගැනීම ---
   useEffect(() => {
-    const fetchCourses = async () => {
+    const fetchMyCourses = async () => {
       const userPhone = (session?.user as any)?.phone || session?.user?.name || session?.user?.email;
       if (!userPhone) return;
 
@@ -58,17 +63,36 @@ export default function DashboardPage() {
           setPendingCourses(data.pendingCourses);
         }
       } catch (error) {
-        console.error("Failed to fetch courses:", error);
+        console.error("Failed to fetch user courses:", error);
       } finally {
         setIsLoadingCourses(false);
       }
     };
 
-    // User ලොග් වෙලා ඉන්නවා නම් විතරක් දත්ත ගේන්න
     if (status === "authenticated") {
-      fetchCourses();
+      fetchMyCourses();
     }
   }, [status, session]);
+
+  // --- 2. Database එකෙන් ලබාගත හැකි සියලුම පාඨමාලා ගෙන්වා ගැනීම ---
+  useEffect(() => {
+    const fetchAvailableCourses = async () => {
+      try {
+        const res = await fetch("/api/courses");
+        const data = await res.json();
+        if (res.ok) {
+          // Admin විසින් Hide කරපු නැති (isVisible: true) පාඨමාලා පමණක් තෝරාගැනීම
+          setAvailableCourses(data.data.filter((c: any) => c.isVisible === true));
+        }
+      } catch (error) {
+        console.error("Failed to fetch available courses:", error);
+      } finally {
+        setIsLoadingAvailable(false);
+      }
+    };
+    
+    fetchAvailableCourses();
+  }, []);
 
   // Mobile Slider Functions
   const handleScroll = (ref: React.RefObject<HTMLDivElement | null>, setIndex: (idx: number) => void, totalItems: number) => {
@@ -78,18 +102,6 @@ export default function DashboardPage() {
     const newIndex = Math.round(scrollLeft / itemWidth);
     setIndex(newIndex);
   };
-
-  const scrollToIndex = (ref: React.RefObject<HTMLDivElement | null>, index: number, totalItems: number) => {
-    if (!ref.current) return;
-    const itemWidth = ref.current.scrollWidth / totalItems;
-    ref.current.scrollTo({ left: index * itemWidth, behavior: 'smooth' });
-  };
-
-  // ලබාගත හැකි අලුත් පාඨමාලා (මෙය ඉදිරියේදී Database එකෙන් ගෙනෙමු. දැනට Mock Data)
-  const availableCourses = [
-    { id: 3, title: "රාජ්‍ය කළමනාකරණ සහකාර විභාගය - පෙරහුරු", price: "රු. 2500" },
-    { id: 4, title: "ශ්‍රී ලංකා රේගු දෙපාර්තමේන්තු විභාගය", price: "රු. 3000" },
-  ];
 
   const handleEnrollClick = (course: any) => {
     setSelectedCourse(course);
@@ -149,7 +161,6 @@ export default function DashboardPage() {
       if (res.ok) {
         alert(data.message || "ඔබේ රිසිට් පත සාර්ථකව යොමු කරන ලදී!");
         handleCloseModal();
-        // Slip එක දැම්මාට පස්සේ අලුත් දත්ත ටික ආයෙත් පෙන්වන්න පිටුව රීලෝඩ් කිරීම
         window.location.reload(); 
       } else {
         alert(data.message || "දෝෂයක් මතු විය.");
@@ -173,7 +184,7 @@ export default function DashboardPage() {
   const modalOverlayBg = isDarkMode ? "bg-slate-950/80" : "bg-slate-900/60";
   const modalBodyBg = isDarkMode ? "bg-slate-800 border-slate-700" : "bg-white border-transparent";
   const modalBoxBg = isDarkMode ? "bg-slate-700/50 border-slate-600" : "bg-slate-50 border-slate-200";
-  // අලුතින් එකතු කළ පේළි දෙක
+  
   const textPrimary = isDarkMode ? "text-white" : "text-slate-900";
   const textSecondary = isDarkMode ? "text-slate-400" : "text-slate-500";
 
@@ -219,7 +230,7 @@ export default function DashboardPage() {
         {/* Loading State එකක් පෙන්වීම */}
         {isLoadingCourses ? (
           <div className="flex justify-center items-center h-40">
-            <p className="text-lg font-bold text-slate-400 animate-pulse">පාඨමාලා විස්තර ගෙනෙමින් පවතී...</p>
+            <p className="text-lg font-bold text-slate-400 animate-pulse">ඔබගේ දත්ත ගෙනෙමින් පවතී...</p>
           </div>
         ) : (
           <>
@@ -240,12 +251,12 @@ export default function DashboardPage() {
                       </div>
                       <div className="p-5 flex flex-col justify-between h-[150px]">
                         <h3 className={`mb-3 text-sm md:text-base font-bold line-clamp-2 ${cardTitle}`}>{course.courseTitle}</h3>
-                        <button 
-                            onClick={() => window.location.href = `/course/${course._id}`} 
-                         className="w-full rounded-full bg-emerald-500 py-2.5 text-xs md:text-sm font-bold text-white hover:bg-emerald-600 transition shadow-sm mt-auto"
-                            >
-                      පාඨමාලාවට පිවිසෙන්න (Enter)
-                      </button>
+                        <Link 
+                          href={`/course/${course.courseId}`} // මෙහි courseId යනු Database හි පවතින Course Collection එකේ ID එක විය යුතුය
+                          className="w-full text-center rounded-full bg-emerald-500 py-2.5 text-xs md:text-sm font-bold text-white hover:bg-emerald-600 transition shadow-sm mt-auto block"
+                        >
+                          පාඨමාලාවට පිවිසෙන්න (Enter)
+                        </Link>
                       </div>
                     </div>
                   ))}
@@ -296,31 +307,41 @@ export default function DashboardPage() {
         <section>
           <h2 className={`mb-6 text-xl md:text-2xl font-bold border-l-4 border-blue-500 pl-3 ${sectionTitleColor}`}>අලුත් පාඨමාලා (Available Courses)</h2>
           
-          <div 
-            ref={availableRef}
-            onScroll={() => handleScroll(availableRef as any, setAvailableIndex, availableCourses.length)}
-            className="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-4 md:flex-wrap md:justify-start md:gap-8 md:overflow-visible [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']"
-          >
-            {availableCourses.map((course) => (
-              <div key={course.id} className={`flex-none w-[75%] sm:w-[45%] md:w-[30%] snap-center flex flex-col overflow-hidden rounded-2xl shadow-sm transition hover:shadow-md border hover:-translate-y-1 duration-300 ${cardBg}`}>
-                <div className="bg-blue-500/10 h-28 md:h-32 flex items-center justify-center">
-                   <svg className="w-10 h-10 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
-                </div>
-                <div className="p-5 flex flex-col flex-grow justify-between">
-                  <div>
-                    <h3 className={`mb-2 text-sm md:text-base font-bold line-clamp-2 ${cardTitle}`}>{course.title}</h3>
-                    <p className="text-lg font-extrabold text-blue-500 mb-4">{course.price}</p>
+          {isLoadingAvailable ? (
+            <div className="text-center py-10 font-bold text-slate-400 animate-pulse">
+              අලුත් පාඨමාලා ලබාගනිමින් පවතී...
+            </div>
+          ) : availableCourses.length === 0 ? (
+            <div className={`p-8 text-center rounded-2xl border ${cardBg}`}>
+               <p className={textSecondary}>දැනට අලුත් පාඨමාලා කිසිවක් නොමැත.</p>
+            </div>
+          ) : (
+            <div 
+              ref={availableRef}
+              onScroll={() => handleScroll(availableRef as any, setAvailableIndex, availableCourses.length)}
+              className="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-4 md:flex-wrap md:justify-start md:gap-8 md:overflow-visible [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']"
+            >
+              {availableCourses.map((course) => (
+                <div key={course._id} className={`flex-none w-[75%] sm:w-[45%] md:w-[30%] snap-center flex flex-col overflow-hidden rounded-2xl shadow-sm transition hover:shadow-md border hover:-translate-y-1 duration-300 ${cardBg}`}>
+                  <div className="bg-blue-500/10 h-28 md:h-32 flex items-center justify-center">
+                     <svg className="w-10 h-10 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
                   </div>
-                  <button 
-                    onClick={() => handleEnrollClick(course)}
-                    className="w-full rounded-full bg-blue-600 py-2.5 text-xs md:text-sm font-bold text-white hover:bg-blue-700 transition shadow-sm mt-auto"
-                  >
-                    ඇතුළත් වන්න (Enroll)
-                  </button>
+                  <div className="p-5 flex flex-col flex-grow justify-between">
+                    <div>
+                      <h3 className={`mb-2 text-sm md:text-base font-bold line-clamp-2 ${cardTitle}`}>{course.title}</h3>
+                      <p className="text-sm font-extrabold text-blue-500 mb-4">{course.price || "මාසික ගාස්තුව අදාළ වේ"}</p>
+                    </div>
+                    <button 
+                      onClick={() => handleEnrollClick(course)}
+                      className="w-full rounded-full bg-blue-600 py-2.5 text-xs md:text-sm font-bold text-white hover:bg-blue-700 transition shadow-sm mt-auto"
+                    >
+                      ඇතුළත් වන්න (Enroll)
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </section>
       </main>
 
@@ -360,7 +381,7 @@ export default function DashboardPage() {
 
             <div className={`mb-6 rounded-2xl p-4 border ${isDarkMode ? 'bg-blue-900/20 border-blue-800/30' : 'bg-blue-50/50 border-blue-100/50'}`}>
               <p className={`font-bold text-sm ${cardTitle}`}>{selectedCourse.title}</p>
-              <p className="mt-2 font-extrabold text-blue-500 text-lg">ගෙවිය යුතු මුදල: {selectedCourse.price}</p>
+              <p className="mt-2 font-extrabold text-blue-500 text-lg">ගෙවිය යුතු මුදල: {selectedCourse.price || "මාසික ගාස්තුව අදාළ වේ"}</p>
             </div>
 
             <div className="mb-6">
