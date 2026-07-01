@@ -26,7 +26,7 @@ export async function POST(req: Request) {
     // 🔴 අලුතින් Enrollment එකක් සෑදීම
     const newEnrollment = await Enrollment.create({
       userPhone: body.userPhone,
-      courseId: body.courseId, // 🔴 අලුතින් එකතු කළ කොටස
+      courseId: body.courseId, 
       courseTitle: body.courseTitle,
       slipImage: body.slipImage,
       status: "pending"

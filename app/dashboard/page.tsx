@@ -152,7 +152,7 @@ const handleSubmitSlip = async (e: React.FormEvent) => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           userPhone,
-          courseId: selectedCourse._id, // 🔴 වරද තිබුණේ මෙතනයි. දැන් Course ID එකත් යවනවා!
+          courseId: selectedCourse._id, 
           courseTitle: selectedCourse.title,
           slipImage: base64Image,
         }),
