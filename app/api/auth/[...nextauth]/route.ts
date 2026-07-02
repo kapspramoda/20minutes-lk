@@ -31,12 +31,19 @@ const handler = NextAuth({
           throw new Error("ඔබ ඇතුළත් කළ මුරපදය වැරදියි.");
         }
 
+        // 🔴 අලුත් කොටස: Login එක සාර්ථක වූ විට අලුත් Session ID එකක් සෑදීම
+        const newSessionId = Date.now().toString() + Math.random().toString(36).substring(2);
+        
+        // එම අලුත් Session ID එක Database හි User ගේ ගිණුමට සේව් කිරීම (Update කිරීම)
+        await User.findByIdAndUpdate(user._id, { activeSessionId: newSessionId });
+
         // සාර්ථක නම් User ගේ විස්තර Session එකට යැවීම
         return {
           id: user._id.toString(),
           name: user.name,
           phone: user.phone,
           role: user.role,
+          sessionId: newSessionId, // 🔴 Session ID එකත් මෙතැනින් යවයි
         };
       }
     })
@@ -47,6 +54,7 @@ const handler = NextAuth({
         token.id = user.id;
         token.phone = (user as any).phone;
         token.role = (user as any).role;
+        token.sessionId = (user as any).sessionId; // 🔴 අලුත් Session ID එක Token එකට දැමීම
       }
       return token;
     },
@@ -55,6 +63,7 @@ const handler = NextAuth({
         (session.user as any).id = token.id;
         (session.user as any).phone = token.phone;
         (session.user as any).role = token.role;
+        (session.user as any).sessionId = token.sessionId; // 🔴 අලුත් Session ID එක Session එකට දැමීම
       }
       return session;
     }
