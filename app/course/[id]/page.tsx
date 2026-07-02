@@ -39,6 +39,42 @@ export default function CoursePlayerPage({ params }: PageProps) {
       return;
     }
 
+    // 🔴 අලුත් කොටස: Video Player එකේ සිටියදී වෙනත් උපාංගයකින් ලොග් වී ඇත්දැයි පරීක්ෂා කිරීම
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+
+    const checkSession = async () => {
+      if (status !== "authenticated" || !session?.user) return;
+      
+      const phone = (session.user as any).phone || session.user.name || session.user.email;
+      const sessionId = (session.user as any).sessionId;
+      
+      if (!phone || !sessionId) return;
+
+      try {
+        const res = await fetch("/api/student/check-device", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ phone, currentSessionId: sessionId })
+        });
+        
+        const data = await res.json();
+        if (data.logout) {
+          alert("⚠️ ඔබගේ ගිණුම වෙනත් උපාංගයකින් ලොග් වී ඇත. වීඩියෝ නැරඹීම නතර කර ඔබව ඉවත් කෙරේ.");
+          signOut({ callbackUrl: "/" });
+        }
+      } catch (error) {
+        console.error("Session check failed", error);
+      }
+    };
+
+    if (status === "authenticated") {
+      interval = setInterval(checkSession, 15000); 
+    }
+
+    return () => clearInterval(interval);
+  }, [status, session]);
+
     const verifyAccessAndFetchCourse = async () => {
       if (status !== "authenticated") return;
 

@@ -73,6 +73,43 @@ export default function DashboardPage() {
     fetchAvailableCourses();
   }, []);
 
+  // 🔴 අලුත් කොටස: වෙනත් උපාංගයකින් ලොග් වී ඇත්දැයි පරීක්ෂා කිරීම (තත්පර 15න් 15ට)
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+
+    const checkSession = async () => {
+      if (status !== "authenticated" || !session?.user) return;
+      
+      const phone = (session.user as any).phone || session.user.name || session.user.email;
+      const sessionId = (session.user as any).sessionId;
+      
+      if (!phone || !sessionId) return;
+
+      try {
+        const res = await fetch("/api/student/check-device", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ phone, currentSessionId: sessionId })
+        });
+        
+        const data = await res.json();
+        if (data.logout) {
+          alert("⚠️ ඔබගේ ගිණුම වෙනත් උපාංගයකින් ලොග් වී ඇත. ආරක්ෂාව තහවුරු කිරීම සඳහා ඔබව ඉවත් කෙරේ.");
+          signOut({ callbackUrl: "/" });
+        }
+      } catch (error) {
+        console.error("Session check failed", error);
+      }
+    };
+
+    if (status === "authenticated") {
+      checkSession(); // මුලින්ම පරීක්ෂා කරන්න
+      interval = setInterval(checkSession, 15000); // ඉන්පසු තත්පර 15න් 15ට පරීක්ෂා කරන්න
+    }
+
+    return () => clearInterval(interval);
+  }, [status, session]);
+
   // Slider Scroll Handler
   const handleScroll = (ref: React.RefObject<HTMLDivElement | null>, setIndex: (idx: number) => void, totalItems: number) => {
     if (!ref.current) return;
