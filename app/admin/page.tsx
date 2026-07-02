@@ -17,10 +17,12 @@ export default function AdminDashboard() {
   const [courses, setCourses] = useState<any[]>([]);
   const [isLoadingCourses, setIsLoadingCourses] = useState(true);
 
-  // --- අලුතින් එකතු කළ States: සිසුන් සහ ආදායම් සඳහා ---
   const [approvedStudents, setApprovedStudents] = useState<any[]>([]);
   const [isLoadingStudents, setIsLoadingStudents] = useState(true);
   const [selectedFilterCourse, setSelectedFilterCourse] = useState<string>("ALL");
+
+  // 🔴 අලුත්: Slip එක විශාල කර පෙන්වීමට අදාළ State එක
+  const [enlargedSlip, setEnlargedSlip] = useState<string | null>(null);
 
   useEffect(() => {
     if (document.documentElement.classList.contains("dark")) setIsDarkMode(true);
@@ -63,18 +65,14 @@ export default function AdminDashboard() {
     finally { setIsLoadingStudents(false); }
   };
 
-  // --- ආදායම් ගණනය කිරීම (Today's Income) ---
   const todaysIncome = useMemo(() => {
     const today = new Date().toDateString();
     let total = 0;
 
     approvedStudents.forEach(student => {
-      // Approve වුණු දිනය අද නම් පමණක් එකතු කරන්න
       if (new Date(student.updatedAt).toDateString() === today) {
-        // Course එක හොයාගෙන ඒකේ ගාණ (Price) එකතු කරනවා
         const course = courses.find(c => c._id === student.courseId || c.title === student.courseTitle);
         if (course && course.price) {
-          // "රු. 2500" වගේ තියෙන එකෙන් ඉලක්කම් ටික විතරක් වෙන් කරගන්නවා
           const numericPrice = Number(course.price.replace(/[^0-9]/g, ''));
           total += numericPrice;
         }
@@ -83,7 +81,6 @@ export default function AdminDashboard() {
     return total;
   }, [approvedStudents, courses]);
 
-  // --- Actions ---
   const handleUpdateStatus = async (id: string, newStatus: "approved" | "rejected") => {
     const originalApprovals = [...pendingApprovals];
     setPendingApprovals((prev) => prev.filter((req) => req._id !== id));
@@ -97,7 +94,6 @@ export default function AdminDashboard() {
       if (!res.ok) throw new Error("Update failed");
       
       alert(newStatus === "approved" ? "පාඨමාලාව සාර්ථකව අනුමත කරන ලදී!" : "රිසිට්පත ප්‍රතික්ෂේප කරන ලදී.");
-      // අනුමත කළ පසු සිසුන්ගේ ලැයිස්තුව සහ ආදායම Update වීමට
       if(newStatus === "approved") fetchApprovedStudents(); 
     } catch (error) {
       setPendingApprovals(originalApprovals);
@@ -116,7 +112,6 @@ export default function AdminDashboard() {
     } catch (error) { alert("තාක්ෂණික දෝෂයක්."); }
   };
 
-  // සිසුවෙක්ව ඉවත් කිරීම
   const handleRemoveStudent = async (enrollmentId: string, studentPhone: string) => {
     const confirmDelete = window.confirm(`${studentPhone} දුරකථන අංකය හිමි සිසුවාව මෙම පාඨමාලාවෙන් ඉවත් කිරීමට අවශ්‍ය බව ඔබට විශ්වාසද?`);
     if (!confirmDelete) return;
@@ -134,13 +129,10 @@ export default function AdminDashboard() {
     }
   };
 
-  // සිසුන් Filter කිරීම
   const filteredStudents = selectedFilterCourse === "ALL" 
     ? approvedStudents 
     : approvedStudents.filter(s => s.courseTitle === selectedFilterCourse);
 
-
-  // Theme Classes
   const themeBg = isDarkMode ? "bg-slate-900 text-slate-100" : "bg-slate-50 text-slate-800";
   const headerBg = isDarkMode ? "bg-slate-900/80 border-slate-800" : "bg-white/80 border-slate-200";
   const cardBg = isDarkMode ? "bg-slate-800 border-slate-700" : "bg-white border-slate-100";
@@ -153,7 +145,6 @@ export default function AdminDashboard() {
   return (
     <div className={`modern-font flex min-h-screen flex-col transition-colors duration-300 ${themeBg}`}>
       
-      {/* Header */}
       <header className={`sticky top-0 z-50 w-full border-b backdrop-blur-md transition-all duration-300 ${headerBg}`}>
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 md:px-6 md:py-4">
           <div className="flex items-center gap-2 md:gap-3">
@@ -174,7 +165,6 @@ export default function AdminDashboard() {
 
       <main className="flex-grow mx-auto w-full max-w-7xl p-4 md:p-6 mt-4">
         
-        {/* Dashboard Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           <div className={`p-5 rounded-2xl border shadow-sm ${cardBg}`}>
             <h4 className={textSecondary}>අලුත් Slips</h4>
@@ -196,7 +186,6 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* Tabs Navigation */}
         <div className="flex space-x-2 mb-6 overflow-x-auto pb-2 [&::-webkit-scrollbar]:hidden">
           <button onClick={() => setActiveTab("approvals")} className={`px-5 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all ${activeTab === "approvals" ? tabActive : tabInactive}`}>
             රිසිට්පත් අනුමත කිරීම
@@ -223,14 +212,21 @@ export default function AdminDashboard() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {pendingApprovals.map((req) => (
                   <div key={req._id} className={`flex flex-col overflow-hidden rounded-2xl border shadow-sm transition-all ${cardBg}`}>
-                    <div className="h-48 overflow-hidden bg-slate-200 relative group">
-                      <a href={req.slipImage} target="_blank" rel="noopener noreferrer">
-                        <img src={req.slipImage} alt="Bank Slip" className="w-full h-full object-cover hover:scale-110 transition-transform duration-500 cursor-pointer" />
-                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity cursor-pointer">
-                           <span className="text-white text-sm font-bold">විශාල කර බලන්න</span>
-                        </div>
-                      </a>
+                    
+                    {/* 🔴 වෙනස් කළ කොටස: Modal එකක් මගින් පින්තූරය විශාල කිරීම */}
+                    <div 
+                      className="h-48 overflow-hidden bg-slate-200 relative group cursor-pointer"
+                      onClick={() => setEnlargedSlip(req.slipImage)}
+                    >
+                      <img src={req.slipImage} alt="Bank Slip" className="w-full h-full object-cover hover:scale-110 transition-transform duration-500" />
+                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                         <span className="text-white text-sm font-bold flex items-center gap-2">
+                           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" /></svg>
+                           විශාල කර බලන්න
+                         </span>
+                      </div>
                     </div>
+
                     <div className="p-5 flex flex-col flex-grow">
                       <div className="mb-4">
                         <h3 className={`text-lg font-bold mt-1 ${textPrimary}`}>දුරකථන: {req.userPhone}</h3>
@@ -301,7 +297,7 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* --- 3. Students Tab (ළමයි කළමනාකරණය) --- */}
+        {/* --- 3. Students Tab --- */}
         {activeTab === "students" && (
           <div className="animate-in fade-in duration-300">
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
@@ -310,7 +306,6 @@ export default function AdminDashboard() {
                 <p className={`text-sm ${textSecondary}`}>අනුමත වූ සිසුන්ගේ විස්තර සහ ඔවුන්ව පාඨමාලා වලින් ඉවත් කිරීම.</p>
               </div>
               
-              {/* පාඨමාලා අනුව ළමයි තෝරාගැනීමේ Dropdown එක */}
               <select 
                 value={selectedFilterCourse}
                 onChange={(e) => setSelectedFilterCourse(e.target.value)}
@@ -354,7 +349,7 @@ export default function AdminDashboard() {
                               onClick={() => handleRemoveStudent(student._id, student.userPhone)}
                               className="text-xs font-bold text-red-500 hover:text-white border border-red-500 hover:bg-red-500 px-4 py-2 rounded-lg transition-all"
                             >
-                              Remove (ඉවත් කරන්න)
+                              Remove
                             </button>
                           </td>
                         </tr>
@@ -366,8 +361,35 @@ export default function AdminDashboard() {
             )}
           </div>
         )}
-
       </main>
+
+      {/* 🔴 අලුත්: Slip එක විශාල කර පෙන්වන Modal එක */}
+      {enlargedSlip && (
+        <div 
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in duration-200"
+          onClick={() => setEnlargedSlip(null)}
+        >
+          <div className="relative w-full max-w-4xl h-[85vh] flex items-center justify-center">
+            
+            {/* Close Button */}
+            <button 
+              onClick={(e) => { e.stopPropagation(); setEnlargedSlip(null); }}
+              className="absolute -top-12 right-0 md:-right-12 text-white/70 hover:text-red-500 bg-white/10 hover:bg-white/20 rounded-full p-2 transition-all"
+              title="වසා දමන්න"
+            >
+              <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+
+            {/* Enlarged Image */}
+            <img 
+              src={enlargedSlip} 
+              alt="Enlarged Bank Slip" 
+              className="max-w-full max-h-full object-contain rounded-xl shadow-2xl" 
+              onClick={(e) => e.stopPropagation()} 
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
