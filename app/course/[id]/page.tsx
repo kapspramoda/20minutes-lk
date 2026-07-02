@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { useSession, signOut } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react"; // 🔴 signOut නිවැරදිව එකතු කර ඇත
 import { useRouter } from "next/navigation";
 
 type PageProps = {
@@ -12,8 +12,9 @@ export default function CoursePlayerPage({ params }: PageProps) {
   const { data: session, status } = useSession();
   const router = useRouter();
   
+  const [courseId, setCourseId] = useState<string>("");
   const [isDarkMode, setIsDarkMode] = useState(false);
-  const [course, setCourse] = useState<any>(null); // Database එකෙන් එන දත්ත
+  const [course, setCourse] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [hasAccess, setHasAccess] = useState(false);
 
@@ -27,19 +28,21 @@ export default function CoursePlayerPage({ params }: PageProps) {
   const [isMuted, setIsMuted] = useState(false);
   const [volumeLevel, setVolumeLevel] = useState(100);
 
+  // 1. URL එකෙන් Course ID එක ආරක්ෂිතව වෙන් කර ගැනීම (Next.js 15 දෝෂ මගහැරීමට)
+  useEffect(() => {
+    const resolveParams = async () => {
+      const resolved = await params;
+      setCourseId(resolved.id);
+    };
+    resolveParams();
+  }, [params]);
+
+  // Theme
   useEffect(() => {
     if (document.documentElement.classList.contains("dark")) setIsDarkMode(true);
   }, []);
 
-  // --- 🛡️ ආරක්ෂක පරීක්ෂාව සහ Database දත්ත ගෙන ඒම ---
-  useEffect(() => {
-    // 1. ලොග් වී නැත්නම් ඉවත් කිරීම
-    if (status === "unauthenticated") {
-      router.push("/dashboard");
-      return;
-    }
-
-    // 🔴 අලුත් කොටස: Video Player එකේ සිටියදී වෙනත් උපාංගයකින් ලොග් වී ඇත්දැයි පරීක්ෂා කිරීම
+  // 🔴 2. වෙනත් උපාංගයකින් ලොග් වී ඇත්දැයි බැලීමේ Security Check එක (Auto Logout)
   useEffect(() => {
     let interval: NodeJS.Timeout;
 
@@ -61,7 +64,7 @@ export default function CoursePlayerPage({ params }: PageProps) {
         const data = await res.json();
         if (data.logout) {
           alert("⚠️ ඔබගේ ගිණුම වෙනත් උපාංගයකින් ලොග් වී ඇත. වීඩියෝ නැරඹීම නතර කර ඔබව ඉවත් කෙරේ.");
-          signOut({ callbackUrl: "/" });
+          signOut({ callbackUrl: "/" }); // ගිණුමෙන් ඉවත් කිරීම
         }
       } catch (error) {
         console.error("Session check failed", error);
@@ -69,26 +72,30 @@ export default function CoursePlayerPage({ params }: PageProps) {
     };
 
     if (status === "authenticated") {
+      checkSession();
       interval = setInterval(checkSession, 15000); 
     }
 
     return () => clearInterval(interval);
   }, [status, session]);
 
+  // 3. Database එකෙන් පාඨමාලාව ගෙන ඒම සහ මුදල් ගෙවා ඇත්දැයි පරීක්ෂා කිරීම
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.push("/dashboard");
+      return;
+    }
+
     const verifyAccessAndFetchCourse = async () => {
-      if (status !== "authenticated") return;
+      if (status !== "authenticated" || !courseId) return;
 
       try {
-        const resolvedParams = await params;
-        const currentCourseId = resolvedParams.id;
         const userPhone = (session?.user as any)?.phone || session?.user?.name || session?.user?.email;
 
-        // 2. ළමයාගේ ගිණුමේ අනුමත වූ (Approved) පාඨමාලා මොනවාදැයි පරීක්ෂා කිරීම
         const accessRes = await fetch(`/api/student/courses?phone=${userPhone}`);
         const accessData = await accessRes.json();
 
-        // ළමයාගේ approved ලැයිස්තුවේ මේ URL එකේ තියෙන Course ID එක තියෙනවද බලනවා
-        const isApproved = accessData.approvedCourses?.some((c: any) => c.courseId === currentCourseId || c._id === currentCourseId);
+        const isApproved = accessData.approvedCourses?.some((c: any) => c.courseId === courseId || c._id === courseId);
 
         if (!isApproved) {
           alert("🚫 ඔබට මෙම පාඨමාලාව නැරඹීමට අවසර නොමැත. කරුණාකර මුදල් ගෙවා අනුමැතිය ලබාගන්න.");
@@ -96,8 +103,7 @@ export default function CoursePlayerPage({ params }: PageProps) {
           return;
         }
 
-        // 3. අවසරය ඇත්නම් පමණක් පාඨමාලාවේ වීඩියෝ/පාඩම් විස්තර Database එකෙන් ගෙන ඒම
-        const courseRes = await fetch(`/api/courses/${currentCourseId}`);
+        const courseRes = await fetch(`/api/courses/${courseId}`);
         const courseDataRes = await courseRes.json();
 
         if (courseDataRes.success) {
@@ -105,7 +111,6 @@ export default function CoursePlayerPage({ params }: PageProps) {
           setCourse(fetchedCourse);
           setHasAccess(true);
 
-          // පළමු විෂයයේ පළමු පාඩම ඉබේම ප්ලේ වීමට සැකසීම
           if (fetchedCourse.subjects && fetchedCourse.subjects.length > 0) {
             const firstSub = fetchedCourse.subjects[0];
             setActiveSubjectId(firstSub.subjectId || firstSub._id);
@@ -129,9 +134,9 @@ export default function CoursePlayerPage({ params }: PageProps) {
     };
 
     verifyAccessAndFetchCourse();
-  }, [status, session, params, router]);
+  }, [status, session, courseId, router]);
 
-
+  // --- Player Functions ---
   const handleSubjectChange = (subId: string) => {
     setActiveSubjectId(subId);
     const selectedSub = course?.subjects?.find((s: any) => (s.subjectId || s._id) === subId);
@@ -147,14 +152,6 @@ export default function CoursePlayerPage({ params }: PageProps) {
     if (!isDarkMode) document.documentElement.classList.add("dark");
     else document.documentElement.classList.remove("dark");
   };
-
-  // Theme Classes
-  const themeBg = isDarkMode ? "bg-slate-900 text-slate-100" : "bg-slate-50 text-slate-800";
-  const headerBg = isDarkMode ? "bg-slate-900/80 border-slate-800" : "bg-white/80 border-slate-200";
-  const cardBg = isDarkMode ? "bg-slate-800 border-slate-700" : "bg-white border-slate-200";
-  const textPrimary = isDarkMode ? "text-white" : "text-slate-900";
-  const textSecondary = isDarkMode ? "text-slate-400" : "text-slate-500";
-  const playlistActiveBg = isDarkMode ? "bg-blue-600/20 border-blue-500" : "bg-blue-50 border-blue-500";
 
   const getSecuredVideoUrl = (originalUrl: string) => {
     if(!originalUrl) return "";
@@ -196,7 +193,14 @@ export default function CoursePlayerPage({ params }: PageProps) {
     }
   };
 
-  // Loading Screen
+  // --- Styles ---
+  const themeBg = isDarkMode ? "bg-slate-900 text-slate-100" : "bg-slate-50 text-slate-800";
+  const headerBg = isDarkMode ? "bg-slate-900/80 border-slate-800" : "bg-white/80 border-slate-200";
+  const cardBg = isDarkMode ? "bg-slate-800 border-slate-700" : "bg-white border-slate-200";
+  const textPrimary = isDarkMode ? "text-white" : "text-slate-900";
+  const textSecondary = isDarkMode ? "text-slate-400" : "text-slate-500";
+  const playlistActiveBg = isDarkMode ? "bg-blue-600/20 border-blue-500" : "bg-blue-50 border-blue-500";
+
   if (isLoading) {
     return (
       <div className={`min-h-screen flex flex-col items-center justify-center ${themeBg}`}>
@@ -206,7 +210,6 @@ export default function CoursePlayerPage({ params }: PageProps) {
     );
   }
 
-  // අනුමැතිය නැත්නම් කිසිවක් පෙන්වන්නේ නැත (Redirect වන බැවින්)
   if (!hasAccess || !course) return null;
 
   const activeSubject = course.subjects?.find((s: any) => (s.subjectId || s._id) === activeSubjectId);
@@ -223,13 +226,12 @@ export default function CoursePlayerPage({ params }: PageProps) {
             <h1 className={`text-base md:text-xl font-bold truncate max-w-[200px] sm:max-w-md md:max-w-lg ${textPrimary}`}>{course.title}</h1>
           </div>
           
-          <div className="flex items-center flex-shrink-0">
-            <button onClick={toggleTheme} className={`rounded-full p-2 transition-colors focus:outline-none ${isDarkMode ? 'bg-slate-800 text-yellow-400 hover:bg-slate-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
-              {isDarkMode ? (
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" /></svg>
-              ) : (
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
-              )}
+          <div className="flex items-center flex-shrink-0 gap-3">
+            <button onClick={toggleTheme} className={`rounded-full p-2 transition-colors focus:outline-none ${isDarkMode ? 'bg-slate-800 text-yellow-400' : 'bg-slate-100 text-slate-600'}`}>
+              {isDarkMode ? <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" /></svg> : <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>}
+            </button>
+            <button onClick={() => signOut({ callbackUrl: "/" })} className="rounded-full bg-red-500/10 border border-red-500/50 px-4 py-1.5 text-xs md:text-sm font-semibold text-red-500 transition hover:bg-red-500 hover:text-white">
+              ඉවත් වන්න
             </button>
           </div>
         </div>
@@ -238,7 +240,6 @@ export default function CoursePlayerPage({ params }: PageProps) {
       <main className="mx-auto max-w-7xl p-4 md:p-6 lg:p-8 mt-2 md:mt-4">
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 md:mb-8">
-          {/* WhatsApp Banner */}
           {course.whatsappLink && (
             <div className={`flex items-center justify-between rounded-2xl p-4 border shadow-sm ${isDarkMode ? 'bg-emerald-900/10 border-emerald-800/30' : 'bg-emerald-50/60 border-emerald-100'}`}>
               <div className="flex items-center gap-3 truncate">
@@ -254,7 +255,6 @@ export default function CoursePlayerPage({ params }: PageProps) {
             </div>
           )}
 
-          {/* Zoom Class Banner */}
           {activeSubject?.liveClass?.zoomLink && (
             <div className={`flex items-center justify-between rounded-2xl p-4 border shadow-sm ${isDarkMode ? 'bg-blue-900/10 border-blue-800/30' : 'bg-blue-50/60 border-blue-100'}`}>
               <div className="flex items-center gap-3 truncate">
@@ -287,7 +287,6 @@ export default function CoursePlayerPage({ params }: PageProps) {
                 <button 
                   onClick={toggleFullScreen} 
                   className="absolute top-4 right-4 z-[1000] bg-white/20 p-2 rounded-full text-white hover:bg-white/40 border border-white/30 backdrop-blur-sm transition-all"
-                  title="Close Fullscreen"
                 >
                   <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                 </button>
@@ -295,7 +294,6 @@ export default function CoursePlayerPage({ params }: PageProps) {
 
               <div className="relative w-full h-full flex-grow">
                 <div className="absolute top-0 left-0 w-full h-[65px] md:h-[75px] z-[999] bg-black pointer-events-none"></div>
-                
                 <div className="absolute bottom-0 left-0 w-full h-[60px] md:h-[65px] z-[999] bg-black pointer-events-none flex items-center justify-end px-3 md:px-5">
                   <span className="text-[10px] md:text-xs font-bold text-slate-500/80 mb-2 mr-1">20minutes.lk</span>
                 </div>
@@ -323,17 +321,17 @@ export default function CoursePlayerPage({ params }: PageProps) {
               <div className="flex items-center gap-2 md:gap-3 flex-wrap">
                 
                 <div className={`flex items-center rounded-xl border overflow-hidden shadow-sm flex-shrink-0 ${isDarkMode ? 'bg-slate-800 border-slate-600' : 'bg-slate-100 border-slate-300'}`}>
-                  <button onClick={handleVolumeDown} title="Sound අඩු කරන්න" className={`px-3 py-2.5 md:py-3 transition-colors ${isDarkMode ? 'hover:bg-slate-700 text-slate-300' : 'hover:bg-slate-200 text-slate-700'}`}>
+                  <button onClick={handleVolumeDown} className={`px-3 py-2.5 md:py-3 transition-colors ${isDarkMode ? 'hover:bg-slate-700 text-slate-300' : 'hover:bg-slate-200 text-slate-700'}`}>
                     <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M18 12H6" /></svg>
                   </button>
-                  <button onClick={handleToggleMute} title={isMuted ? "Sound දාන්න" : "Mute කරන්න"} className={`px-3 py-2.5 md:py-3 transition-colors border-x ${isDarkMode ? 'hover:bg-slate-700 border-slate-600' : 'hover:bg-slate-200 border-slate-300'}`}>
+                  <button onClick={handleToggleMute} className={`px-3 py-2.5 md:py-3 transition-colors border-x ${isDarkMode ? 'hover:bg-slate-700 border-slate-600' : 'hover:bg-slate-200 border-slate-300'}`}>
                     {isMuted ? (
                       <svg className="w-4 h-4 md:w-5 md:h-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" /></svg>
                     ) : (
                       <svg className="w-4 h-4 md:w-5 md:h-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg>
                     )}
                   </button>
-                  <button onClick={handleVolumeUp} title="Sound වැඩි කරන්න" className={`px-3 py-2.5 md:py-3 transition-colors ${isDarkMode ? 'hover:bg-slate-700 text-slate-300' : 'hover:bg-slate-200 text-slate-700'}`}>
+                  <button onClick={handleVolumeUp} className={`px-3 py-2.5 md:py-3 transition-colors ${isDarkMode ? 'hover:bg-slate-700 text-slate-300' : 'hover:bg-slate-200 text-slate-700'}`}>
                     <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
                   </button>
                 </div>
