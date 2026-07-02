@@ -13,6 +13,7 @@ const UserSchema = new Schema(
     phone: { type: String, required: true, unique: true },
     password: { type: String, required: true },
     role: { type: String, default: "STUDENT" }, // "STUDENT" හෝ "ADMIN"
+    activeSessionId: { type: String },
   },
   { timestamps: true }
 );

@@ -73,7 +73,7 @@ export default function DashboardPage() {
     fetchAvailableCourses();
   }, []);
 
-  // 🔴 අලුත් කොටස: වෙනත් උපාංගයකින් ලොග් වී ඇත්දැයි පරීක්ෂා කිරීම (තත්පර 15න් 15ට)
+ // 🔴 අලුත් කොටස: වෙනත් උපාංගයකින් ලොග් වී ඇත්දැයි ක්ෂණිකව පරීක්ෂා කිරීම
   useEffect(() => {
     let interval: NodeJS.Timeout;
 
@@ -89,7 +89,8 @@ export default function DashboardPage() {
         const res = await fetch("/api/student/check-device", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ phone, currentSessionId: sessionId })
+          body: JSON.stringify({ phone, currentSessionId: sessionId }),
+          cache: "no-store" // 🔴 Cache වීම වැළැක්වීම
         });
         
         const data = await res.json();
@@ -103,13 +104,24 @@ export default function DashboardPage() {
     };
 
     if (status === "authenticated") {
-      checkSession(); // මුලින්ම පරීක්ෂා කරන්න
-      interval = setInterval(checkSession, 15000); // ඉන්පසු තත්පර 15න් 15ට පරීක්ෂා කරන්න
+      checkSession(); // මුලින්ම චෙක් කරයි
+      interval = setInterval(checkSession, 15000); // තත්පර 15න් 15ට චෙක් කරයි
+      
+      // Tab එක මාරු කර නැවත එද්දී ක්ෂණිකව චෙක් කරයි
+      window.addEventListener("focus", checkSession);
+      window.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === 'visible') checkSession();
+      });
     }
 
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("focus", checkSession);
+      // cleanup visibility listener
+      window.removeEventListener("visibilitychange", checkSession);
+    };
   }, [status, session]);
-
+  
   // Slider Scroll Handler
   const handleScroll = (ref: React.RefObject<HTMLDivElement | null>, setIndex: (idx: number) => void, totalItems: number) => {
     if (!ref.current) return;

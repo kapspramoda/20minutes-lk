@@ -42,7 +42,7 @@ export default function CoursePlayerPage({ params }: PageProps) {
     if (document.documentElement.classList.contains("dark")) setIsDarkMode(true);
   }, []);
 
-  // 🔴 2. වෙනත් උපාංගයකින් ලොග් වී ඇත්දැයි බැලීමේ Security Check එක (Auto Logout)
+  // 🔴 අලුත් කොටස: වෙනත් උපාංගයකින් ලොග් වී ඇත්දැයි ක්ෂණිකව පරීක්ෂා කිරීම
   useEffect(() => {
     let interval: NodeJS.Timeout;
 
@@ -58,13 +58,14 @@ export default function CoursePlayerPage({ params }: PageProps) {
         const res = await fetch("/api/student/check-device", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ phone, currentSessionId: sessionId })
+          body: JSON.stringify({ phone, currentSessionId: sessionId }),
+          cache: "no-store" // 🔴 Cache වීම වැළැක්වීම
         });
         
         const data = await res.json();
         if (data.logout) {
-          alert("⚠️ ඔබගේ ගිණුම වෙනත් උපාංගයකින් ලොග් වී ඇත. වීඩියෝ නැරඹීම නතර කර ඔබව ඉවත් කෙරේ.");
-          signOut({ callbackUrl: "/" }); // ගිණුමෙන් ඉවත් කිරීම
+          alert("⚠️ ඔබගේ ගිණුම වෙනත් උපාංගයකින් ලොග් වී ඇත. ආරක්ෂාව තහවුරු කිරීම සඳහා ඔබව ඉවත් කෙරේ.");
+          signOut({ callbackUrl: "/" });
         }
       } catch (error) {
         console.error("Session check failed", error);
@@ -72,11 +73,22 @@ export default function CoursePlayerPage({ params }: PageProps) {
     };
 
     if (status === "authenticated") {
-      checkSession();
-      interval = setInterval(checkSession, 15000); 
+      checkSession(); // මුලින්ම චෙක් කරයි
+      interval = setInterval(checkSession, 15000); // තත්පර 15න් 15ට චෙක් කරයි
+      
+      // Tab එක මාරු කර නැවත එද්දී ක්ෂණිකව චෙක් කරයි
+      window.addEventListener("focus", checkSession);
+      window.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === 'visible') checkSession();
+      });
     }
 
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("focus", checkSession);
+      // cleanup visibility listener
+      window.removeEventListener("visibilitychange", checkSession);
+    };
   }, [status, session]);
 
   // 3. Database එකෙන් පාඨමාලාව ගෙන ඒම සහ මුදල් ගෙවා ඇත්දැයි පරීක්ෂා කිරීම
