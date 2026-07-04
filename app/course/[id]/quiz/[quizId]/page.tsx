@@ -25,8 +25,11 @@ export default function StudentQuizPage({ params }: PageProps) {
         const res = await fetch(`/api/student/quizzes/${resolved.quizId}`);
         const data = await res.json();
         if (res.ok) setQuiz(data.data);
-      } catch (error) { console.error(error); }
-      finally { setIsLoading.setLoading(false); }
+      } catch (error) { 
+        console.error(error); 
+      } finally { 
+        setIsLoading(false); // 🔴 මෙතන තමයි වරද හැදුවේ
+      }
     };
     fetchQuizData();
   }, [params]);
