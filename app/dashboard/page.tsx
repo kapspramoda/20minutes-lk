@@ -6,14 +6,15 @@ import imageCompression from "browser-image-compression";
 import Link from "next/link";
 
 export default function DashboardPage() {
+  // 1. Hooks හැමවිටම උඩින්ම තිබිය යුතුය
   const { data: session, status } = useSession();
+  
+  // --- States ---
   const [isDarkMode, setIsDarkMode] = useState(false);
-
-  // --- අලුතින් එකතු කළ States ---
+  const [quizResults, setQuizResults] = useState<any[]>([]);
   const [myCourses, setMyCourses] = useState<any[]>([]);
   const [pendingCourses, setPendingCourses] = useState<any[]>([]);
   const [isLoadingCourses, setIsLoadingCourses] = useState(true);
-
   const [availableCourses, setAvailableCourses] = useState<any[]>([]);
   const [isLoadingAvailable, setIsLoadingAvailable] = useState(true);
 
@@ -42,7 +43,68 @@ export default function DashboardPage() {
     else document.documentElement.classList.remove("dark");
   };
 
-  // 1. ළමයාගේ පාඨමාලා ගෙන්වා ගැනීම
+  // 🔴 වෙනත් උපාංගයකින් ලොග් වී ඇත්දැයි ක්ෂණිකව පරීක්ෂා කිරීම (Security)
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+
+    const checkSession = async () => {
+      if (status !== "authenticated" || !session?.user) return;
+      
+      const phone = (session.user as any).phone || session.user.name || session.user.email;
+      const sessionId = (session.user as any).sessionId;
+      
+      if (!phone || !sessionId) return;
+
+      try {
+        const res = await fetch("/api/student/check-device", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ phone, currentSessionId: sessionId }),
+          cache: "no-store" 
+        });
+        
+        const data = await res.json();
+        if (data.logout) {
+          alert("⚠️ ඔබගේ ගිණුම වෙනත් උපාංගයකින් ලොග් වී ඇත. ආරක්ෂාව තහවුරු කිරීම සඳහා ඔබව ඉවත් කෙරේ.");
+          signOut({ callbackUrl: "/" });
+        }
+      } catch (error) {
+        console.error("Session check failed", error);
+      }
+    };
+
+    if (status === "authenticated") {
+      checkSession(); 
+      interval = setInterval(checkSession, 15000); 
+      
+      window.addEventListener("focus", checkSession);
+      window.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === 'visible') checkSession();
+      });
+    }
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("focus", checkSession);
+      window.removeEventListener("visibilitychange", checkSession);
+    };
+  }, [status, session]);
+
+  // Quiz Results ලබා ගැනීම
+  useEffect(() => {
+    const fetchQuizResults = async () => {
+      const userPhone = (session?.user as any)?.phone || session?.user?.name || session?.user?.email;
+      if (!userPhone) return;
+      try {
+        const res = await fetch(`/api/student/quizzes/results?phone=${userPhone}`);
+        const data = await res.json();
+        if (res.ok) setQuizResults(data.data);
+      } catch (error) { console.error(error); }
+    };
+    if (status === "authenticated") fetchQuizResults();
+  }, [status, session]);
+
+  // ළමයාගේ පාඨමාලා ගෙන්වා ගැනීම
   useEffect(() => {
     const fetchMyCourses = async () => {
       const userPhone = (session?.user as any)?.phone || session?.user?.name || session?.user?.email;
@@ -60,7 +122,7 @@ export default function DashboardPage() {
     if (status === "authenticated") fetchMyCourses();
   }, [status, session]);
 
-  // 2. ලබාගත හැකි පාඨමාලා ගෙන්වා ගැනීම
+  // ලබාගත හැකි පාඨමාලා ගෙන්වා ගැනීම
   useEffect(() => {
     const fetchAvailableCourses = async () => {
       try {
@@ -72,55 +134,6 @@ export default function DashboardPage() {
     };
     fetchAvailableCourses();
   }, []);
-
- // 🔴 අලුත් කොටස: වෙනත් උපාංගයකින් ලොග් වී ඇත්දැයි ක්ෂණිකව පරීක්ෂා කිරීම
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-
-    const checkSession = async () => {
-      if (status !== "authenticated" || !session?.user) return;
-      
-      const phone = (session.user as any).phone || session.user.name || session.user.email;
-      const sessionId = (session.user as any).sessionId;
-      
-      if (!phone || !sessionId) return;
-
-      try {
-        const res = await fetch("/api/student/check-device", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ phone, currentSessionId: sessionId }),
-          cache: "no-store" // 🔴 Cache වීම වැළැක්වීම
-        });
-        
-        const data = await res.json();
-        if (data.logout) {
-          alert("⚠️ ඔබගේ ගිණුම වෙනත් උපාංගයකින් ලොග් වී ඇත. ආරක්ෂාව තහවුරු කිරීම සඳහා ඔබව ඉවත් කෙරේ.");
-          signOut({ callbackUrl: "/" });
-        }
-      } catch (error) {
-        console.error("Session check failed", error);
-      }
-    };
-
-    if (status === "authenticated") {
-      checkSession(); // මුලින්ම චෙක් කරයි
-      interval = setInterval(checkSession, 15000); // තත්පර 15න් 15ට චෙක් කරයි
-      
-      // Tab එක මාරු කර නැවත එද්දී ක්ෂණිකව චෙක් කරයි
-      window.addEventListener("focus", checkSession);
-      window.addEventListener("visibilitychange", () => {
-        if (document.visibilityState === 'visible') checkSession();
-      });
-    }
-
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener("focus", checkSession);
-      // cleanup visibility listener
-      window.removeEventListener("visibilitychange", checkSession);
-    };
-  }, [status, session]);
   
   // Slider Scroll Handler
   const handleScroll = (ref: React.RefObject<HTMLDivElement | null>, setIndex: (idx: number) => void, totalItems: number) => {
@@ -158,8 +171,6 @@ export default function DashboardPage() {
       const reader = new FileReader();
       reader.readAsDataURL(fileToUpload);
       reader.onload = async () => {
-        
-        // 🔴 ගාස්තුවෙන් ඉලක්කම් පමණක් වෙන් කර ගැනීම
         const numericPrice = Number(selectedCourse.price?.replace(/[^0-9]/g, '')) || 0;
 
         const res = await fetch("/api/enroll", {
@@ -200,14 +211,14 @@ export default function DashboardPage() {
   const modalOverlayBg = isDarkMode ? "bg-slate-950/80" : "bg-slate-900/60";
   const modalBodyBg = isDarkMode ? "bg-slate-800 border-slate-700" : "bg-white border-transparent";
   const modalBoxBg = isDarkMode ? "bg-slate-700/50 border-slate-600" : "bg-slate-50 border-slate-200";
-  
   const textPrimary = isDarkMode ? "text-white" : "text-slate-900";
   const textSecondary = isDarkMode ? "text-slate-400" : "text-slate-500";
 
+  // 🔴 මෙතැන් සිට සියල්ල return එක ඇතුළේ විය යුතුය
   return (
     <div className={`modern-font flex min-h-screen flex-col transition-colors duration-300 ${themeBg}`}>
       
-      {/* --- පරණ ලස්සන Header එක --- */}
+      {/* --- Header --- */}
       <header className={`sticky top-0 z-50 w-full border-b backdrop-blur-md transition-all duration-300 ${headerBg}`}>
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 md:px-6 md:py-4">
           <div className="flex items-center gap-2 md:gap-3">
@@ -243,7 +254,6 @@ export default function DashboardPage() {
 
       <main className="flex-grow mx-auto w-full max-w-7xl p-4 md:p-6 mt-4">
         
-        {/* Loading State එකක් පෙන්වීම */}
         {isLoadingCourses ? (
           <div className="flex justify-center items-center h-40">
             <p className="text-lg font-bold text-slate-400 animate-pulse">ඔබගේ දත්ත ගෙනෙමින් පවතී...</p>
@@ -333,6 +343,46 @@ export default function DashboardPage() {
           </>
         )}
 
+        {/* 📊 MCQ විභාග ප්‍රතිඵල ලේඛනය (මෙය දැන් නිවැරදිව return එක ඇතුළේ ඇත) */}
+        {quizResults.length > 0 && (
+          <section className="mb-12 md:mb-16">
+            <h2 className={`mb-6 text-xl md:text-2xl font-bold border-l-4 border-purple-500 pl-3 ${sectionTitleColor}`}>මුහුණ දුන් MCQ විභාග ප්‍රතිඵල (Quiz Results)</h2>
+            <div className={`rounded-2xl border overflow-hidden shadow-sm ${cardBg}`}>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                  <thead className={`text-xs uppercase font-bold border-b ${isDarkMode ? 'bg-slate-800 text-slate-400 border-slate-700' : 'bg-slate-50 text-slate-500 border-slate-200'}`}>
+                    <tr>
+                      <th className="px-6 py-4">විභාගයේ නම (Exam Title)</th>
+                      <th className="px-6 py-4">ලබාගත් ලකුණු (Score)</th>
+                      <th className="px-6 py-4">ප්‍රතිශතය (Percentage)</th>
+                      <th className="px-6 py-4">දිනය (Date)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
+                    {quizResults.map((result) => {
+                      const percentage = (result.score / result.totalQuestions) * 100;
+                      return (
+                        <tr key={result._id} className={isDarkMode ? 'hover:bg-slate-700/50' : 'hover:bg-slate-50'}>
+                          <td className={`px-6 py-4 font-bold ${textPrimary}`}>{result.quizTitle}</td>
+                          <td className="px-6 py-4 font-black text-blue-500">{result.score} / {result.totalQuestions}</td>
+                          <td className="px-6 py-4">
+                            <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${percentage >= 50 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                              {percentage.toFixed(1)}%
+                            </span>
+                          </td>
+                          <td className={`px-6 py-4 ${textSecondary}`}>
+                            {new Date(result.createdAt).toLocaleDateString('si-LK')}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+        )}
+
         {/* 3. ලබාගත හැකි අලුත් පාඨමාලා */}
         <section>
           <h2 className={`mb-6 text-xl md:text-2xl font-bold border-l-4 border-blue-500 pl-3 ${sectionTitleColor}`}>අලුත් පාඨමාලා (Available Courses)</h2>
@@ -379,7 +429,7 @@ export default function DashboardPage() {
         </section>
       </main>
 
-      {/* --- පරණ ලස්සන Footer එක --- */}
+      {/* --- Footer --- */}
       <footer className={`px-4 py-10 transition-colors duration-300 md:px-6 md:py-16 mt-12 ${isDarkMode ? 'bg-black text-slate-400 border-t border-slate-900' : 'bg-slate-900 text-slate-300'}`}>
         <div className="mx-auto grid max-w-7xl gap-10 md:grid-cols-3 md:gap-12">
           <div>
