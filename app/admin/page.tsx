@@ -21,7 +21,7 @@ export default function AdminDashboard() {
   const [isLoadingStudents, setIsLoadingStudents] = useState(true);
   const [selectedFilterCourse, setSelectedFilterCourse] = useState<string>("ALL");
 
-  // 🔴 අලුත්: Slip එක විශාල කර පෙන්වීමට අදාළ State එක
+  // Slip එක විශාල කර පෙන්වීමට අදාළ State එක
   const [enlargedSlip, setEnlargedSlip] = useState<string | null>(null);
 
   useEffect(() => {
@@ -213,7 +213,7 @@ export default function AdminDashboard() {
                 {pendingApprovals.map((req) => (
                   <div key={req._id} className={`flex flex-col overflow-hidden rounded-2xl border shadow-sm transition-all ${cardBg}`}>
                     
-                    {/* 🔴 වෙනස් කළ කොටස: Modal එකක් මගින් පින්තූරය විශාල කිරීම */}
+                    {/* Modal එකක් මගින් පින්තූරය විශාල කිරීම */}
                     <div 
                       className="h-48 overflow-hidden bg-slate-200 relative group cursor-pointer"
                       onClick={() => setEnlargedSlip(req.slipImage)}
@@ -251,15 +251,24 @@ export default function AdminDashboard() {
         {/* --- 2. Courses Tab --- */}
         {activeTab === "courses" && (
           <div className="animate-in fade-in duration-300">
+            
+            {/* 🔴 වෙනස් කළ කොටස: Quiz සහ Course බටන් දෙකම මෙහි ඇත */}
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
               <div>
-                <h2 className={`text-xl font-bold ${textPrimary}`}>පවතින පාඨමාලා</h2>
-                <p className={`text-sm ${textSecondary}`}>ඔබගේ සියලුම පාඨමාලා මෙතැනින් කළමනාකරණය කරන්න.</p>
+                <h2 className={`text-xl font-bold ${textPrimary}`}>පවතින පාඨමාලා සහ විභාග</h2>
+                <p className={`text-sm ${textSecondary}`}>ඔබගේ සියලුම පාඨමාලා සහ MCQ ප්‍රශ්න පත්‍ර මෙතැනින් කළමනාකරණය කරන්න.</p>
               </div>
-              <Link href="/admin/add-course" className="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-bold transition-all shadow-md">
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-                අලුත් Course එකක් හදන්න
-              </Link>
+              
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Link href="/admin/add-quiz" className="inline-flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-5 py-3 rounded-xl font-bold transition-all shadow-md">
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>
+                  + අලුත් Quiz එකක්
+                </Link>
+                <Link href="/admin/add-course" className="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl font-bold transition-all shadow-md">
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                  + අලුත් Course එකක්
+                </Link>
+              </div>
             </div>
 
             {isLoadingCourses ? (
@@ -363,7 +372,7 @@ export default function AdminDashboard() {
         )}
       </main>
 
-      {/* 🔴 අලුත්: Slip එක විශාල කර පෙන්වන Modal එක */}
+      {/* Slip එක විශාල කර පෙන්වන Modal එක */}
       {enlargedSlip && (
         <div 
           className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in duration-200"
@@ -371,7 +380,6 @@ export default function AdminDashboard() {
         >
           <div className="relative w-full max-w-4xl h-[85vh] flex items-center justify-center">
             
-            {/* Close Button */}
             <button 
               onClick={(e) => { e.stopPropagation(); setEnlargedSlip(null); }}
               className="absolute -top-12 right-0 md:-right-12 text-white/70 hover:text-red-500 bg-white/10 hover:bg-white/20 rounded-full p-2 transition-all"
@@ -380,7 +388,6 @@ export default function AdminDashboard() {
               <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
 
-            {/* Enlarged Image */}
             <img 
               src={enlargedSlip} 
               alt="Enlarged Bank Slip" 
