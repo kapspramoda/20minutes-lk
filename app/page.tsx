@@ -31,9 +31,9 @@ export default function HomePage() {
 
   // 🔴 අලුත් ප්‍රතිඵල පින්තූර 
   const resultsData = [
-    { id: 1, img: "/RESULTS.jpeg", name: "විශිෂ්ට ප්‍රතිඵල", rank: "දිවයිනේ ප්‍රථම ස්ථාන" },
-    { id: 2, img: "/2425.png", name: "LLB ප්‍රවේශය", rank: "විශ්වවිද්‍යාල ප්‍රවේශය" },
-    { id: 3, img: "/PrExam.png", name: "තරග විභාග ජයග්‍රහණ", rank: "රාජ්‍ය සේවයට" }
+    { id: 1, img: "/RESULTS.jpeg", name: "විශිෂ්ට ප්‍රතිඵල", rank: "ප්‍රාථමික අධ්‍යාපන" },
+    { id: 2, img: "/2425.png", name: "විශිෂ්ට ප්‍රතිඵල", rank: "නීතීවේදී" },
+    { id: 3, img: "/PrExam.png", name: "විශිෂ්ට ප්‍රතිඵල", rank: "ප්‍රාථමික අධ්‍යාපන" }
   ];
 
   // 🔴 සිසුන්ගේ අදහස් (YouTube Playlists)
