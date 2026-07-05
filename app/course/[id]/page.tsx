@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import Link from "next/link"; // අලුතින් එකතු කළා
+import Link from "next/link"; 
 
 type PageProps = {
   params: Promise<{ id: string }> | { id: string };
@@ -19,7 +19,7 @@ export default function CoursePlayerPage({ params }: PageProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [hasAccess, setHasAccess] = useState(false);
 
-  // 🔴 අලුත්: Quizzes ගබඩා කරගන්න State එක
+  // Quizzes ගබඩා කරගන්න State එක
   const [courseQuizzes, setCourseQuizzes] = useState<any[]>([]);
 
   const [activeSubjectId, setActiveSubjectId] = useState<string>("");
@@ -103,6 +103,7 @@ export default function CoursePlayerPage({ params }: PageProps) {
       try {
         const userPhone = (session?.user as any)?.phone || session?.user?.name || session?.user?.email;
 
+        // 1. ළමයාට මේ පාඨමාලාවට අවසර තියෙනවාදැයි බැලීම
         const accessRes = await fetch(`/api/student/courses?phone=${userPhone}`);
         const accessData = await accessRes.json();
 
@@ -114,6 +115,7 @@ export default function CoursePlayerPage({ params }: PageProps) {
           return;
         }
 
+        // 2. පාඨමාලාවේ දත්ත ගෙන ඒම (වීඩියෝ සහ පාඩම්)
         const courseRes = await fetch(`/api/courses/${courseId}`);
         const courseDataRes = await courseRes.json();
 
@@ -135,17 +137,25 @@ export default function CoursePlayerPage({ params }: PageProps) {
         } else {
           alert("පාඨමාලාව සොයාගැනීමට නොහැක!");
           router.push("/dashboard");
+          return;
         }
 
-        // 🔴 අලුත්: Quizzes ටික අරගෙන ඒම
-        const quizRes = await fetch(`/api/student/quizzes/course/${courseId}`);
-        const quizData = await quizRes.json();
-        if (quizData.success) {
-          setCourseQuizzes(quizData.data);
+        // 3. Quizzes ගෙන එන කොටස (මෙය අසමත් වුවද වීඩියෝ නැරඹීමට බාධාවක් නොවේ)
+        try {
+          const quizRes = await fetch(`/api/student/quizzes/course/${courseId}`);
+          if (quizRes.ok) {
+            const quizData = await quizRes.json();
+            if (quizData.success) {
+              setCourseQuizzes(quizData.data);
+            }
+          }
+        } catch (quizError) {
+          console.error("Quizzes ගෙන ඒමේදී දෝෂයක්:", quizError);
         }
 
       } catch (error) {
-        console.error("දෝෂයක් මතු විය:", error);
+        console.error("Course Player Error:", error);
+        alert("තාක්ෂණික දෝෂයක් මතු විය. කරුණාකර නැවත උත්සාහ කරන්න.");
         router.push("/dashboard");
       } finally {
         setIsLoading(false);
@@ -439,7 +449,7 @@ export default function CoursePlayerPage({ params }: PageProps) {
               )}
             </div>
 
-            {/* 🔴 අලුත්: Quizzes පෙන්වන කොටස */}
+            {/* Quizzes පෙන්වන කොටස */}
             {courseQuizzes.length > 0 && (
               <div className="pt-5 border-t dark:border-slate-700">
                 <h3 className="text-xs md:text-sm font-extrabold uppercase tracking-wider text-purple-500 mb-3">MCQ ප්‍රශ්න පත්‍ර (Quizzes)</h3>
