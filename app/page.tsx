@@ -61,7 +61,7 @@ export default function HomePage() {
     { 
       id: 3, 
       title: "විශේෂ වට්ටම් සහිතයි!", 
-      subtitle: "නව ලියාපදිංචිවීම් සඳහා 20% ක විශේෂ වට්ටමක්. මෙම දීමනාව සීමිත කාලයක් සඳහා පමණි.", 
+      subtitle: "මෙම දීමනාව සීමිත කාලයක් සඳහා පමණි.", 
       btnText: "වට්ටම ලබාගන්න", 
       image: "https://images.unsplash.com/photo-1434030216411-0b793f4b4173?q=80&w=1920&auto=format&fit=crop" 
     }
@@ -308,7 +308,7 @@ export default function HomePage() {
             </section>
           )}
 
-          {/* 🔴 2. Welcome & About Section (අලුතින් එකතු කළ කොටස) */}
+         {/* 🔴 2. Welcome & About Section (අලුතින් එකතු කළ කොටස) */}
           <section className={`py-16 px-4 md:py-24 md:px-6 transition-colors duration-300 ${isDarkMode ? 'bg-slate-950/50 border-y border-slate-800' : 'bg-blue-50/50 border-y border-blue-100'}`}>
             <div className="mx-auto max-w-5xl text-center">
               <h2 className={`mb-6 text-2xl font-extrabold md:text-4xl ${sectionTitleColor}`}>
@@ -321,7 +321,8 @@ export default function HomePage() {
                   තෝරාගැනීමේ පරීක්ෂණ සඳහා ශ්‍රී ලංකාවේ විශ්වාසනීය ප්‍රමුඛතම පුහුණු ආයතනයක් වන <b>20 minutesLK Institute</b> සමඟ මේ වන විට සිසුන් <b>8,000+</b> ක් අධ්‍යයනය කර ඇති අතර, ඔවුන් අතරින් <b>3,000+</b> දෙනෙකු විවිධ තෝරාගැනීමේ පරීක්ෂණ සාර්ථකව සමත් වී ඔවුන්ගේ සිහින උපාධි හා වෘත්තීය අවස්ථා දිනාගෙන ඇත.
                 </p>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left max-w-3xl mx-auto mt-8 bg-white dark:bg-slate-900 p-6 md:p-8 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800">
+                {/* 🔴 මෙතන Background එක Dark Mode එකට අනුව වෙනස් වෙන්න හැදුවා */}
+                <div className={`grid grid-cols-1 md:grid-cols-2 gap-4 text-left max-w-3xl mx-auto mt-8 p-6 md:p-8 rounded-3xl shadow-sm border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
                   <div className="flex items-start gap-3">
                     <span className="text-emerald-500 text-xl">✅</span>
                     <span className={`font-bold ${cardTitle}`}>විශේෂඥ දේශක මණ්ඩලය</span>
