@@ -180,7 +180,6 @@ export default function StudentExamPage({ params }: PageProps) {
           </div>
         )}
 
-
         {/* =========================================
             පියවර 2 & 3: විභාගය කිරීම සහ ප්‍රතිඵල
            ========================================= */}
@@ -239,7 +238,7 @@ export default function StudentExamPage({ params }: PageProps) {
                         <button
                           key={oIdx} type="button" 
                           disabled={step === "results"}
-                          onClick={() => handleSelectOption(qIndex, oIdx)}
+                          onClick={() => handleSelectOption(qIdx, oIdx)} // 🔴 මෙතන තමයි වරද හැදුවේ (qIdx)
                           className={`w-full text-left p-3 md:p-4 rounded-xl border transition-all flex items-center gap-4 text-sm md:text-base ${optionStyle}`}
                         >
                           <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0 transition-colors ${indicatorStyle}`}>
