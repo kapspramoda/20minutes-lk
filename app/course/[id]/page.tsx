@@ -140,12 +140,21 @@ export default function CoursePlayerPage({ params }: PageProps) {
 
         // Quizzes ගෙන එන කොටස
         try {
-          const quizRes = await fetch(`/api/student/quizzes/course/${courseId}`);
+          const quizRes = await fetch(`/api/student/quizzes/course/${courseId}`, {
+            cache: "no-store", // 🔴 මේ කෑල්ල අනිවාර්යයෙන්ම තිබිය යුතුයි
+            headers: {
+              'Cache-Control': 'no-cache',
+              'Pragma': 'no-cache'
+            }
+          });
+          
           if (quizRes.ok) {
             const quizData = await quizRes.json();
             if (quizData.success) {
               setCourseQuizzes(quizData.data);
             }
+          } else {
+             console.log("Quiz API එක සොයාගැනීමට නොහැක. Vercel එකට Push වී ඇත්දැයි පරීක්ෂා කරන්න.");
           }
         } catch (quizError) {
           console.error("Quizzes ගෙන ඒමේදී දෝෂයක්:", quizError);
