@@ -4,7 +4,6 @@ import Quiz from "@/models/Quiz";
 
 type Context = { params: Promise<{ courseId: string }> | { courseId: string } };
 
-// 🔴 req වෙනුවට _req ලෙස වෙනස් කළා
 export async function GET(_req: Request, context: Context) {
   try {
     const resolvedParams = await context.params;
@@ -13,9 +12,10 @@ export async function GET(_req: Request, context: Context) {
       await mongoose.connect(process.env.MONGODB_URI as string);
     }
     
+    // 🔴 වෙනස් කළ කොටස: "Hide කරලා නැති (false නොවන) සියල්ල ගෙන එන්න"
     const quizzes = await Quiz.find({ 
       courseId: resolvedParams.courseId, 
-      isVisible: true 
+      isVisible: { $ne: false } 
     }).select("_id title questions createdAt"); 
 
     return NextResponse.json({ success: true, data: quizzes });
