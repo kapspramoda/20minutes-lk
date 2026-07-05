@@ -44,7 +44,7 @@ export default function CoursePlayerPage({ params }: PageProps) {
     if (document.documentElement.classList.contains("dark")) setIsDarkMode(true);
   }, []);
 
-  // වෙනත් උපාංගයකින් ලොග් වී ඇත්දැයි බැලීමේ Security Check එක (Auto Logout)
+  // වෙනත් උපාංගයකින් ලොග් වී ඇත්දැයි බැලීමේ Security Check එක
   useEffect(() => {
     let interval: NodeJS.Timeout;
 
@@ -103,7 +103,6 @@ export default function CoursePlayerPage({ params }: PageProps) {
       try {
         const userPhone = (session?.user as any)?.phone || session?.user?.name || session?.user?.email;
 
-        // 1. ළමයාට මේ පාඨමාලාවට අවසර තියෙනවාදැයි බැලීම
         const accessRes = await fetch(`/api/student/courses?phone=${userPhone}`);
         const accessData = await accessRes.json();
 
@@ -115,7 +114,6 @@ export default function CoursePlayerPage({ params }: PageProps) {
           return;
         }
 
-        // 2. පාඨමාලාවේ දත්ත ගෙන ඒම (වීඩියෝ සහ පාඩම්)
         const courseRes = await fetch(`/api/courses/${courseId}`);
         const courseDataRes = await courseRes.json();
 
@@ -140,7 +138,7 @@ export default function CoursePlayerPage({ params }: PageProps) {
           return;
         }
 
-        // 3. Quizzes ගෙන එන කොටස (මෙය අසමත් වුවද වීඩියෝ නැරඹීමට බාධාවක් නොවේ)
+        // Quizzes ගෙන එන කොටස
         try {
           const quizRes = await fetch(`/api/student/quizzes/course/${courseId}`);
           if (quizRes.ok) {
@@ -266,7 +264,7 @@ export default function CoursePlayerPage({ params }: PageProps) {
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl p-4 md:p-6 lg:p-8 mt-2 md:mt-4">
+      <main className="mx-auto max-w-7xl p-4 md:p-6 lg:p-8 mt-2 md:mt-4 pb-12">
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 md:mb-8">
           {course.whatsappLink && (
@@ -302,9 +300,12 @@ export default function CoursePlayerPage({ params }: PageProps) {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8 items-start">
           
-          {/* වීඩියෝ ප්ලේයර් කොටස */}
-          <div className="lg:col-span-2 space-y-4">
+          {/* ============================== */}
+          {/* 1. වම්පස: වීඩියෝව සහ Quizzes  */}
+          {/* ============================== */}
+          <div className="lg:col-span-2 space-y-4 md:space-y-6">
             
+            {/* වීඩියෝ Player එක */}
             <div className={
                   isFullscreen 
                   ? "fixed inset-0 z-[99999] bg-black w-screen h-[100dvh] flex flex-col justify-center select-none" 
@@ -342,6 +343,7 @@ export default function CoursePlayerPage({ params }: PageProps) {
               </div>
             </div>
 
+            {/* Now Playing - පාලන බොත්තම් */}
             <div className={`p-4 md:p-5 rounded-xl md:rounded-2xl border shadow-sm flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 ${cardBg}`}>
               <div className="truncate">
                 <span className="text-[10px] md:text-xs font-bold uppercase tracking-wider text-blue-500">දැන් ධාවනය වේ (Now Playing)</span>
@@ -387,9 +389,50 @@ export default function CoursePlayerPage({ params }: PageProps) {
                 )}
               </div>
             </div>
+
+            {/* 🔴 අලුත්: Quizzes පෙන්වන කොටස (වීඩියෝවට යටින්) */}
+            {courseQuizzes.length > 0 && (
+              <div className={`p-4 md:p-6 rounded-xl md:rounded-2xl border shadow-sm ${cardBg}`}>
+                <h3 className={`text-sm md:text-lg font-extrabold tracking-wide text-purple-600 dark:text-purple-400 mb-4 border-l-4 border-purple-500 pl-3`}>
+                  මෙම පාඨමාලාවට අදාළ MCQ විභාග
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {courseQuizzes.map((quiz: any) => (
+                    <div 
+                      key={quiz._id}
+                      className={`flex flex-col p-4 rounded-xl border transition-all ${isDarkMode ? 'bg-purple-900/10 border-purple-800/30' : 'bg-purple-50 border-purple-100'}`}
+                    >
+                      <div className="flex items-start gap-3 mb-4">
+                        <div className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-lg flex-shrink-0 bg-purple-600 text-white shadow-sm">
+                          Q
+                        </div>
+                        <div>
+                          <h4 className={`text-sm md:text-base font-bold line-clamp-2 text-purple-900 dark:text-purple-300`}>
+                            {quiz.title}
+                          </h4>
+                          <p className="text-xs font-bold text-purple-500/80 mt-1">
+                            ප්‍රශ්න {quiz.questions?.length || 0} ක් අඩංගුයි
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <Link 
+                        href={`/course/${courseId}/quiz/${quiz._id}`} 
+                        className="w-full bg-purple-600 hover:bg-purple-700 text-white text-center text-sm font-bold py-2.5 rounded-lg transition-colors mt-auto shadow-sm"
+                      >
+                        විභාගය අරඹන්න (Start)
+                      </Link>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
           </div>
 
-          {/* දකුණුපස පාඩම් ලැයිස්තුව සහ Quizzes */}
+          {/* ============================== */}
+          {/* 2. දකුණුපස: පාඩම් ලැයිස්තුව    */}
+          {/* ============================== */}
           <div className={`rounded-xl md:rounded-2xl border p-4 shadow-sm md:h-[650px] overflow-y-auto ${cardBg}`}>
             
             <h3 className="text-xs md:text-sm font-extrabold uppercase tracking-wider text-slate-400 mb-3">විෂයයන් තෝරන්න</h3>
@@ -448,40 +491,6 @@ export default function CoursePlayerPage({ params }: PageProps) {
                 <p className="text-sm text-slate-400 font-bold text-center mt-6">දැනට පාඩම් කිසිවක් එක් කර නොමැත.</p>
               )}
             </div>
-
-            {/* Quizzes පෙන්වන කොටස */}
-            {courseQuizzes.length > 0 && (
-              <div className="pt-5 border-t dark:border-slate-700">
-                <h3 className="text-xs md:text-sm font-extrabold uppercase tracking-wider text-purple-500 mb-3">MCQ ප්‍රශ්න පත්‍ර (Quizzes)</h3>
-                
-                <div className="space-y-2 md:space-y-2.5">
-                  {courseQuizzes.map((quiz: any) => (
-                    <Link 
-                      href={`/course/${courseId}/quiz/${quiz._id}`} 
-                      key={quiz._id}
-                      className={`flex items-start justify-between p-3 rounded-xl border transition-all hover:scale-[1.01] ${isDarkMode ? 'bg-purple-900/10 border-purple-800/30 hover:bg-purple-900/20' : 'bg-purple-50 border-purple-100 hover:bg-purple-100'}`}
-                    >
-                      <div className="flex items-start gap-3 truncate">
-                        <div className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm flex-shrink-0 bg-purple-600 text-white mt-0.5">
-                          Q
-                        </div>
-                        <div className="truncate flex-grow">
-                          <p className={`text-xs md:text-sm font-bold truncate text-purple-700 dark:text-purple-400`}>
-                            {quiz.title}
-                          </p>
-                          <p className="text-[9px] md:text-[11px] text-purple-500/70 mt-0.5">
-                            ප්‍රශ්න {quiz.questions?.length || 0} ක් අඩංගුයි
-                          </p>
-                        </div>
-                      </div>
-                      <span className="bg-purple-600 text-white text-[10px] font-bold px-2 py-1 rounded mt-1.5 flex-shrink-0">
-                        Start
-                      </span>
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            )}
             
           </div>
         </div>
