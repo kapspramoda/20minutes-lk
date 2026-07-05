@@ -1,0 +1,25 @@
+import { NextResponse } from "next/server";
+import mongoose from "mongoose";
+import Quiz from "@/models/Quiz";
+
+type Context = { params: Promise<{ courseId: string }> | { courseId: string } };
+
+export async function GET(req: Request, context: Context) {
+  try {
+    const resolvedParams = await context.params;
+    
+    if (mongoose.connection.readyState < 1) {
+      await mongoose.connect(process.env.MONGODB_URI as string);
+    }
+    
+    // මේ Course එකට අදාළව, Admin විසින් "Show" කර ඇති (isVisible: true) Quizzes පමණක් ගෙන ඒම
+    const quizzes = await Quiz.find({ 
+      courseId: resolvedParams.courseId, 
+      isVisible: true 
+    }).select("_id title questions createdAt"); // අවශ්‍ය දත්ත පමණක් ගනියි
+
+    return NextResponse.json({ success: true, data: quizzes });
+  } catch (error) {
+    return NextResponse.json({ success: false, message: "Server Error" });
+  }
+}

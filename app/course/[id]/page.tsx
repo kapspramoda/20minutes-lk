@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { useSession, signOut } from "next-auth/react"; // 🔴 signOut නිවැරදිව එකතු කර ඇත
+import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import Link from "next/link"; // අලුතින් එකතු කළා
 
 type PageProps = {
   params: Promise<{ id: string }> | { id: string };
@@ -18,6 +19,9 @@ export default function CoursePlayerPage({ params }: PageProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [hasAccess, setHasAccess] = useState(false);
 
+  // 🔴 අලුත්: Quizzes ගබඩා කරගන්න State එක
+  const [courseQuizzes, setCourseQuizzes] = useState<any[]>([]);
+
   const [activeSubjectId, setActiveSubjectId] = useState<string>("");
   const [activeVideoUrl, setActiveVideoUrl] = useState<string>("");
   const [activeVideoTitle, setActiveVideoTitle] = useState<string>("");
@@ -28,7 +32,6 @@ export default function CoursePlayerPage({ params }: PageProps) {
   const [isMuted, setIsMuted] = useState(false);
   const [volumeLevel, setVolumeLevel] = useState(100);
 
-  // 1. URL එකෙන් Course ID එක ආරක්ෂිතව වෙන් කර ගැනීම (Next.js 15 දෝෂ මගහැරීමට)
   useEffect(() => {
     const resolveParams = async () => {
       const resolved = await params;
@@ -37,12 +40,11 @@ export default function CoursePlayerPage({ params }: PageProps) {
     resolveParams();
   }, [params]);
 
-  // Theme
   useEffect(() => {
     if (document.documentElement.classList.contains("dark")) setIsDarkMode(true);
   }, []);
 
-  // 🔴 අලුත් කොටස: වෙනත් උපාංගයකින් ලොග් වී ඇත්දැයි ක්ෂණිකව පරීක්ෂා කිරීම
+  // වෙනත් උපාංගයකින් ලොග් වී ඇත්දැයි බැලීමේ Security Check එක (Auto Logout)
   useEffect(() => {
     let interval: NodeJS.Timeout;
 
@@ -59,12 +61,12 @@ export default function CoursePlayerPage({ params }: PageProps) {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ phone, currentSessionId: sessionId }),
-          cache: "no-store" // 🔴 Cache වීම වැළැක්වීම
+          cache: "no-store"
         });
         
         const data = await res.json();
         if (data.logout) {
-          alert("⚠️ ඔබගේ ගිණුම වෙනත් උපාංගයකින් ලොග් වී ඇත. ආරක්ෂාව තහවුරු කිරීම සඳහා ඔබව ඉවත් කෙරේ.");
+          alert("⚠️ ඔබගේ ගිණුම වෙනත් උපාංගයකින් ලොග් වී ඇත. වීඩියෝ නැරඹීම නතර කර ඔබව ඉවත් කෙරේ.");
           signOut({ callbackUrl: "/" });
         }
       } catch (error) {
@@ -73,10 +75,8 @@ export default function CoursePlayerPage({ params }: PageProps) {
     };
 
     if (status === "authenticated") {
-      checkSession(); // මුලින්ම චෙක් කරයි
-      interval = setInterval(checkSession, 15000); // තත්පර 15න් 15ට චෙක් කරයි
-      
-      // Tab එක මාරු කර නැවත එද්දී ක්ෂණිකව චෙක් කරයි
+      checkSession();
+      interval = setInterval(checkSession, 15000);
       window.addEventListener("focus", checkSession);
       window.addEventListener("visibilitychange", () => {
         if (document.visibilityState === 'visible') checkSession();
@@ -86,12 +86,11 @@ export default function CoursePlayerPage({ params }: PageProps) {
     return () => {
       clearInterval(interval);
       window.removeEventListener("focus", checkSession);
-      // cleanup visibility listener
       window.removeEventListener("visibilitychange", checkSession);
     };
   }, [status, session]);
 
-  // 3. Database එකෙන් පාඨමාලාව ගෙන ඒම සහ මුදල් ගෙවා ඇත්දැයි පරීක්ෂා කිරීම
+  // Database එකෙන් පාඨමාලාව සහ Quizzes ගෙන ඒම
   useEffect(() => {
     if (status === "unauthenticated") {
       router.push("/dashboard");
@@ -137,6 +136,14 @@ export default function CoursePlayerPage({ params }: PageProps) {
           alert("පාඨමාලාව සොයාගැනීමට නොහැක!");
           router.push("/dashboard");
         }
+
+        // 🔴 අලුත්: Quizzes ටික අරගෙන ඒම
+        const quizRes = await fetch(`/api/student/quizzes/course/${courseId}`);
+        const quizData = await quizRes.json();
+        if (quizData.success) {
+          setCourseQuizzes(quizData.data);
+        }
+
       } catch (error) {
         console.error("දෝෂයක් මතු විය:", error);
         router.push("/dashboard");
@@ -285,6 +292,7 @@ export default function CoursePlayerPage({ params }: PageProps) {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8 items-start">
           
+          {/* වීඩියෝ ප්ලේයර් කොටස */}
           <div className="lg:col-span-2 space-y-4">
             
             <div className={
@@ -371,7 +379,9 @@ export default function CoursePlayerPage({ params }: PageProps) {
             </div>
           </div>
 
-          <div className={`rounded-xl md:rounded-2xl border p-4 shadow-sm h-[400px] md:h-[auto] md:max-h-[580px] overflow-y-auto ${cardBg}`}>
+          {/* දකුණුපස පාඩම් ලැයිස්තුව සහ Quizzes */}
+          <div className={`rounded-xl md:rounded-2xl border p-4 shadow-sm md:h-[650px] overflow-y-auto ${cardBg}`}>
+            
             <h3 className="text-xs md:text-sm font-extrabold uppercase tracking-wider text-slate-400 mb-3">විෂයයන් තෝරන්න</h3>
             
             <div className="flex gap-2 mb-4 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden border-b pb-3 dark:border-slate-700">
@@ -392,7 +402,7 @@ export default function CoursePlayerPage({ params }: PageProps) {
 
             <h3 className="text-xs md:text-sm font-extrabold uppercase tracking-wider text-slate-400 mb-3">පාඩම් ලැයිස්තුව (Playlist)</h3>
             
-            <div className="space-y-2 md:space-y-2.5">
+            <div className="space-y-2 md:space-y-2.5 mb-6">
               {activeSubject?.lessons?.length > 0 ? (
                 activeSubject.lessons.map((lesson: any, index: number) => {
                   const isActive = activeVideoUrl === lesson.videoEmbed;
@@ -428,8 +438,42 @@ export default function CoursePlayerPage({ params }: PageProps) {
                 <p className="text-sm text-slate-400 font-bold text-center mt-6">දැනට පාඩම් කිසිවක් එක් කර නොමැත.</p>
               )}
             </div>
-          </div>
 
+            {/* 🔴 අලුත්: Quizzes පෙන්වන කොටස */}
+            {courseQuizzes.length > 0 && (
+              <div className="pt-5 border-t dark:border-slate-700">
+                <h3 className="text-xs md:text-sm font-extrabold uppercase tracking-wider text-purple-500 mb-3">MCQ ප්‍රශ්න පත්‍ර (Quizzes)</h3>
+                
+                <div className="space-y-2 md:space-y-2.5">
+                  {courseQuizzes.map((quiz: any) => (
+                    <Link 
+                      href={`/course/${courseId}/quiz/${quiz._id}`} 
+                      key={quiz._id}
+                      className={`flex items-start justify-between p-3 rounded-xl border transition-all hover:scale-[1.01] ${isDarkMode ? 'bg-purple-900/10 border-purple-800/30 hover:bg-purple-900/20' : 'bg-purple-50 border-purple-100 hover:bg-purple-100'}`}
+                    >
+                      <div className="flex items-start gap-3 truncate">
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm flex-shrink-0 bg-purple-600 text-white mt-0.5">
+                          Q
+                        </div>
+                        <div className="truncate flex-grow">
+                          <p className={`text-xs md:text-sm font-bold truncate text-purple-700 dark:text-purple-400`}>
+                            {quiz.title}
+                          </p>
+                          <p className="text-[9px] md:text-[11px] text-purple-500/70 mt-0.5">
+                            ප්‍රශ්න {quiz.questions?.length || 0} ක් අඩංගුයි
+                          </p>
+                        </div>
+                      </div>
+                      <span className="bg-purple-600 text-white text-[10px] font-bold px-2 py-1 rounded mt-1.5 flex-shrink-0">
+                        Start
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+          </div>
         </div>
       </main>
     </div>
