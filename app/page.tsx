@@ -29,10 +29,20 @@ export default function HomePage() {
     { id: 4, title: "ශ්‍රී ලංකා රේගු දෙපාර්තමේන්තු විභාගය", price: "රු. 3500", duration: "මාස 4" },
   ];
 
-  const resultsData = [1, 2, 3, 4, 5];
-  const testimonialsData = [1, 2, 3, 4];
+  // 🔴 අලුත් ප්‍රතිඵල පින්තූර 
+  const resultsData = [
+    { id: 1, img: "/RESULTS.jpeg", name: "විශිෂ්ට ප්‍රතිඵල", rank: "දිවයිනේ ප්‍රථම ස්ථාන" },
+    { id: 2, img: "/2425.png", name: "LLB ප්‍රවේශය", rank: "විශ්වවිද්‍යාල ප්‍රවේශය" },
+    { id: 3, img: "/PrExam.png", name: "තරග විභාග ජයග්‍රහණ", rank: "රාජ්‍ය සේවයට" }
+  ];
 
-  // අලුත් පින්තූර (Unsplash) එකතු කරන ලද Slides දත්ත
+  // 🔴 සිසුන්ගේ අදහස් (YouTube Playlists)
+  const testimonialsData = [
+    { id: 1, title: "සිසුන්ගේ අදහස් 1", link: "https://www.youtube.com/embed/videoseries?list=PLUmQc9YvKzLLnvf1AkQbEhtw-9i-BDryq" },
+    { id: 2, title: "සිසුන්ගේ අදහස් 2", link: "https://www.youtube.com/embed/videoseries?list=PLUmQc9YvKzLJSolBkpLrbr_xZDKy5Z-lZ" },
+    { id: 3, title: "සිසුන්ගේ අදහස් 3", link: "https://www.youtube.com/embed/videoseries?list=PLUmQc9YvKzLIHxO1GHa0kafOGwHen68mc" }
+  ];
+
   const slides = [
     { 
       id: 1, 
@@ -104,14 +114,13 @@ export default function HomePage() {
     setError("");
 
     if (heroView === "login") {
-      // --- Admin Login (විශේෂ ඇතුළුවීම) ---
+      // --- Admin Login ---
       if (phone === "admin" && password === "admin123") {
         router.push("/admin");
         setLoading(false);
-        return; // සාමාන්‍ය ළමයින්ගේ ලොගින් එකට යන්නේ නැතුව මෙතනින්ම නවතිනවා
+        return;
       }
-      // ------------------------------------
-
+      
       const res = await signIn("credentials", { redirect: false, phone, password });
       if (res?.error) {
         setError(res.error);
@@ -147,7 +156,7 @@ export default function HomePage() {
     }
   };
 
-  // --- Theme Classes (Day/Night අනුව වෙනස් වන වර්ණ) ---
+  // --- Theme Classes ---
   const themeBg = isDarkMode ? "bg-slate-900 text-slate-100" : "bg-slate-50 text-slate-800";
   const headerBg = isDarkMode ? "bg-slate-900/80 border-slate-800" : "bg-white/80 border-slate-200";
   const logoTextColor = isDarkMode ? "text-white" : "text-slate-900";
@@ -156,8 +165,6 @@ export default function HomePage() {
   const sectionDescColor = isDarkMode ? "text-slate-400" : "text-slate-500";
   const cardBg = isDarkMode ? "bg-slate-800 border-slate-700" : "bg-white border-slate-100";
   const cardTitle = isDarkMode ? "text-white" : "text-slate-800";
-  const cardImgBg = isDarkMode ? "bg-slate-700 text-slate-500" : "bg-slate-50 text-slate-300";
-  const cardImgHover = isDarkMode ? "group-hover:bg-blue-900/40 group-hover:text-blue-400" : "group-hover:bg-blue-50 group-hover:text-blue-300";
   const authBg = isDarkMode ? "bg-slate-950" : "bg-slate-100";
   const authCardBg = isDarkMode ? "bg-slate-800/95 border-slate-700 shadow-blue-900/20" : "bg-white/90 border-white shadow-2xl";
   const inputBg = isDarkMode ? "bg-slate-700 border-slate-600 text-white placeholder-slate-400 focus:border-blue-500 focus:bg-slate-600" : "bg-slate-50 border-slate-200 text-slate-900 focus:border-blue-500 focus:bg-white";
@@ -166,53 +173,28 @@ export default function HomePage() {
     <>
       <style dangerouslySetInnerHTML={{__html: `
         @import url('https://fonts.googleapis.com/css2?family=Lato:wght@400;700;900&family=Oswald:wght@500;600;700&display=swap');
-        
         .modern-font { font-family: 'Lato', 'Iskoola Pota', sans-serif; }
-        
-        .logo-font { 
-          font-family: 'Oswald', sans-serif; 
-          letter-spacing: 0.5px;
-        }
+        .logo-font { font-family: 'Oswald', sans-serif; letter-spacing: 0.5px; }
       `}} />
 
       <div className={`modern-font flex min-h-screen flex-col transition-colors duration-300 ${themeBg}`}>
         
-        {/* 1. Navigation Bar */}
+        {/* Navigation Bar */}
         <header className={`sticky top-0 z-50 w-full border-b backdrop-blur-md transition-all duration-300 ${headerBg}`}>
           <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 md:px-6 md:py-4">
-            <button 
-              onClick={() => changeViewAndScrollTop("carousel")} 
-              className="flex items-center gap-2 md:gap-3 focus:outline-none"
-            >
+            <button onClick={() => changeViewAndScrollTop("carousel")} className="flex items-center gap-2 md:gap-3 focus:outline-none">
               <img src="/logo.png" alt="20minutes.lk Logo" className="h-7 w-auto sm:h-8 md:h-10 rounded-xl shadow-sm opacity-95" />
               <span className={`logo-font text-lg md:text-2xl font-semibold truncate ${logoTextColor}`}>20minutes.lk</span>
             </button>
 
             <div className="flex items-center space-x-3 md:space-x-5 flex-shrink-0">
-              
-              {/* Day / Night Toggle Button */}
-              <button 
-                onClick={() => setIsDarkMode(!isDarkMode)}
-                className={`rounded-full p-2 transition-colors focus:outline-none ${isDarkMode ? 'bg-slate-800 text-yellow-400 hover:bg-slate-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
-                title={isDarkMode ? "Light Mode" : "Dark Mode"}
-              >
-                {isDarkMode ? (
-                  <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" /></svg>
-                ) : (
-                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
-                )}
+              <button onClick={() => setIsDarkMode(!isDarkMode)} className={`rounded-full p-2 transition-colors focus:outline-none ${isDarkMode ? 'bg-slate-800 text-yellow-400 hover:bg-slate-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+                {isDarkMode ? <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" /></svg> : <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>}
               </button>
-
-              <button 
-                onClick={() => changeViewAndScrollTop("login")} 
-                className={`rounded-full border-2 px-3 py-1.5 text-xs font-bold transition-all md:px-5 md:py-2 md:text-sm focus:outline-none ${btnOutline}`}
-              >
+              <button onClick={() => changeViewAndScrollTop("login")} className={`rounded-full border-2 px-3 py-1.5 text-xs font-bold transition-all md:px-5 md:py-2 md:text-sm focus:outline-none ${btnOutline}`}>
                 ලොග් වන්න
               </button>
-              <button 
-                onClick={() => changeViewAndScrollTop("register")} 
-                className="rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 px-3 py-1.5 text-xs font-bold text-white shadow-md hover:shadow-lg hover:from-blue-700 hover:to-indigo-700 transition-all md:px-5 md:py-2 md:text-sm focus:outline-none"
-              >
+              <button onClick={() => changeViewAndScrollTop("register")} className="rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 px-3 py-1.5 text-xs font-bold text-white shadow-md hover:shadow-lg hover:from-blue-700 hover:to-indigo-700 transition-all md:px-5 md:py-2 md:text-sm focus:outline-none">
                 ලියාපදිංචි වන්න
               </button>
             </div>
@@ -227,14 +209,9 @@ export default function HomePage() {
               <div className="flex h-full transition-transform duration-700 ease-in-out" style={{ transform: `translateX(-${currentSlide * 100}%)` }}>
                 {slides.map((slide) => (
                   <div key={slide.id} className="relative flex h-full w-full flex-shrink-0 items-center justify-center px-6 text-center text-white">
-                    
-                    {/* Background Image */}
                     <img src={slide.image} alt={slide.title} className="absolute inset-0 h-full w-full object-cover z-0" />
-                    
-                    {/* Dark Overlay - Day/Night Mode අනුව වෙනස් වේ */}
                     <div className={`absolute inset-0 z-0 transition-colors duration-300 ${isDarkMode ? 'bg-slate-950/80' : 'bg-slate-900/65'}`}></div>
                     
-                    {/* Content */}
                     <div className="relative z-10 max-w-3xl">
                       <h1 className="mb-4 text-3xl font-bold leading-tight tracking-tight md:text-5xl lg:text-6xl drop-shadow-lg">
                         {slide.title}
@@ -242,10 +219,7 @@ export default function HomePage() {
                       <p className="mb-8 text-sm text-slate-200 md:text-xl drop-shadow-md">
                         {slide.subtitle}
                       </p>
-                      <button 
-                        onClick={() => slide.id === 2 ? window.location.href="#results" : changeViewAndScrollTop("register")}
-                        className="inline-block rounded-full bg-emerald-500 px-8 py-3 text-sm font-bold text-white shadow-lg transition-all hover:bg-emerald-600 hover:shadow-xl hover:-translate-y-1 md:px-10 md:py-4 md:text-lg focus:outline-none"
-                      >
+                      <button onClick={() => slide.id === 2 ? window.location.href="#results" : changeViewAndScrollTop("register")} className="inline-block rounded-full bg-emerald-500 px-8 py-3 text-sm font-bold text-white shadow-lg transition-all hover:bg-emerald-600 hover:shadow-xl hover:-translate-y-1 md:px-10 md:py-4 md:text-lg focus:outline-none">
                         {slide.btnText}
                       </button>
                     </div>
@@ -334,6 +308,45 @@ export default function HomePage() {
             </section>
           )}
 
+          {/* 🔴 2. Welcome & About Section (අලුතින් එකතු කළ කොටස) */}
+          <section className={`py-16 px-4 md:py-24 md:px-6 transition-colors duration-300 ${isDarkMode ? 'bg-slate-950/50 border-y border-slate-800' : 'bg-blue-50/50 border-y border-blue-100'}`}>
+            <div className="mx-auto max-w-5xl text-center">
+              <h2 className={`mb-6 text-2xl font-extrabold md:text-4xl ${sectionTitleColor}`}>
+                20 minutesLK Institute <span className="text-blue-600">වෙත ඔබව සාදරයෙන් පිළිගනිමු!</span>
+              </h2>
+              <div className="mx-auto mb-8 h-1.5 w-16 rounded-full bg-blue-600 md:w-24"></div>
+              
+              <div className={`space-y-6 text-sm md:text-lg leading-relaxed ${sectionDescColor}`}>
+                <p>
+                  තෝරාගැනීමේ පරීක්ෂණ සඳහා ශ්‍රී ලංකාවේ විශ්වාසනීය ප්‍රමුඛතම පුහුණු ආයතනයක් වන <b>20 minutesLK Institute</b> සමඟ මේ වන විට සිසුන් <b>8,000+</b> ක් අධ්‍යයනය කර ඇති අතර, ඔවුන් අතරින් <b>3,000+</b> දෙනෙකු විවිධ තෝරාගැනීමේ පරීක්ෂණ සාර්ථකව සමත් වී ඔවුන්ගේ සිහින උපාධි හා වෘත්තීය අවස්ථා දිනාගෙන ඇත.
+                </p>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left max-w-3xl mx-auto mt-8 bg-white dark:bg-slate-900 p-6 md:p-8 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800">
+                  <div className="flex items-start gap-3">
+                    <span className="text-emerald-500 text-xl">✅</span>
+                    <span className={`font-bold ${cardTitle}`}>විශේෂඥ දේශක මණ්ඩලය</span>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <span className="text-emerald-500 text-xl">✅</span>
+                    <span className={`font-bold ${cardTitle}`}>විභාග ඉලක්ක කරගත් ක්‍රමානුකූල ඉගැන්වීම්</span>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <span className="text-emerald-500 text-xl">✅</span>
+                    <span className={`font-bold ${cardTitle}`}>සම්පූර්ණ ආදර්ශ ප්‍රශ්න පත්‍ර හා Mock Exams</span>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <span className="text-emerald-500 text-xl">✅</span>
+                    <span className={`font-bold ${cardTitle}`}>පුද්ගලික මඟපෙන්වීම සහ අඛණ්ඩ සහාය</span>
+                  </div>
+                </div>
+                
+                <p className="font-extrabold text-blue-600 text-lg md:text-2xl mt-8 pt-4">
+                  "ඔබගේ ජයග්‍රහණය අපගේ වගකීමයි."
+                </p>
+              </div>
+            </div>
+          </section>
+
           {/* 3. දැනට පැවැත්වෙන පාඨමාලා */}
           <section id="courses" className="py-16 px-4 md:py-24 md:px-6">
             <div className="mx-auto max-w-7xl">
@@ -345,19 +358,19 @@ export default function HomePage() {
               <div 
                 ref={courseRef}
                 onScroll={() => handleScroll(courseRef as any, setCourseIndex, ongoingCourses.length)}
-                className="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-6 md:grid md:grid-cols-3 md:gap-8 md:overflow-visible [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']"
+                className="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-6 md:grid md:grid-cols-4 md:gap-6 md:overflow-visible [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']"
               >
                 {ongoingCourses.map((course) => (
-                  <div key={course.id} className={`group flex-none w-[60%] sm:w-[45%] snap-center flex flex-col overflow-hidden rounded-2xl shadow-sm transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl md:w-auto border ${cardBg}`}>
-                    <div className={`flex h-32 items-center justify-center transition-colors shrink-0 md:h-48 ${cardImgBg} ${cardImgHover}`}>
-                      <svg className="h-10 w-10 md:h-16 md:w-16" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
+                  <div key={course.id} className={`group flex-none w-[70%] sm:w-[45%] snap-center flex flex-col overflow-hidden rounded-2xl shadow-sm transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl md:w-auto border ${cardBg}`}>
+                    <div className={`flex h-32 items-center justify-center transition-colors shrink-0 md:h-40 bg-blue-500/10`}>
+                      <svg className="h-10 w-10 md:h-12 md:w-12 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
                     </div>
-                    <div className="flex flex-col flex-grow p-4 md:p-6">
-                      <h3 className={`mb-2 text-sm font-bold leading-snug line-clamp-2 md:mb-3 md:text-xl ${cardTitle}`}>{course.title}</h3>
-                      <p className={`mb-4 text-[11px] font-medium md:mb-6 md:text-sm ${sectionDescColor}`}>කාලසීමාව: {course.duration}</p>
-                      <div className={`mt-auto flex flex-col items-start justify-between border-t pt-3 gap-3 sm:flex-row sm:items-center md:pt-5 sm:gap-0 ${isDarkMode ? 'border-slate-700' : 'border-slate-100'}`}>
-                        <span className={`text-sm font-extrabold md:text-xl ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>{course.price}</span>
-                        <button onClick={() => changeViewAndScrollTop("register")} className={`w-full text-center rounded-full px-4 py-2 text-xs font-bold transition-all hover:shadow-md sm:w-auto md:px-5 md:py-2.5 md:text-sm ${isDarkMode ? 'bg-slate-700 text-slate-200 hover:bg-blue-600 hover:text-white' : 'bg-slate-100 text-slate-700 hover:bg-blue-600 hover:text-white'}`}>
+                    <div className="flex flex-col flex-grow p-4 md:p-5">
+                      <h3 className={`mb-2 text-sm font-bold leading-snug line-clamp-2 md:mb-3 md:text-base ${cardTitle}`}>{course.title}</h3>
+                      <p className={`mb-4 text-[11px] font-medium md:mb-5 md:text-xs ${sectionDescColor}`}>කාලසීමාව: {course.duration}</p>
+                      <div className={`mt-auto flex flex-col items-start justify-between border-t pt-3 gap-3 sm:flex-row sm:items-center md:pt-4 sm:gap-0 ${isDarkMode ? 'border-slate-700' : 'border-slate-100'}`}>
+                        <span className={`text-sm font-extrabold md:text-lg ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>{course.price}</span>
+                        <button onClick={() => changeViewAndScrollTop("register")} className={`w-full text-center rounded-full px-4 py-2 text-xs font-bold transition-all hover:shadow-md sm:w-auto md:px-4 md:py-2 md:text-xs ${isDarkMode ? 'bg-slate-700 text-slate-200 hover:bg-blue-600 hover:text-white' : 'bg-slate-100 text-slate-700 hover:bg-blue-600 hover:text-white'}`}>
                           ඇතුළත් වන්න
                         </button>
                       </div>
@@ -365,22 +378,16 @@ export default function HomePage() {
                   </div>
                 ))}
               </div>
-
-              <div className="mt-2 flex justify-center space-x-2.5 md:hidden">
-                {ongoingCourses.map((_, idx) => (
-                  <button key={idx} onClick={() => scrollToIndex(courseRef as any, idx, ongoingCourses.length)} className={`h-2 rounded-full transition-all duration-300 ${courseIndex === idx ? "w-6 bg-blue-600" : (isDarkMode ? "w-2 bg-slate-700" : "w-2 bg-slate-200")}`} />
-                ))}
-              </div>
             </div>
           </section>
 
-          {/* 4. අපගේ විශිෂ්ට ප්‍රතිඵල */}
+          {/* 🔴 4. අපගේ විශිෂ්ට ප්‍රතිඵල (Images Updated) */}
           <section id="results" className={`py-16 px-4 border-y md:py-24 md:px-6 transition-colors duration-300 ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-100'}`}>
             <div className="mx-auto max-w-7xl">
               <div className="mb-10 text-center md:mb-16">
                 <h2 className={`text-2xl font-extrabold md:text-4xl ${sectionTitleColor}`}>අපගේ විශිෂ්ට ප්‍රතිඵල</h2>
                 <div className="mx-auto mt-4 h-1.5 w-16 rounded-full bg-blue-600 md:w-24"></div>
-                <p className={`mt-4 text-xs font-medium md:text-base ${sectionDescColor}`}>පසුගිය වසරේ LLB ප්‍රවේශ විභාගයෙන් විශිෂ්ට සාමාර්ථ ලබාගත් අපගේ සිසුන්</p>
+                <p className={`mt-4 text-xs font-medium md:text-base ${sectionDescColor}`}>පසුගිය වසරේ තරග විභාග වලින් විශිෂ්ට සාමාර්ථ ලබාගත් අපගේ සිසුන්</p>
               </div>
 
               <div 
@@ -389,27 +396,22 @@ export default function HomePage() {
                 className="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-6 md:grid md:grid-cols-3 md:gap-8 md:overflow-visible [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']"
               >
                 {resultsData.map((item) => (
-                  <div key={item} className={`flex-none w-[60%] sm:w-[45%] snap-center overflow-hidden rounded-2xl shadow-sm transition-transform duration-300 hover:-translate-y-1.5 hover:shadow-xl md:w-auto border ${cardBg}`}>
-                    <div className={`flex h-40 items-center justify-center md:h-72 ${cardImgBg}`}>
-                      <p className="text-[11px] md:text-sm font-semibold">ප්‍රතිඵල පෝස්ටරය {item}</p>
+                  <div key={item.id} className={`flex-none w-[75%] sm:w-[50%] snap-center overflow-hidden rounded-2xl shadow-sm transition-transform duration-300 hover:-translate-y-1.5 hover:shadow-xl md:w-auto border flex flex-col ${cardBg}`}>
+                    {/* පින්තූරය */}
+                    <div className="flex h-56 md:h-80 w-full overflow-hidden shrink-0">
+                      <img src={item.img} alt={item.name} className="w-full h-full object-cover transition-transform duration-500 hover:scale-105" />
                     </div>
-                    <div className="p-4 text-center md:p-6">
-                      <h3 className={`text-sm font-extrabold md:text-lg ${cardTitle}`}>සිසුවාගේ නම</h3>
-                      <p className={`mt-1 text-[11px] font-medium md:text-sm ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>විශ්වවිද්‍යාලය</p>
+                    <div className="p-4 text-center md:p-6 flex-grow flex flex-col justify-center">
+                      <h3 className={`text-sm font-extrabold md:text-xl ${cardTitle}`}>{item.name}</h3>
+                      <p className={`mt-1 text-[11px] font-bold md:text-sm ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}`}>{item.rank}</p>
                     </div>
                   </div>
-                ))}
-              </div>
-
-              <div className="mt-2 flex justify-center space-x-2.5 md:hidden">
-                {resultsData.map((_, idx) => (
-                  <button key={idx} onClick={() => scrollToIndex(resultRef as any, idx, resultsData.length)} className={`h-2 rounded-full transition-all duration-300 ${resultIndex === idx ? "w-6 bg-blue-600" : (isDarkMode ? "w-2 bg-slate-700" : "w-2 bg-slate-200")}`} />
                 ))}
               </div>
             </div>
           </section>
 
-          {/* 5. සිසුන්ගේ අදහස් */}
+          {/* 🔴 5. සිසුන්ගේ අදහස් (YouTube Playlists Updated) */}
           <section id="testimonials" className="py-16 px-4 md:py-24 md:px-6">
             <div className="mx-auto max-w-7xl">
               <div className="mb-10 text-center md:mb-16">
@@ -420,24 +422,24 @@ export default function HomePage() {
               <div 
                 ref={testiRef}
                 onScroll={() => handleScroll(testiRef as any, setTestiIndex, testimonialsData.length)}
-                className="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-6 md:grid md:grid-cols-3 md:gap-8 md:overflow-visible [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']"
+                className="flex overflow-x-auto snap-x snap-mandatory gap-6 pb-6 md:grid md:grid-cols-3 md:gap-8 md:overflow-visible [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']"
               >
-                {testimonialsData.map((videoIndex) => (
-                  <div key={videoIndex} className={`flex-none w-[65%] sm:w-[45%] snap-center flex justify-center overflow-hidden rounded-3xl shadow-md transition-shadow duration-300 hover:shadow-xl md:w-auto border ${isDarkMode ? 'bg-black border-slate-800' : 'bg-slate-900 border-transparent'}`}>
-                    <iframe 
-                      className="aspect-[9/16] w-full border-0"
-                      src="https://www.youtube.com/embed/VOCwqnW5EVw" 
-                      title={`Student Result Video ${videoIndex}`}
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                      allowFullScreen>
-                    </iframe>
+                {testimonialsData.map((video) => (
+                  <div key={video.id} className={`flex-none w-[85%] sm:w-[60%] snap-center overflow-hidden rounded-2xl shadow-md transition-shadow duration-300 hover:shadow-xl md:w-auto border ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                    {/* YouTube iFrame (16:9 Aspect Ratio) */}
+                    <div className="relative w-full pb-[56.25%]">
+                      <iframe 
+                        className="absolute top-0 left-0 w-full h-full border-0"
+                        src={video.link} 
+                        title={video.title}
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                        allowFullScreen>
+                      </iframe>
+                    </div>
+                    <div className="p-4 md:p-5 text-center">
+                      <p className={`text-sm font-bold ${cardTitle}`}>{video.title}</p>
+                    </div>
                   </div>
-                ))}
-              </div>
-
-              <div className="mt-2 flex justify-center space-x-2.5 md:hidden">
-                {testimonialsData.map((_, idx) => (
-                  <button key={idx} onClick={() => scrollToIndex(testiRef as any, idx, testimonialsData.length)} className={`h-2 rounded-full transition-all duration-300 ${testiIndex === idx ? "w-6 bg-blue-600" : (isDarkMode ? "w-2 bg-slate-700" : "w-2 bg-slate-200")}`} />
                 ))}
               </div>
             </div>
@@ -445,11 +447,10 @@ export default function HomePage() {
 
         </main>
 
-        {/* 6. Footer (Contact Info Updated) */}
-        <footer className={`px-4 py-10 transition-colors duration-300 md:px-6 md:py-16 ${isDarkMode ? 'bg-black text-slate-400 border-t border-slate-900' : 'bg-slate-900 text-slate-300'}`}>
+        {/* 6. Footer */}
+        <footer className={`px-4 py-10 transition-colors duration-300 md:px-6 md:py-16 mt-12 ${isDarkMode ? 'bg-black text-slate-400 border-t border-slate-900' : 'bg-slate-900 text-slate-300'}`}>
           <div className="mx-auto grid max-w-7xl gap-10 md:grid-cols-3 md:gap-12">
             
-            {/* Column 1: Branding & Description */}
             <div>
               <div className="flex items-center gap-3 mb-4 md:mb-6">
                 <img src="/logo.png" alt="20minutes.lk Logo" className="h-8 w-auto md:h-10 opacity-90 rounded-xl" />
@@ -459,10 +460,9 @@ export default function HomePage() {
                 තරග විභාග ජයගැනීමට අවශ්‍ය නිවැරදිම මඟපෙන්වීම ලබාදෙන ශ්‍රී ලංකාවේ ප්‍රමුඛතම මාර්ගගත වේදිකාව.
               </p>
               
-              {/* Social Media Icons */}
               <div className="mt-6 flex space-x-5">
                 <a href="https://www.facebook.com/share/1D4uc4UiGn/?mibextid=wwXIfr" target="_blank" rel="noreferrer" className="text-slate-400 hover:text-blue-500 transition-colors" title="Facebook">
-                  <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path fillRule="evenodd" d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z" clipRule="evenodd" /></svg>
+                  <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path fillRule="evenodd" d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z" clipRule="evenodd" /></svg>
                 </a>
                 <a href="https://youtube.com/@20minuteslk?si=YhilxLi7_6FPuk9X" target="_blank" rel="noreferrer" className="text-slate-400 hover:text-red-500 transition-colors" title="YouTube">
                   <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path fillRule="evenodd" d="M19.812 5.418c.861.23 1.538.907 1.768 1.768C21.998 8.746 22 12 22 12s0 3.255-.418 4.814a2.504 2.504 0 0 1-1.768 1.768c-1.56.419-7.814.419-7.814.419s-6.255 0-7.814-.419a2.505 2.505 0 0 1-1.768-1.768C2 15.255 2 12 2 12s0-3.255.417-4.814a2.507 2.507 0 0 1 1.768-1.768C5.744 5 11.998 5 11.998 5s6.255 0 7.814.418ZM15.194 12 10 15V9l5.194 3Z" clipRule="evenodd" /></svg>
@@ -473,7 +473,6 @@ export default function HomePage() {
               </div>
             </div>
             
-            {/* Column 2: Quick Links */}
             <div>
               <h4 className="mb-4 text-base font-bold text-white md:mb-6 md:text-lg">ඉක්මන් සබැඳි</h4>
               <ul className="space-y-3 text-sm text-slate-400">
@@ -483,7 +482,6 @@ export default function HomePage() {
               </ul>
             </div>
             
-            {/* Column 3: Contact Info */}
             <div>
               <h4 className="mb-4 text-base font-bold text-white md:mb-6 md:text-lg">අපව සම්බන්ධ කරගන්න</h4>
               <ul className="space-y-4 text-sm text-slate-400">
