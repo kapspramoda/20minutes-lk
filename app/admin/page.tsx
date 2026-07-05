@@ -9,7 +9,9 @@ export default function AdminDashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [isDarkMode, setIsDarkMode] = useState(false);
-  const [activeTab, setActiveTab] = useState<"approvals" | "courses" | "students">("approvals");
+  
+  // 🔴 අලුත් Tab එක එකතු කළා ("quizzes")
+  const [activeTab, setActiveTab] = useState<"approvals" | "courses" | "quizzes" | "students">("approvals");
   
   const [pendingApprovals, setPendingApprovals] = useState<any[]>([]);
   const [isLoadingApprovals, setIsLoadingApprovals] = useState(true);
@@ -21,7 +23,10 @@ export default function AdminDashboard() {
   const [isLoadingStudents, setIsLoadingStudents] = useState(true);
   const [selectedFilterCourse, setSelectedFilterCourse] = useState<string>("ALL");
 
-  // Slip එක විශාල කර පෙන්වීමට අදාළ State එක
+  // 🔴 Quizzes සඳහා අලුත් States
+  const [quizzes, setQuizzes] = useState<any[]>([]);
+  const [isLoadingQuizzes, setIsLoadingQuizzes] = useState(true);
+
   const [enlargedSlip, setEnlargedSlip] = useState<string | null>(null);
 
   useEffect(() => {
@@ -29,6 +34,7 @@ export default function AdminDashboard() {
     fetchPendingEnrollments();
     fetchCourses();
     fetchApprovedStudents();
+    fetchQuizzes(); // 🔴 Quizzes ගෙන්වා ගැනීම
   }, []);
 
   const toggleTheme = () => {
@@ -65,10 +71,19 @@ export default function AdminDashboard() {
     finally { setIsLoadingStudents(false); }
   };
 
+  // 🔴 Quizzes Database එකෙන් ලබා ගැනීම
+  const fetchQuizzes = async () => {
+    try {
+      const res = await fetch("/api/admin/quizzes");
+      const data = await res.json();
+      if (res.ok) setQuizzes(data.data);
+    } catch (error) { console.error(error); }
+    finally { setIsLoadingQuizzes(false); }
+  };
+
   const todaysIncome = useMemo(() => {
     const today = new Date().toDateString();
     let total = 0;
-
     approvedStudents.forEach(student => {
       if (new Date(student.updatedAt).toDateString() === today) {
         const course = courses.find(c => c._id === student.courseId || c.title === student.courseTitle);
@@ -84,7 +99,6 @@ export default function AdminDashboard() {
   const handleUpdateStatus = async (id: string, newStatus: "approved" | "rejected") => {
     const originalApprovals = [...pendingApprovals];
     setPendingApprovals((prev) => prev.filter((req) => req._id !== id));
-
     try {
       const res = await fetch("/api/admin/enrollments", {
         method: "PATCH",
@@ -92,7 +106,6 @@ export default function AdminDashboard() {
         body: JSON.stringify({ id, status: newStatus }),
       });
       if (!res.ok) throw new Error("Update failed");
-      
       alert(newStatus === "approved" ? "පාඨමාලාව සාර්ථකව අනුමත කරන ලදී!" : "රිසිට්පත ප්‍රතික්ෂේප කරන ලදී.");
       if(newStatus === "approved") fetchApprovedStudents(); 
     } catch (error) {
@@ -112,10 +125,21 @@ export default function AdminDashboard() {
     } catch (error) { alert("තාක්ෂණික දෝෂයක්."); }
   };
 
+  // 🔴 Quiz එකක් Hide/Show කිරීම
+  const toggleQuizVisibility = async (quizId: string, currentVisibility: boolean) => {
+    try {
+      const res = await fetch(`/api/admin/quizzes/${quizId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isVisible: !currentVisibility }),
+      });
+      if (res.ok) setQuizzes(quizzes.map(q => q._id === quizId ? { ...q, isVisible: !currentVisibility } : q));
+    } catch (error) { alert("තාක්ෂණික දෝෂයක්."); }
+  };
+
   const handleRemoveStudent = async (enrollmentId: string, studentPhone: string) => {
     const confirmDelete = window.confirm(`${studentPhone} දුරකථන අංකය හිමි සිසුවාව මෙම පාඨමාලාවෙන් ඉවත් කිරීමට අවශ්‍ය බව ඔබට විශ්වාසද?`);
     if (!confirmDelete) return;
-
     try {
       const res = await fetch(`/api/admin/students?id=${enrollmentId}`, { method: "DELETE" });
       if (res.ok) {
@@ -124,14 +148,10 @@ export default function AdminDashboard() {
       } else {
         alert("ඉවත් කිරීම අසාර්ථකයි.");
       }
-    } catch (error) {
-      alert("තාක්ෂණික දෝෂයක් මතු විය.");
-    }
+    } catch (error) { alert("තාක්ෂණික දෝෂයක් මතු විය."); }
   };
 
-  const filteredStudents = selectedFilterCourse === "ALL" 
-    ? approvedStudents 
-    : approvedStudents.filter(s => s.courseTitle === selectedFilterCourse);
+  const filteredStudents = selectedFilterCourse === "ALL" ? approvedStudents : approvedStudents.filter(s => s.courseTitle === selectedFilterCourse);
 
   const themeBg = isDarkMode ? "bg-slate-900 text-slate-100" : "bg-slate-50 text-slate-800";
   const headerBg = isDarkMode ? "bg-slate-900/80 border-slate-800" : "bg-white/80 border-slate-200";
@@ -144,14 +164,12 @@ export default function AdminDashboard() {
 
   return (
     <div className={`modern-font flex min-h-screen flex-col transition-colors duration-300 ${themeBg}`}>
-      
       <header className={`sticky top-0 z-50 w-full border-b backdrop-blur-md transition-all duration-300 ${headerBg}`}>
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 md:px-6 md:py-4">
           <div className="flex items-center gap-2 md:gap-3">
             <div className="rounded-xl bg-red-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm">ADMIN</div>
             <span className={`logo-font text-lg md:text-2xl font-semibold truncate ${textPrimary}`}>20minutes.lk</span>
           </div>
-
           <div className="flex items-center space-x-3 md:space-x-5 flex-shrink-0">
             <button onClick={toggleTheme} className={`rounded-full p-2 transition-colors focus:outline-none ${isDarkMode ? 'bg-slate-800 text-yellow-400' : 'bg-slate-100 text-slate-600'}`}>
               {isDarkMode ? <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" /></svg> : <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>}
@@ -164,7 +182,6 @@ export default function AdminDashboard() {
       </header>
 
       <main className="flex-grow mx-auto w-full max-w-7xl p-4 md:p-6 mt-4">
-        
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           <div className={`p-5 rounded-2xl border shadow-sm ${cardBg}`}>
             <h4 className={textSecondary}>අලුත් Slips</h4>
@@ -180,22 +197,16 @@ export default function AdminDashboard() {
           </div>
           <div className={`p-5 rounded-2xl border shadow-sm ${cardBg}`}>
             <h4 className={textSecondary}>අද ආදායම</h4>
-            <p className="text-2xl md:text-3xl font-extrabold text-purple-500 mt-2 truncate">
-              Rs. {todaysIncome.toLocaleString()}
-            </p>
+            <p className="text-2xl md:text-3xl font-extrabold text-purple-500 mt-2 truncate">Rs. {todaysIncome.toLocaleString()}</p>
           </div>
         </div>
 
+        {/* 🔴 Tabs (අලුත් "විභාග කළමනාකරණය" Tab එකත් එක්ක) */}
         <div className="flex space-x-2 mb-6 overflow-x-auto pb-2 [&::-webkit-scrollbar]:hidden">
-          <button onClick={() => setActiveTab("approvals")} className={`px-5 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all ${activeTab === "approvals" ? tabActive : tabInactive}`}>
-            රිසිට්පත් අනුමත කිරීම
-          </button>
-          <button onClick={() => setActiveTab("courses")} className={`px-5 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all ${activeTab === "courses" ? tabActive : tabInactive}`}>
-            පාඨමාලා කළමනාකරණය
-          </button>
-          <button onClick={() => setActiveTab("students")} className={`px-5 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all ${activeTab === "students" ? tabActive : tabInactive}`}>
-            සිසුන්ගේ විස්තර
-          </button>
+          <button onClick={() => setActiveTab("approvals")} className={`px-5 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all ${activeTab === "approvals" ? tabActive : tabInactive}`}>රිසිට්පත් අනුමත කිරීම</button>
+          <button onClick={() => setActiveTab("courses")} className={`px-5 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all ${activeTab === "courses" ? tabActive : tabInactive}`}>පාඨමාලා කළමනාකරණය</button>
+          <button onClick={() => setActiveTab("quizzes")} className={`px-5 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all ${activeTab === "quizzes" ? tabActive : tabInactive}`}>විභාග කළමනාකරණය</button>
+          <button onClick={() => setActiveTab("students")} className={`px-5 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all ${activeTab === "students" ? tabActive : tabInactive}`}>සිසුන්ගේ විස්තර</button>
         </div>
 
         {/* --- 1. Approvals Tab --- */}
@@ -212,33 +223,20 @@ export default function AdminDashboard() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {pendingApprovals.map((req) => (
                   <div key={req._id} className={`flex flex-col overflow-hidden rounded-2xl border shadow-sm transition-all ${cardBg}`}>
-                    
-                    {/* Modal එකක් මගින් පින්තූරය විශාල කිරීම */}
-                    <div 
-                      className="h-48 overflow-hidden bg-slate-200 relative group cursor-pointer"
-                      onClick={() => setEnlargedSlip(req.slipImage)}
-                    >
+                    <div className="h-48 overflow-hidden bg-slate-200 relative group cursor-pointer" onClick={() => setEnlargedSlip(req.slipImage)}>
                       <img src={req.slipImage} alt="Bank Slip" className="w-full h-full object-cover hover:scale-110 transition-transform duration-500" />
                       <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                         <span className="text-white text-sm font-bold flex items-center gap-2">
-                           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" /></svg>
-                           විශාල කර බලන්න
-                         </span>
+                         <span className="text-white text-sm font-bold flex items-center gap-2">විශාල කර බලන්න</span>
                       </div>
                     </div>
-
                     <div className="p-5 flex flex-col flex-grow">
                       <div className="mb-4">
                         <h3 className={`text-lg font-bold mt-1 ${textPrimary}`}>දුරකථන: {req.userPhone}</h3>
                         <p className={`text-sm font-bold text-blue-500 mt-2`}>{req.courseTitle}</p>
                       </div>
                       <div className="mt-auto grid grid-cols-2 gap-3">
-                        <button onClick={() => handleUpdateStatus(req._id, "approved")} className="rounded-xl bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500 hover:text-white border border-emerald-500/20 py-2.5 text-sm font-bold transition-all">
-                          අනුමත කරන්න
-                        </button>
-                        <button onClick={() => handleUpdateStatus(req._id, "rejected")} className="rounded-xl bg-red-500/10 text-red-600 hover:bg-red-500 hover:text-white border border-red-500/20 py-2.5 text-sm font-bold transition-all">
-                          ප්‍රතික්ෂේප කරන්න
-                        </button>
+                        <button onClick={() => handleUpdateStatus(req._id, "approved")} className="rounded-xl bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500 hover:text-white border border-emerald-500/20 py-2.5 text-sm font-bold transition-all">අනුමත කරන්න</button>
+                        <button onClick={() => handleUpdateStatus(req._id, "rejected")} className="rounded-xl bg-red-500/10 text-red-600 hover:bg-red-500 hover:text-white border border-red-500/20 py-2.5 text-sm font-bold transition-all">ප්‍රතික්ෂේප කරන්න</button>
                       </div>
                     </div>
                   </div>
@@ -251,26 +249,15 @@ export default function AdminDashboard() {
         {/* --- 2. Courses Tab --- */}
         {activeTab === "courses" && (
           <div className="animate-in fade-in duration-300">
-            
-            {/* 🔴 වෙනස් කළ කොටස: Quiz සහ Course බටන් දෙකම මෙහි ඇත */}
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
               <div>
-                <h2 className={`text-xl font-bold ${textPrimary}`}>පවතින පාඨමාලා සහ විභාග</h2>
-                <p className={`text-sm ${textSecondary}`}>ඔබගේ සියලුම පාඨමාලා සහ MCQ ප්‍රශ්න පත්‍ර මෙතැනින් කළමනාකරණය කරන්න.</p>
+                <h2 className={`text-xl font-bold ${textPrimary}`}>පවතින පාඨමාලා</h2>
+                <p className={`text-sm ${textSecondary}`}>ඔබගේ සියලුම පාඨමාලා මෙතැනින් කළමනාකරණය කරන්න.</p>
               </div>
-              
-              <div className="flex flex-col sm:flex-row gap-3">
-                <Link href="/admin/add-quiz" className="inline-flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-5 py-3 rounded-xl font-bold transition-all shadow-md">
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>
-                  + අලුත් Quiz එකක්
-                </Link>
-                <Link href="/admin/add-course" className="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl font-bold transition-all shadow-md">
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-                  + අලුත් Course එකක්
-                </Link>
-              </div>
+              <Link href="/admin/add-course" className="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-bold transition-all shadow-md">
+                + අලුත් Course එකක් හදන්න
+              </Link>
             </div>
-
             {isLoadingCourses ? (
               <div className="text-center py-10 text-slate-500 font-bold animate-pulse">පාඨමාලා ලබාගනිමින් පවතී...</div>
             ) : courses.length === 0 ? (
@@ -290,7 +277,6 @@ export default function AdminDashboard() {
                         {course.isVisible ? 'ACTIVE' : 'HIDDEN'}
                       </span>
                     </div>
-                    
                     <div className="flex flex-wrap gap-2 mt-auto pt-4 border-t border-slate-200 dark:border-slate-700">
                       <Link href={`/admin/edit-course/${course._id}`} className="flex-1 flex items-center justify-center gap-2 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white px-4 py-2.5 rounded-xl text-sm font-bold transition-all border border-blue-200">
                         Edit
@@ -306,7 +292,61 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* --- 3. Students Tab --- */}
+        {/* 🔴 --- 3. Quizzes (විභාග) Tab --- */}
+        {activeTab === "quizzes" && (
+          <div className="animate-in fade-in duration-300">
+            <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
+              <div>
+                <h2 className={`text-xl font-bold ${textPrimary}`}>MCQ ප්‍රශ්න පත්‍ර කළමනාකරණය</h2>
+                <p className={`text-sm ${textSecondary}`}>විභාග සැකසීම, වෙනස් කිරීම සහ සඟවා තැබීම.</p>
+              </div>
+              <Link href="/admin/add-quiz" className="inline-flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-xl font-bold transition-all shadow-md">
+                + අලුත් Quiz එකක් හදන්න
+              </Link>
+            </div>
+            
+            {isLoadingQuizzes ? (
+              <div className="text-center py-10 text-slate-500 font-bold animate-pulse">විභාග ලබාගනිමින් පවතී...</div>
+            ) : quizzes.length === 0 ? (
+              <div className={`p-10 rounded-3xl border text-center ${cardBg}`}>
+                <h3 className={`text-lg font-bold ${textPrimary}`}>තවමත් විභාග කිසිවක් සාදා නැත!</h3>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {quizzes.map((quiz) => {
+                  const linkedCourse = courses.find(c => c._id === quiz.courseId);
+                  return (
+                    <div key={quiz._id} className={`p-5 rounded-2xl border shadow-sm flex flex-col ${cardBg}`}>
+                      <div className="flex justify-between items-start mb-4">
+                        <div>
+                          <h3 className={`text-lg font-bold ${textPrimary} pr-4`}>{quiz.title}</h3>
+                          <p className="text-sm font-bold text-purple-500 mt-1">{linkedCourse ? linkedCourse.title : "Course Not Found"}</p>
+                          <p className={`text-xs mt-2 font-bold ${textSecondary}`}>ප්‍රශ්න ගණන: {quiz.questions?.length || 0}</p>
+                        </div>
+                        <span className={`px-3 py-1 rounded-full text-[10px] font-bold border flex-shrink-0 ${quiz.isVisible ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-500 border-slate-200'}`}>
+                          {quiz.isVisible ? 'ACTIVE' : 'HIDDEN'}
+                        </span>
+                      </div>
+                      
+                      <div className="flex flex-wrap gap-2 mt-auto pt-4 border-t border-slate-200 dark:border-slate-700">
+                        {/* Edit Quiz Button - ඊළඟට අපි මේ Page එක හදමු */}
+                        <Link href={`/admin/edit-quiz/${quiz._id}`} className="flex-1 flex items-center justify-center gap-2 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white px-4 py-2.5 rounded-xl text-sm font-bold transition-all border border-blue-200">
+                          Edit
+                        </Link>
+                        {/* Hide/Show Quiz Button */}
+                        <button onClick={() => toggleQuizVisibility(quiz._id, quiz.isVisible)} className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all border ${quiz.isVisible ? 'bg-amber-50 text-amber-600 hover:bg-amber-100 border-amber-200' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border-emerald-200'}`}>
+                          {quiz.isVisible ? 'Hide' : 'Show'}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* --- 4. Students Tab --- */}
         {activeTab === "students" && (
           <div className="animate-in fade-in duration-300">
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
@@ -314,19 +354,13 @@ export default function AdminDashboard() {
                 <h2 className={`text-xl font-bold ${textPrimary}`}>සිසුන් කළමනාකරණය</h2>
                 <p className={`text-sm ${textSecondary}`}>අනුමත වූ සිසුන්ගේ විස්තර සහ ඔවුන්ව පාඨමාලා වලින් ඉවත් කිරීම.</p>
               </div>
-              
-              <select 
-                value={selectedFilterCourse}
-                onChange={(e) => setSelectedFilterCourse(e.target.value)}
-                className={`p-3 rounded-xl border font-bold text-sm outline-none shadow-sm md:w-64 ${inputBg}`}
-              >
+              <select value={selectedFilterCourse} onChange={(e) => setSelectedFilterCourse(e.target.value)} className={`p-3 rounded-xl border font-bold text-sm outline-none shadow-sm md:w-64 ${inputBg}`}>
                 <option value="ALL">සියලුම පාඨමාලා ({approvedStudents.length})</option>
                 {courses.map(c => (
                   <option key={c._id} value={c.title}>{c.title}</option>
                 ))}
               </select>
             </div>
-
             {isLoadingStudents ? (
               <div className="text-center py-10 text-slate-500 font-bold animate-pulse">සිසුන්ගේ දත්ත ගෙනෙමින් පවතී...</div>
             ) : filteredStudents.length === 0 ? (
@@ -350,16 +384,9 @@ export default function AdminDashboard() {
                         <tr key={student._id} className={`transition-colors ${isDarkMode ? 'hover:bg-slate-700/50' : 'hover:bg-slate-50'}`}>
                           <td className={`px-6 py-4 font-bold ${textPrimary}`}>{student.userPhone}</td>
                           <td className={`px-6 py-4 font-bold text-blue-500`}>{student.courseTitle}</td>
-                          <td className={`px-6 py-4 ${textSecondary}`}>
-                            {new Date(student.updatedAt).toLocaleDateString('si-LK')}
-                          </td>
+                          <td className={`px-6 py-4 ${textSecondary}`}>{new Date(student.updatedAt).toLocaleDateString('si-LK')}</td>
                           <td className="px-6 py-4 text-right">
-                            <button 
-                              onClick={() => handleRemoveStudent(student._id, student.userPhone)}
-                              className="text-xs font-bold text-red-500 hover:text-white border border-red-500 hover:bg-red-500 px-4 py-2 rounded-lg transition-all"
-                            >
-                              Remove
-                            </button>
+                            <button onClick={() => handleRemoveStudent(student._id, student.userPhone)} className="text-xs font-bold text-red-500 hover:text-white border border-red-500 hover:bg-red-500 px-4 py-2 rounded-lg transition-all">Remove</button>
                           </td>
                         </tr>
                       ))}
@@ -372,28 +399,14 @@ export default function AdminDashboard() {
         )}
       </main>
 
-      {/* Slip එක විශාල කර පෙන්වන Modal එක */}
+      {/* Slip විශාල කර පෙන්වන Modal */}
       {enlargedSlip && (
-        <div 
-          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in duration-200"
-          onClick={() => setEnlargedSlip(null)}
-        >
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in duration-200" onClick={() => setEnlargedSlip(null)}>
           <div className="relative w-full max-w-4xl h-[85vh] flex items-center justify-center">
-            
-            <button 
-              onClick={(e) => { e.stopPropagation(); setEnlargedSlip(null); }}
-              className="absolute -top-12 right-0 md:-right-12 text-white/70 hover:text-red-500 bg-white/10 hover:bg-white/20 rounded-full p-2 transition-all"
-              title="වසා දමන්න"
-            >
+            <button onClick={(e) => { e.stopPropagation(); setEnlargedSlip(null); }} className="absolute -top-12 right-0 md:-right-12 text-white/70 hover:text-red-500 bg-white/10 hover:bg-white/20 rounded-full p-2 transition-all">
               <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
-
-            <img 
-              src={enlargedSlip} 
-              alt="Enlarged Bank Slip" 
-              className="max-w-full max-h-full object-contain rounded-xl shadow-2xl" 
-              onClick={(e) => e.stopPropagation()} 
-            />
+            <img src={enlargedSlip} alt="Enlarged Bank Slip" className="max-w-full max-h-full object-contain rounded-xl shadow-2xl" onClick={(e) => e.stopPropagation()} />
           </div>
         </div>
       )}
