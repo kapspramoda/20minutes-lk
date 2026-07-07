@@ -141,7 +141,7 @@ export default function CoursePlayerPage({ params }: PageProps) {
         // Quizzes ගෙන එන කොටස
         try {
           const quizRes = await fetch(`/api/student/quizzes/course/${courseId}`, {
-            cache: "no-store", // 🔴 මේ කෑල්ල අනිවාර්යයෙන්ම තිබිය යුතුයි
+            cache: "no-store",
             headers: {
               'Cache-Control': 'no-cache',
               'Pragma': 'no-cache'
@@ -154,7 +154,7 @@ export default function CoursePlayerPage({ params }: PageProps) {
               setCourseQuizzes(quizData.data);
             }
           } else {
-             console.log("Quiz API එක සොයාගැනීමට නොහැක. Vercel එකට Push වී ඇත්දැයි පරීක්ෂා කරන්න.");
+             console.log("Quiz API එක සොයාගැනීමට නොහැක.");
           }
         } catch (quizError) {
           console.error("Quizzes ගෙන ඒමේදී දෝෂයක්:", quizError);
@@ -189,9 +189,22 @@ export default function CoursePlayerPage({ params }: PageProps) {
     else document.documentElement.classList.remove("dark");
   };
 
+  // 🔴 මෙතන තමයි YouTube Live/Watch ලින්ක් Auto Convert වෙන්න හැදුවේ
   const getSecuredVideoUrl = (originalUrl: string) => {
     if(!originalUrl) return "";
-    return `${originalUrl}?rel=0&modestbranding=1&showinfo=0&controls=1&disablekb=1&iv_load_policy=3&fs=0&enablejsapi=1`;
+    
+    // YouTube Video ID එක හොයාගන්න Regex එක (Live, Watch, Youtu.be සියල්ලටම සපෝට් කරයි)
+    const ytRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?|live)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i;
+    const match = originalUrl.match(ytRegex);
+    
+    if (match && match[1]) {
+      // YouTube ලින්ක් එකක් නම්, ඒක නිවැරදි Embed ලින්ක් එකක් විදිහටම හදනවා
+      return `https://www.youtube.com/embed/${match[1]}?rel=0&modestbranding=1&showinfo=0&controls=1&disablekb=1&iv_load_policy=3&fs=0&enablejsapi=1`;
+    }
+    
+    // වෙනත් ලින්ක් එකක් නම් (උදා: Vimeo), තිබුණු එකටම පරාමිතීන් එකතු කරනවා
+    const separator = originalUrl.includes("?") ? "&" : "?";
+    return `${originalUrl}${separator}rel=0&modestbranding=1&showinfo=0&controls=1&disablekb=1&iv_load_policy=3&fs=0&enablejsapi=1`;
   };
 
   const sendYouTubeCommand = (func: string, args: any[] = []) => {
@@ -266,7 +279,7 @@ export default function CoursePlayerPage({ params }: PageProps) {
             <button onClick={toggleTheme} className={`rounded-full p-2 transition-colors focus:outline-none ${isDarkMode ? 'bg-slate-800 text-yellow-400' : 'bg-slate-100 text-slate-600'}`}>
               {isDarkMode ? <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" /></svg> : <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>}
             </button>
-            <button onClick={() => signOut({ callbackUrl: "/" })} className="rounded-full bg-red-500/10 border border-red-500/50 px-4 py-1.5 text-xs md:text-sm font-semibold text-red-500 transition hover:bg-red-500 hover:text-white">
+            <button onClick={() => signOut({ callbackUrl: "/" })} className="rounded-full bg-red-500/10 border border-red-500/50 px-4 py-1.5 text-xs md:text-sm font-semibold text-red-500 transition hover:bg-red-50 hover:text-white">
               ඉවත් වන්න
             </button>
           </div>
@@ -399,7 +412,7 @@ export default function CoursePlayerPage({ params }: PageProps) {
               </div>
             </div>
 
-            {/* 🔴 අලුත්: Quizzes පෙන්වන කොටස (වීඩියෝවට යටින්) */}
+            {/* Quizzes පෙන්වන කොටස (වීඩියෝවට යටින්) */}
             {courseQuizzes.length > 0 && (
               <div className={`p-4 md:p-6 rounded-xl md:rounded-2xl border shadow-sm ${cardBg}`}>
                 <h3 className={`text-sm md:text-lg font-extrabold tracking-wide text-purple-600 dark:text-purple-400 mb-4 border-l-4 border-purple-500 pl-3`}>
