@@ -10,7 +10,6 @@ export default function AdminDashboard() {
   const router = useRouter();
   const [isDarkMode, setIsDarkMode] = useState(false);
   
-  // 🔴 අලුත් Tab එක එකතු කළා ("quizzes")
   const [activeTab, setActiveTab] = useState<"approvals" | "courses" | "quizzes" | "students">("approvals");
   
   const [pendingApprovals, setPendingApprovals] = useState<any[]>([]);
@@ -23,7 +22,6 @@ export default function AdminDashboard() {
   const [isLoadingStudents, setIsLoadingStudents] = useState(true);
   const [selectedFilterCourse, setSelectedFilterCourse] = useState<string>("ALL");
 
-  // 🔴 Quizzes සඳහා අලුත් States
   const [quizzes, setQuizzes] = useState<any[]>([]);
   const [isLoadingQuizzes, setIsLoadingQuizzes] = useState(true);
 
@@ -34,7 +32,7 @@ export default function AdminDashboard() {
     fetchPendingEnrollments();
     fetchCourses();
     fetchApprovedStudents();
-    fetchQuizzes(); // 🔴 Quizzes ගෙන්වා ගැනීම
+    fetchQuizzes(); 
   }, []);
 
   const toggleTheme = () => {
@@ -71,7 +69,6 @@ export default function AdminDashboard() {
     finally { setIsLoadingStudents(false); }
   };
 
-  // 🔴 Quizzes Database එකෙන් ලබා ගැනීම
   const fetchQuizzes = async () => {
     try {
       const res = await fetch("/api/admin/quizzes");
@@ -125,7 +122,25 @@ export default function AdminDashboard() {
     } catch (error) { alert("තාක්ෂණික දෝෂයක්."); }
   };
 
-  // 🔴 Quiz එකක් Hide/Show කිරීම
+  const handleDeleteCourse = async (courseId: string, courseTitle: string) => {
+    const confirmDelete = window.confirm(`"${courseTitle}" පාඨමාලාව සම්පූර්ණයෙන්ම මකා දැමීමට අවශ්‍ය බව ඔබට විශ්වාසද? \n\nමෙම ක්‍රියාව ආපසු හැරවිය නොහැක!`);
+    if (!confirmDelete) return;
+
+    try {
+      const res = await fetch(`/api/courses/${courseId}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        setCourses(courses.filter(c => c._id !== courseId));
+        alert("පාඨමාලාව සාර්ථකව මකා දමන ලදී.");
+      } else {
+        alert("මකා දැමීම අසාර්ථකයි.");
+      }
+    } catch (error) {
+      alert("තාක්ෂණික දෝෂයක් මතු විය.");
+    }
+  };
+
   const toggleQuizVisibility = async (quizId: string, currentVisibility: boolean) => {
     try {
       const res = await fetch(`/api/admin/quizzes/${quizId}`, {
@@ -135,6 +150,26 @@ export default function AdminDashboard() {
       });
       if (res.ok) setQuizzes(quizzes.map(q => q._id === quizId ? { ...q, isVisible: !currentVisibility } : q));
     } catch (error) { alert("තාක්ෂණික දෝෂයක්."); }
+  };
+
+  // 🔴 අලුත්: Quiz එකක් මකා දැමීම (Delete Quiz)
+  const handleDeleteQuiz = async (quizId: string, quizTitle: string) => {
+    const confirmDelete = window.confirm(`"${quizTitle}" ප්‍රශ්න පත්‍රය සම්පූර්ණයෙන්ම මකා දැමීමට අවශ්‍ය බව ඔබට විශ්වාසද? \n\nමෙම ක්‍රියාව ආපසු හැරවිය නොහැක!`);
+    if (!confirmDelete) return;
+
+    try {
+      const res = await fetch(`/api/admin/quizzes/${quizId}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        setQuizzes(quizzes.filter(q => q._id !== quizId));
+        alert("ප්‍රශ්න පත්‍රය සාර්ථකව මකා දමන ලදී.");
+      } else {
+        alert("මකා දැමීම අසාර්ථකයි.");
+      }
+    } catch (error) {
+      alert("තාක්ෂණික දෝෂයක් මතු විය.");
+    }
   };
 
   const handleRemoveStudent = async (enrollmentId: string, studentPhone: string) => {
@@ -201,7 +236,7 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* 🔴 Tabs (අලුත් "විභාග කළමනාකරණය" Tab එකත් එක්ක) */}
+        {/* 🔴 Tabs */}
         <div className="flex space-x-2 mb-6 overflow-x-auto pb-2 [&::-webkit-scrollbar]:hidden">
           <button onClick={() => setActiveTab("approvals")} className={`px-5 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all ${activeTab === "approvals" ? tabActive : tabInactive}`}>රිසිට්පත් අනුමත කිරීම</button>
           <button onClick={() => setActiveTab("courses")} className={`px-5 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all ${activeTab === "courses" ? tabActive : tabInactive}`}>පාඨමාලා කළමනාකරණය</button>
@@ -277,12 +312,16 @@ export default function AdminDashboard() {
                         {course.isVisible ? 'ACTIVE' : 'HIDDEN'}
                       </span>
                     </div>
+                    
                     <div className="flex flex-wrap gap-2 mt-auto pt-4 border-t border-slate-200 dark:border-slate-700">
                       <Link href={`/admin/edit-course/${course._id}`} className="flex-1 flex items-center justify-center gap-2 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white px-4 py-2.5 rounded-xl text-sm font-bold transition-all border border-blue-200">
                         Edit
                       </Link>
                       <button onClick={() => toggleCourseVisibility(course._id, course.isVisible)} className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all border ${course.isVisible ? 'bg-amber-50 text-amber-600 hover:bg-amber-100 border-amber-200' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border-emerald-200'}`}>
                         {course.isVisible ? 'Hide' : 'Show'}
+                      </button>
+                      <button onClick={() => handleDeleteCourse(course._id, course.title)} className={`flex-none flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all border bg-red-50 text-red-600 hover:bg-red-600 hover:text-white border-red-200`}>
+                        🗑️ Delete
                       </button>
                     </div>
                   </div>
@@ -292,7 +331,7 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* 🔴 --- 3. Quizzes (විභාග) Tab --- */}
+        {/* --- 3. Quizzes (විභාග) Tab --- */}
         {activeTab === "quizzes" && (
           <div className="animate-in fade-in duration-300">
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
@@ -328,14 +367,16 @@ export default function AdminDashboard() {
                         </span>
                       </div>
                       
+                      {/* 🔴 වෙනස් කළ කොටස: මෙහි Quiz Delete බොත්තම එකතු කර ඇත */}
                       <div className="flex flex-wrap gap-2 mt-auto pt-4 border-t border-slate-200 dark:border-slate-700">
-                        {/* Edit Quiz Button - ඊළඟට අපි මේ Page එක හදමු */}
                         <Link href={`/admin/edit-quiz/${quiz._id}`} className="flex-1 flex items-center justify-center gap-2 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white px-4 py-2.5 rounded-xl text-sm font-bold transition-all border border-blue-200">
                           Edit
                         </Link>
-                        {/* Hide/Show Quiz Button */}
                         <button onClick={() => toggleQuizVisibility(quiz._id, quiz.isVisible)} className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all border ${quiz.isVisible ? 'bg-amber-50 text-amber-600 hover:bg-amber-100 border-amber-200' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border-emerald-200'}`}>
                           {quiz.isVisible ? 'Hide' : 'Show'}
+                        </button>
+                        <button onClick={() => handleDeleteQuiz(quiz._id, quiz.title)} className={`flex-none flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all border bg-red-50 text-red-600 hover:bg-red-600 hover:text-white border-red-200`}>
+                          🗑️ Delete
                         </button>
                       </div>
                     </div>
