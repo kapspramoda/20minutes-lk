@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 
 export default function HomePage() {
   const router = useRouter();
@@ -22,14 +21,7 @@ export default function HomePage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const ongoingCourses = [
-    { id: 1, title: "LLB ප්‍රවේශ විභාගය - සම්පූර්ණ පාඨමාලාව", price: "රු. 4500", duration: "මාස 6" },
-    { id: 2, title: "රාජ්‍ය කළමනාකරණ සහකාර - පෙරහුරු", price: "රු. 2500", duration: "මාස 3" },
-    { id: 3, title: "බුද්ධි පරීක්ෂණය (IQ) සහ සාමාන්‍ය දැනීම", price: "රු. 3000", duration: "මාස 4" },
-    { id: 4, title: "ශ්‍රී ලංකා රේගු දෙපාර්තමේන්තු විභාගය", price: "රු. 3500", duration: "මාස 4" },
-  ];
-
-  // 🔴 අලුත් ප්‍රතිඵල පින්තූර 
+  // 🔴 ප්‍රතිඵල පින්තූර 
   const resultsData = [
     { id: 1, img: "/RESULTS.jpeg", name: "විශිෂ්ට ප්‍රතිඵල", rank: "ප්‍රාථමික අධ්‍යාපන" },
     { id: 2, img: "/2425.png", name: "විශිෂ්ට ප්‍රතිඵල", rank: "නීතීවේදී" },
@@ -69,11 +61,9 @@ export default function HomePage() {
 
   const [currentSlide, setCurrentSlide] = useState(0);
 
-  const [courseIndex, setCourseIndex] = useState(0);
   const [resultIndex, setResultIndex] = useState(0);
   const [testiIndex, setTestiIndex] = useState(0);
 
-  const courseRef = useRef<HTMLDivElement>(null);
   const resultRef = useRef<HTMLDivElement>(null);
   const testiRef = useRef<HTMLDivElement>(null);
 
@@ -114,8 +104,8 @@ export default function HomePage() {
     setError("");
 
     if (heroView === "login") {
-      // --- Admin Login ---
-      if (phone === "admin" && password === "admin123") {
+      // 🔴 Admin 
+      if (phone === "960431251V" && password === "Malindu@12411") {
         router.push("/admin");
         setLoading(false);
         return;
@@ -321,7 +311,7 @@ export default function HomePage() {
                   තෝරාගැනීමේ පරීක්ෂණ සඳහා ශ්‍රී ලංකාවේ විශ්වාසනීය ප්‍රමුඛතම පුහුණු ආයතනයක් වන <b>20 minutesLK Institute</b> සමඟ මේ වන විට සිසුන් <b>8,000+</b> ක් අධ්‍යයනය කර ඇති අතර, ඔවුන් අතරින් <b>3,000+</b> දෙනෙකු විවිධ තෝරාගැනීමේ පරීක්ෂණ සාර්ථකව සමත් වී ඔවුන්ගේ සිහින උපාධි හා වෘත්තීය අවස්ථා දිනාගෙන ඇත.
                 </p>
                 
-                {/* 🔴 මෙතන Background එක Dark Mode එකට අනුව වෙනස් වෙන්න හැදුවා */}
+                {/* Background එක Dark Mode එකට අනුව වෙනස් වෙන්න හැදුවා */}
                 <div className={`grid grid-cols-1 md:grid-cols-2 gap-4 text-left max-w-3xl mx-auto mt-8 p-6 md:p-8 rounded-3xl shadow-sm border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
                   <div className="flex items-start gap-3">
                     <span className="text-emerald-500 text-xl">✅</span>
@@ -344,40 +334,6 @@ export default function HomePage() {
                 <p className="font-extrabold text-blue-600 text-lg md:text-2xl mt-8 pt-4">
                   "ඔබගේ ජයග්‍රහණය අපගේ වගකීමයි."
                 </p>
-              </div>
-            </div>
-          </section>
-
-          {/* 3. දැනට පැවැත්වෙන පාඨමාලා */}
-          <section id="courses" className="py-16 px-4 md:py-24 md:px-6">
-            <div className="mx-auto max-w-7xl">
-              <div className="mb-10 text-center md:mb-16">
-                <h2 className={`text-2xl font-extrabold md:text-4xl ${sectionTitleColor}`}>දැනට පැවැත්වෙන පාඨමාලා</h2>
-                <div className="mx-auto mt-4 h-1.5 w-16 rounded-full bg-blue-600 md:w-24"></div>
-              </div>
-
-              <div 
-                ref={courseRef}
-                onScroll={() => handleScroll(courseRef as any, setCourseIndex, ongoingCourses.length)}
-                className="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-6 md:grid md:grid-cols-4 md:gap-6 md:overflow-visible [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']"
-              >
-                {ongoingCourses.map((course) => (
-                  <div key={course.id} className={`group flex-none w-[70%] sm:w-[45%] snap-center flex flex-col overflow-hidden rounded-2xl shadow-sm transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl md:w-auto border ${cardBg}`}>
-                    <div className={`flex h-32 items-center justify-center transition-colors shrink-0 md:h-40 bg-blue-500/10`}>
-                      <svg className="h-10 w-10 md:h-12 md:w-12 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
-                    </div>
-                    <div className="flex flex-col flex-grow p-4 md:p-5">
-                      <h3 className={`mb-2 text-sm font-bold leading-snug line-clamp-2 md:mb-3 md:text-base ${cardTitle}`}>{course.title}</h3>
-                      <p className={`mb-4 text-[11px] font-medium md:mb-5 md:text-xs ${sectionDescColor}`}>කාලසීමාව: {course.duration}</p>
-                      <div className={`mt-auto flex flex-col items-start justify-between border-t pt-3 gap-3 sm:flex-row sm:items-center md:pt-4 sm:gap-0 ${isDarkMode ? 'border-slate-700' : 'border-slate-100'}`}>
-                        <span className={`text-sm font-extrabold md:text-lg ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>{course.price}</span>
-                        <button onClick={() => changeViewAndScrollTop("register")} className={`w-full text-center rounded-full px-4 py-2 text-xs font-bold transition-all hover:shadow-md sm:w-auto md:px-4 md:py-2 md:text-xs ${isDarkMode ? 'bg-slate-700 text-slate-200 hover:bg-blue-600 hover:text-white' : 'bg-slate-100 text-slate-700 hover:bg-blue-600 hover:text-white'}`}>
-                          ඇතුළත් වන්න
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
               </div>
             </div>
           </section>
@@ -479,7 +435,6 @@ export default function HomePage() {
               <ul className="space-y-3 text-sm text-slate-400">
                 <li><button onClick={() => changeViewAndScrollTop("login")} className="hover:text-white transition-colors focus:outline-none">ලොග් වන්න</button></li>
                 <li><button onClick={() => changeViewAndScrollTop("register")} className="hover:text-white transition-colors focus:outline-none">ලියාපදිංචි වන්න</button></li>
-                <li><a href="#courses" className="hover:text-white transition-colors">පාඨමාලා</a></li>
               </ul>
             </div>
             
