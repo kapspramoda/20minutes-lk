@@ -22,21 +22,19 @@ export default function HomePage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const ongoingCourses = [
-    { id: 1, title: "LLB ප්‍රවේශ විභාගය - සම්පූර්ණ පාඨමාලාව", price: "රු. 4500", duration: "මාස 6" },
-    { id: 2, title: "රාජ්‍ය කළමනාකරණ සහකාර - පෙරහුරු", price: "රු. 2500", duration: "මාස 3" },
-    { id: 3, title: "බුද්ධි පරීක්ෂණය (IQ) සහ සාමාන්‍ය දැනීම", price: "රු. 3000", duration: "මාස 4" },
-    { id: 4, title: "ශ්‍රී ලංකා රේගු දෙපාර්තමේන්තු විභාගය", price: "රු. 3500", duration: "මාස 4" },
-  ];
+  // 🔴 අලුත්: Admin විසින් එකතු කරන පාඨමාලා ගබඩා කරගැනීමට
+  const [apiCourses, setApiCourses] = useState<any[]>([]);
+  const [isLoadingCourses, setIsLoadingCourses] = useState(true);
 
-  // 🔴 වෙනස් කළ කොටස: 4 වෙනි පින්තූරය එකතු කර ඇත
+  // ප්‍රතිඵල පින්තූර 
   const resultsData = [
     { id: 1, img: "/RESULTS.jpeg", name: "විශිෂ්ට ප්‍රතිඵල", rank: "ප්‍රාථමික අධ්‍යාපන" },
     { id: 2, img: "/2425.png", name: "විශිෂ්ට ප්‍රතිඵල", rank: "නීතීවේදී" },
     { id: 3, img: "/PrExam.png", name: "විශිෂ්ට ප්‍රතිඵල", rank: "ප්‍රාථමික අධ්‍යාපන" },
-    { id: 4, img: "/LLBOUSL.png", name: "විශිෂ්ට ප්‍රතිඵල", rank: "නීතිවේදී" } // ඔයාගේ අලුත් පින්තූරයේ නම මෙතනට දෙන්න
+    { id: 4, img: "/NewPhoto.jpg", name: "විශිෂ්ට ප්‍රතිඵල", rank: "රාජ්‍ය සේවා තරග විභාග" }
   ];
 
+  // සිසුන්ගේ අදහස් (YouTube Playlists)
   const testimonialsData = [
     { 
       id: 1, 
@@ -89,6 +87,25 @@ export default function HomePage() {
   const resultRef = useRef<HTMLDivElement>(null);
   const testiRef = useRef<HTMLDivElement>(null);
 
+  // Database එකෙන් පාඨමාලා ගෙන ඒම
+  useEffect(() => {
+    const fetchAvailableCourses = async () => {
+      try {
+        const res = await fetch("/api/courses");
+        const data = await res.json();
+        if (res.ok) {
+          // Admin විසින් Show කර ඇති පාඨමාලා පමණක් තේරීම
+          setApiCourses(data.data.filter((c: any) => c.isVisible === true));
+        }
+      } catch (error) { 
+        console.error(error); 
+      } finally { 
+        setIsLoadingCourses(false); 
+      }
+    };
+    fetchAvailableCourses();
+  }, []);
+
   useEffect(() => {
     if (heroView !== "carousel") return;
     const timer = setInterval(() => {
@@ -126,7 +143,7 @@ export default function HomePage() {
     setError("");
 
     if (heroView === "login") {
-      if (phone === "960431251V" && password === "Malindu@12411") {
+      if (phone === "admin" && password === "Admin@1234") {
         router.push("/admin");
         setLoading(false);
         return;
@@ -360,33 +377,54 @@ export default function HomePage() {
                 <div className="mx-auto mt-4 h-1.5 w-16 rounded-full bg-blue-600 md:w-24"></div>
               </div>
 
-              <div 
-                ref={courseRef}
-                onScroll={() => handleScroll(courseRef as any, setCourseIndex, ongoingCourses.length)}
-                className="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-6 md:grid md:grid-cols-4 md:gap-6 md:overflow-visible [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']"
-              >
-                {ongoingCourses.map((course) => (
-                  <div key={course.id} className={`group flex-none w-[70%] sm:w-[45%] snap-center flex flex-col overflow-hidden rounded-2xl shadow-sm transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl md:w-auto border ${cardBg}`}>
-                    <div className={`flex h-32 items-center justify-center transition-colors shrink-0 md:h-40 bg-blue-500/10`}>
-                      <svg className="h-10 w-10 md:h-12 md:w-12 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
-                    </div>
-                    <div className="flex flex-col flex-grow p-4 md:p-5">
-                      <h3 className={`mb-2 text-sm font-bold leading-snug line-clamp-2 md:mb-3 md:text-base ${cardTitle}`}>{course.title}</h3>
-                      <p className={`mb-4 text-[11px] font-medium md:mb-5 md:text-xs ${sectionDescColor}`}>කාලසීමාව: {course.duration}</p>
-                      <div className={`mt-auto flex flex-col items-start justify-between border-t pt-3 gap-3 sm:flex-row sm:items-center md:pt-4 sm:gap-0 ${isDarkMode ? 'border-slate-700' : 'border-slate-100'}`}>
-                        <span className={`text-sm font-extrabold md:text-lg ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>{course.price}</span>
-                        <button onClick={() => changeViewAndScrollTop("register")} className={`w-full text-center rounded-full px-4 py-2 text-xs font-bold transition-all hover:shadow-md sm:w-auto md:px-4 md:py-2 md:text-xs ${isDarkMode ? 'bg-slate-700 text-slate-200 hover:bg-blue-600 hover:text-white' : 'bg-slate-100 text-slate-700 hover:bg-blue-600 hover:text-white'}`}>
-                          ඇතුළත් වන්න
-                        </button>
+              {isLoadingCourses ? (
+                <div className="text-center py-10 font-bold text-slate-400 animate-pulse">
+                  පාඨමාලා ලබාගනිමින් පවතී...
+                </div>
+              ) : apiCourses.length === 0 ? (
+                <div className={`p-8 text-center rounded-2xl border ${cardBg}`}>
+                  <p className={textSecondary}>දැනට අලුත් පාඨමාලා කිසිවක් නොමැත.</p>
+                </div>
+              ) : (
+                <div 
+                  ref={courseRef}
+                  onScroll={() => handleScroll(courseRef as any, setCourseIndex, apiCourses.length)}
+                  className="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-6 md:grid md:grid-cols-4 md:gap-6 md:overflow-visible [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']"
+                >
+                  {apiCourses.map((course) => (
+                    <div key={course._id} className={`group flex-none w-[70%] sm:w-[45%] snap-center flex flex-col overflow-hidden rounded-2xl shadow-sm transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl md:w-auto border ${cardBg}`}>
+                      {course.coverImage ? (
+                        <img src={course.coverImage} alt={course.title} className="flex h-32 items-center justify-center transition-colors shrink-0 md:h-40 object-cover w-full" />
+                      ) : (
+                        <div className={`flex h-32 items-center justify-center transition-colors shrink-0 md:h-40 bg-blue-500/10`}>
+                          <svg className="h-10 w-10 md:h-12 md:w-12 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
+                        </div>
+                      )}
+                      
+                      <div className="flex flex-col flex-grow p-4 md:p-5">
+                        <h3 className={`mb-2 text-sm font-bold leading-snug line-clamp-2 md:mb-3 md:text-base ${cardTitle}`}>{course.title}</h3>
+                        
+                        <div className={`mt-auto flex flex-col items-start justify-between border-t pt-3 gap-3 sm:flex-row sm:items-center md:pt-4 sm:gap-0 ${isDarkMode ? 'border-slate-700' : 'border-slate-100'}`}>
+                          <span className={`text-sm font-extrabold md:text-lg ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>{course.price || "මිලක් නැත"}</span>
+                          <button onClick={() => changeViewAndScrollTop("register")} className={`w-full text-center rounded-full px-4 py-2 text-xs font-bold transition-all hover:shadow-md sm:w-auto md:px-4 md:py-2 md:text-xs ${isDarkMode ? 'bg-slate-700 text-slate-200 hover:bg-blue-600 hover:text-white' : 'bg-slate-100 text-slate-700 hover:bg-blue-600 hover:text-white'}`}>
+                            ඇතුළත් වන්න
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Course Dots Indicator */}
+              <div className="mt-2 flex justify-center space-x-2.5 md:hidden">
+                {apiCourses.map((_, idx) => (
+                  <button key={idx} onClick={() => scrollToIndex(courseRef as any, idx, apiCourses.length)} className={`h-2 rounded-full transition-all duration-300 ${courseIndex === idx ? "w-6 bg-blue-600" : (isDarkMode ? "w-2 bg-slate-700" : "w-2 bg-slate-200")}`} />
                 ))}
               </div>
             </div>
           </section>
 
-          {/* 🔴 ප්‍රතිඵල පින්තූර Grid එක වෙනස් කළා (4ක් සඳහා) */}
           <section id="results" className={`py-16 px-4 border-y md:py-24 md:px-6 transition-colors duration-300 ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-100'}`}>
             <div className="mx-auto max-w-7xl">
               <div className="mb-10 text-center md:mb-16">
@@ -412,9 +450,17 @@ export default function HomePage() {
                   </div>
                 ))}
               </div>
+
+              {/* Results Dots Indicator */}
+              <div className="mt-2 flex justify-center space-x-2.5 md:hidden">
+                {resultsData.map((_, idx) => (
+                  <button key={idx} onClick={() => scrollToIndex(resultRef as any, idx, resultsData.length)} className={`h-2 rounded-full transition-all duration-300 ${resultIndex === idx ? "w-6 bg-blue-600" : (isDarkMode ? "w-2 bg-slate-700" : "w-2 bg-slate-200")}`} />
+                ))}
+              </div>
             </div>
           </section>
 
+          {/* 🔴 සිසුන්ගේ අදහස් (Mobile ස්වයිප් කරන්න හැදුවා) */}
           <section id="testimonials" className="py-16 px-4 md:py-24 md:px-6">
             <div className="mx-auto max-w-7xl">
               <div className="mb-10 text-center md:mb-16">
@@ -422,14 +468,18 @@ export default function HomePage() {
                 <div className="mx-auto mt-4 h-1.5 w-16 rounded-full bg-red-600 md:w-24"></div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
+              <div 
+                ref={testiRef}
+                onScroll={() => handleScroll(testiRef as any, setTestiIndex, testimonialsData.length)}
+                className="flex overflow-x-auto snap-x snap-mandatory gap-6 pb-6 md:grid md:grid-cols-3 md:gap-8 md:overflow-visible [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']"
+              >
                 {testimonialsData.map((video) => (
                   <a 
                     key={video.id} 
                     href={video.link}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className={`group flex flex-col items-center justify-center p-6 md:p-8 overflow-hidden rounded-3xl shadow-sm transition-all duration-300 hover:-translate-y-2 hover:shadow-xl border text-center ${isDarkMode ? 'bg-slate-800 border-slate-700 hover:border-red-500/50' : 'bg-white border-slate-200 hover:border-red-400'}`}
+                    className={`flex-none w-[85%] sm:w-[60%] snap-center md:w-auto group flex flex-col items-center justify-center p-6 md:p-8 overflow-hidden rounded-3xl shadow-sm transition-all duration-300 hover:-translate-y-2 hover:shadow-xl border text-center ${isDarkMode ? 'bg-slate-800 border-slate-700 hover:border-red-500/50' : 'bg-white border-slate-200 hover:border-red-400'}`}
                   >
                     <div className="w-16 h-16 md:w-20 md:h-20 bg-red-100 dark:bg-red-500/20 text-red-600 rounded-full flex items-center justify-center mb-6 group-hover:scale-110 group-hover:bg-red-600 group-hover:text-white transition-all duration-300 shadow-sm">
                       <svg className="w-8 h-8 md:w-10 md:h-10 ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"/></svg>
@@ -441,6 +491,13 @@ export default function HomePage() {
                       YouTube ඔස්සේ නරඹන්න
                     </span>
                   </a>
+                ))}
+              </div>
+
+              {/* Testimonials Dots Indicator */}
+              <div className="mt-2 flex justify-center space-x-2.5 md:hidden">
+                {testimonialsData.map((_, idx) => (
+                  <button key={idx} onClick={() => scrollToIndex(testiRef as any, idx, testimonialsData.length)} className={`h-2 rounded-full transition-all duration-300 ${testiIndex === idx ? "w-6 bg-red-600" : (isDarkMode ? "w-2 bg-slate-700" : "w-2 bg-slate-200")}`} />
                 ))}
               </div>
             </div>
