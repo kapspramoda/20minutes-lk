@@ -22,7 +22,7 @@ export default function HomePage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // 🔴 අලුත්: Admin විසින් එකතු කරන පාඨමාලා ගබඩා කරගැනීමට
+  // Admin විසින් එකතු කරන පාඨමාලා ගබඩා කරගැනීමට
   const [apiCourses, setApiCourses] = useState<any[]>([]);
   const [isLoadingCourses, setIsLoadingCourses] = useState(true);
 
@@ -94,7 +94,6 @@ export default function HomePage() {
         const res = await fetch("/api/courses");
         const data = await res.json();
         if (res.ok) {
-          // Admin විසින් Show කර ඇති පාඨමාලා පමණක් තේරීම
           setApiCourses(data.data.filter((c: any) => c.isVisible === true));
         }
       } catch (error) { 
@@ -143,7 +142,7 @@ export default function HomePage() {
     setError("");
 
     if (heroView === "login") {
-      if (phone === "admin" && password === "Admin@1234") {
+      if (phone === "960431251V" && password === "Malindu@12411") {
         router.push("/admin");
         setLoading(false);
         return;
@@ -184,6 +183,7 @@ export default function HomePage() {
     }
   };
 
+  // --- Theme Classes (මෙතනයි textSecondary එකතු කළේ) ---
   const themeBg = isDarkMode ? "bg-slate-900 text-slate-100" : "bg-slate-50 text-slate-800";
   const headerBg = isDarkMode ? "bg-slate-900/80 border-slate-800" : "bg-white/80 border-slate-200";
   const logoTextColor = isDarkMode ? "text-white" : "text-slate-900";
@@ -192,6 +192,7 @@ export default function HomePage() {
   const sectionDescColor = isDarkMode ? "text-slate-400" : "text-slate-500";
   const cardBg = isDarkMode ? "bg-slate-800 border-slate-700" : "bg-white border-slate-100";
   const cardTitle = isDarkMode ? "text-white" : "text-slate-800";
+  const textSecondary = isDarkMode ? "text-slate-400" : "text-slate-500"; // 🔴 මෙන්න මේකයි අඩු වෙලා තිබුණේ
   const authBg = isDarkMode ? "bg-slate-950" : "bg-slate-100";
   const authCardBg = isDarkMode ? "bg-slate-800/95 border-slate-700 shadow-blue-900/20" : "bg-white/90 border-white shadow-2xl";
   const inputBg = isDarkMode ? "bg-slate-700 border-slate-600 text-white placeholder-slate-400 focus:border-blue-500 focus:bg-slate-600" : "bg-slate-50 border-slate-200 text-slate-900 focus:border-blue-500 focus:bg-white";
@@ -416,7 +417,6 @@ export default function HomePage() {
                 </div>
               )}
 
-              {/* Course Dots Indicator */}
               <div className="mt-2 flex justify-center space-x-2.5 md:hidden">
                 {apiCourses.map((_, idx) => (
                   <button key={idx} onClick={() => scrollToIndex(courseRef as any, idx, apiCourses.length)} className={`h-2 rounded-full transition-all duration-300 ${courseIndex === idx ? "w-6 bg-blue-600" : (isDarkMode ? "w-2 bg-slate-700" : "w-2 bg-slate-200")}`} />
@@ -451,7 +451,6 @@ export default function HomePage() {
                 ))}
               </div>
 
-              {/* Results Dots Indicator */}
               <div className="mt-2 flex justify-center space-x-2.5 md:hidden">
                 {resultsData.map((_, idx) => (
                   <button key={idx} onClick={() => scrollToIndex(resultRef as any, idx, resultsData.length)} className={`h-2 rounded-full transition-all duration-300 ${resultIndex === idx ? "w-6 bg-blue-600" : (isDarkMode ? "w-2 bg-slate-700" : "w-2 bg-slate-200")}`} />
@@ -460,7 +459,6 @@ export default function HomePage() {
             </div>
           </section>
 
-          {/* 🔴 සිසුන්ගේ අදහස් (Mobile ස්වයිප් කරන්න හැදුවා) */}
           <section id="testimonials" className="py-16 px-4 md:py-24 md:px-6">
             <div className="mx-auto max-w-7xl">
               <div className="mb-10 text-center md:mb-16">
@@ -494,7 +492,6 @@ export default function HomePage() {
                 ))}
               </div>
 
-              {/* Testimonials Dots Indicator */}
               <div className="mt-2 flex justify-center space-x-2.5 md:hidden">
                 {testimonialsData.map((_, idx) => (
                   <button key={idx} onClick={() => scrollToIndex(testiRef as any, idx, testimonialsData.length)} className={`h-2 rounded-full transition-all duration-300 ${testiIndex === idx ? "w-6 bg-red-600" : (isDarkMode ? "w-2 bg-slate-700" : "w-2 bg-slate-200")}`} />
