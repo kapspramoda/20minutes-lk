@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 export default function HomePage() {
   const router = useRouter();
@@ -21,18 +22,37 @@ export default function HomePage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // 🔴 ප්‍රතිඵල පින්තූර 
+  const ongoingCourses = [
+    { id: 1, title: "LLB ප්‍රවේශ විභාගය - සම්පූර්ණ පාඨමාලාව", price: "රු. 4500", duration: "මාස 6" },
+    { id: 2, title: "රාජ්‍ය කළමනාකරණ සහකාර - පෙරහුරු", price: "රු. 2500", duration: "මාස 3" },
+    { id: 3, title: "බුද්ධි පරීක්ෂණය (IQ) සහ සාමාන්‍ය දැනීම", price: "රු. 3000", duration: "මාස 4" },
+    { id: 4, title: "ශ්‍රී ලංකා රේගු දෙපාර්තමේන්තු විභාගය", price: "රු. 3500", duration: "මාස 4" },
+  ];
+
+  // 🔴 වෙනස් කළ කොටස: 4 වෙනි පින්තූරය එකතු කර ඇත
   const resultsData = [
     { id: 1, img: "/RESULTS.jpeg", name: "විශිෂ්ට ප්‍රතිඵල", rank: "ප්‍රාථමික අධ්‍යාපන" },
     { id: 2, img: "/2425.png", name: "විශිෂ්ට ප්‍රතිඵල", rank: "නීතීවේදී" },
-    { id: 3, img: "/PrExam.png", name: "විශිෂ්ට ප්‍රතිඵල", rank: "ප්‍රාථමික අධ්‍යාපන" }
+    { id: 3, img: "/PrExam.png", name: "විශිෂ්ට ප්‍රතිඵල", rank: "ප්‍රාථමික අධ්‍යාපන" },
+    { id: 4, img: "/LLBOUSL.png", name: "විශිෂ්ට ප්‍රතිඵල", rank: "නීතිවේදී" } // ඔයාගේ අලුත් පින්තූරයේ නම මෙතනට දෙන්න
   ];
 
-  // 🔴 සිසුන්ගේ අදහස් (YouTube Playlists)
   const testimonialsData = [
-    { id: 1, title: "සිසුන්ගේ අදහස් 1", link: "https://www.youtube.com/embed/videoseries?list=PLUmQc9YvKzLLnvf1AkQbEhtw-9i-BDryq" },
-    { id: 2, title: "සිසුන්ගේ අදහස් 2", link: "https://www.youtube.com/embed/videoseries?list=PLUmQc9YvKzLJSolBkpLrbr_xZDKy5Z-lZ" },
-    { id: 3, title: "සිසුන්ගේ අදහස් 3", link: "https://www.youtube.com/embed/videoseries?list=PLUmQc9YvKzLIHxO1GHa0kafOGwHen68mc" }
+    { 
+      id: 1, 
+      title: "📌 විශ්වවිද්‍යාල තෝරාගැනීමේ පරීක්ෂණ සමත් වූ සිසුන්ගේ අදහස්", 
+      link: "https://youtube.com/playlist?list=PLUmQc9YvKzLIHxO1GHa0kafOGwHen68mc&si=gjrOl9dDrqrOKVZN" 
+    },
+    { 
+      id: 2, 
+      title: "📌 විවෘත විශ්වවිද්‍යාල තෝරාගැනීමේ පරීක්ෂණ සමත් වූ සිසුන්ගේ අදහස්", 
+      link: "https://youtube.com/playlist?list=PLUmQc9YvKzLJSolBkpLrbr_xZDKy5Z-lZ&si=aXygorZ3VS4m1tVV" 
+    },
+    { 
+      id: 3, 
+      title: "📌 රාජ්‍ය සේවා තරග විභාග ජයග්‍රහණය කළ සිසුන්ගේ අදහස්", 
+      link: "https://youtube.com/playlist?list=PLUmQc9YvKzLLnvf1AkQbEhtw-9i-BDryq&si=mD0YS2oIAm9BDhCg" 
+    }
   ];
 
   const slides = [
@@ -61,9 +81,11 @@ export default function HomePage() {
 
   const [currentSlide, setCurrentSlide] = useState(0);
 
+  const [courseIndex, setCourseIndex] = useState(0);
   const [resultIndex, setResultIndex] = useState(0);
   const [testiIndex, setTestiIndex] = useState(0);
 
+  const courseRef = useRef<HTMLDivElement>(null);
   const resultRef = useRef<HTMLDivElement>(null);
   const testiRef = useRef<HTMLDivElement>(null);
 
@@ -104,8 +126,7 @@ export default function HomePage() {
     setError("");
 
     if (heroView === "login") {
-      // 🔴 Admin 
-      if (phone === "960431251V" && password === "Malindu@12411") {
+      if (phone === "admin" && password === "Admin@1234") {
         router.push("/admin");
         setLoading(false);
         return;
@@ -146,7 +167,6 @@ export default function HomePage() {
     }
   };
 
-  // --- Theme Classes ---
   const themeBg = isDarkMode ? "bg-slate-900 text-slate-100" : "bg-slate-50 text-slate-800";
   const headerBg = isDarkMode ? "bg-slate-900/80 border-slate-800" : "bg-white/80 border-slate-200";
   const logoTextColor = isDarkMode ? "text-white" : "text-slate-900";
@@ -169,7 +189,6 @@ export default function HomePage() {
 
       <div className={`modern-font flex min-h-screen flex-col transition-colors duration-300 ${themeBg}`}>
         
-        {/* Navigation Bar */}
         <header className={`sticky top-0 z-50 w-full border-b backdrop-blur-md transition-all duration-300 ${headerBg}`}>
           <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 md:px-6 md:py-4">
             <button onClick={() => changeViewAndScrollTop("carousel")} className="flex items-center gap-2 md:gap-3 focus:outline-none">
@@ -193,7 +212,6 @@ export default function HomePage() {
 
         <main className="flex-grow">
           
-          {/* Carousel View */}
           {heroView === "carousel" && (
             <section className="relative h-[450px] w-full overflow-hidden md:h-[550px]">
               <div className="flex h-full transition-transform duration-700 ease-in-out" style={{ transform: `translateX(-${currentSlide * 100}%)` }}>
@@ -232,7 +250,6 @@ export default function HomePage() {
             </section>
           )}
 
-          {/* Login / Register Form View */}
           {(heroView === "login" || heroView === "register") && (
             <section className={`flex min-h-[450px] items-center justify-center py-12 px-4 transition-colors duration-300 md:min-h-[550px] ${authBg}`}>
               <div className={`w-full max-w-md rounded-3xl border p-6 backdrop-blur-lg transition-colors duration-300 md:p-10 ${authCardBg}`}>
@@ -298,7 +315,6 @@ export default function HomePage() {
             </section>
           )}
 
-         {/* 🔴 2. Welcome & About Section (අලුතින් එකතු කළ කොටස) */}
           <section className={`py-16 px-4 md:py-24 md:px-6 transition-colors duration-300 ${isDarkMode ? 'bg-slate-950/50 border-y border-slate-800' : 'bg-blue-50/50 border-y border-blue-100'}`}>
             <div className="mx-auto max-w-5xl text-center">
               <h2 className={`mb-6 text-2xl font-extrabold md:text-4xl ${sectionTitleColor}`}>
@@ -311,7 +327,6 @@ export default function HomePage() {
                   තෝරාගැනීමේ පරීක්ෂණ සඳහා ශ්‍රී ලංකාවේ විශ්වාසනීය ප්‍රමුඛතම පුහුණු ආයතනයක් වන <b>20 minutesLK Institute</b> සමඟ මේ වන විට සිසුන් <b>8,000+</b> ක් අධ්‍යයනය කර ඇති අතර, ඔවුන් අතරින් <b>3,000+</b> දෙනෙකු විවිධ තෝරාගැනීමේ පරීක්ෂණ සාර්ථකව සමත් වී ඔවුන්ගේ සිහින උපාධි හා වෘත්තීය අවස්ථා දිනාගෙන ඇත.
                 </p>
                 
-                {/* Background එක Dark Mode එකට අනුව වෙනස් වෙන්න හැදුවා */}
                 <div className={`grid grid-cols-1 md:grid-cols-2 gap-4 text-left max-w-3xl mx-auto mt-8 p-6 md:p-8 rounded-3xl shadow-sm border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
                   <div className="flex items-start gap-3">
                     <span className="text-emerald-500 text-xl">✅</span>
@@ -338,7 +353,40 @@ export default function HomePage() {
             </div>
           </section>
 
-          {/* 🔴 4. අපගේ විශිෂ්ට ප්‍රතිඵල (Images Updated) */}
+          <section id="courses" className="py-16 px-4 md:py-24 md:px-6">
+            <div className="mx-auto max-w-7xl">
+              <div className="mb-10 text-center md:mb-16">
+                <h2 className={`text-2xl font-extrabold md:text-4xl ${sectionTitleColor}`}>දැනට පැවැත්වෙන පාඨමාලා</h2>
+                <div className="mx-auto mt-4 h-1.5 w-16 rounded-full bg-blue-600 md:w-24"></div>
+              </div>
+
+              <div 
+                ref={courseRef}
+                onScroll={() => handleScroll(courseRef as any, setCourseIndex, ongoingCourses.length)}
+                className="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-6 md:grid md:grid-cols-4 md:gap-6 md:overflow-visible [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']"
+              >
+                {ongoingCourses.map((course) => (
+                  <div key={course.id} className={`group flex-none w-[70%] sm:w-[45%] snap-center flex flex-col overflow-hidden rounded-2xl shadow-sm transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl md:w-auto border ${cardBg}`}>
+                    <div className={`flex h-32 items-center justify-center transition-colors shrink-0 md:h-40 bg-blue-500/10`}>
+                      <svg className="h-10 w-10 md:h-12 md:w-12 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
+                    </div>
+                    <div className="flex flex-col flex-grow p-4 md:p-5">
+                      <h3 className={`mb-2 text-sm font-bold leading-snug line-clamp-2 md:mb-3 md:text-base ${cardTitle}`}>{course.title}</h3>
+                      <p className={`mb-4 text-[11px] font-medium md:mb-5 md:text-xs ${sectionDescColor}`}>කාලසීමාව: {course.duration}</p>
+                      <div className={`mt-auto flex flex-col items-start justify-between border-t pt-3 gap-3 sm:flex-row sm:items-center md:pt-4 sm:gap-0 ${isDarkMode ? 'border-slate-700' : 'border-slate-100'}`}>
+                        <span className={`text-sm font-extrabold md:text-lg ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>{course.price}</span>
+                        <button onClick={() => changeViewAndScrollTop("register")} className={`w-full text-center rounded-full px-4 py-2 text-xs font-bold transition-all hover:shadow-md sm:w-auto md:px-4 md:py-2 md:text-xs ${isDarkMode ? 'bg-slate-700 text-slate-200 hover:bg-blue-600 hover:text-white' : 'bg-slate-100 text-slate-700 hover:bg-blue-600 hover:text-white'}`}>
+                          ඇතුළත් වන්න
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          {/* 🔴 ප්‍රතිඵල පින්තූර Grid එක වෙනස් කළා (4ක් සඳහා) */}
           <section id="results" className={`py-16 px-4 border-y md:py-24 md:px-6 transition-colors duration-300 ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-100'}`}>
             <div className="mx-auto max-w-7xl">
               <div className="mb-10 text-center md:mb-16">
@@ -350,16 +398,15 @@ export default function HomePage() {
               <div 
                 ref={resultRef}
                 onScroll={() => handleScroll(resultRef as any, setResultIndex, resultsData.length)}
-                className="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-6 md:grid md:grid-cols-3 md:gap-8 md:overflow-visible [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']"
+                className="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-6 md:grid md:grid-cols-2 lg:grid-cols-4 md:gap-6 md:overflow-visible [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']"
               >
                 {resultsData.map((item) => (
                   <div key={item.id} className={`flex-none w-[75%] sm:w-[50%] snap-center overflow-hidden rounded-2xl shadow-sm transition-transform duration-300 hover:-translate-y-1.5 hover:shadow-xl md:w-auto border flex flex-col ${cardBg}`}>
-                    {/* පින්තූරය */}
-                    <div className="flex h-56 md:h-80 w-full overflow-hidden shrink-0">
+                    <div className="flex h-56 md:h-64 w-full overflow-hidden shrink-0">
                       <img src={item.img} alt={item.name} className="w-full h-full object-cover transition-transform duration-500 hover:scale-105" />
                     </div>
-                    <div className="p-4 text-center md:p-6 flex-grow flex flex-col justify-center">
-                      <h3 className={`text-sm font-extrabold md:text-xl ${cardTitle}`}>{item.name}</h3>
+                    <div className="p-4 text-center flex-grow flex flex-col justify-center">
+                      <h3 className={`text-sm font-extrabold md:text-lg ${cardTitle}`}>{item.name}</h3>
                       <p className={`mt-1 text-[11px] font-bold md:text-sm ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}`}>{item.rank}</p>
                     </div>
                   </div>
@@ -368,35 +415,32 @@ export default function HomePage() {
             </div>
           </section>
 
-          {/* 🔴 5. සිසුන්ගේ අදහස් (YouTube Playlists Updated) */}
           <section id="testimonials" className="py-16 px-4 md:py-24 md:px-6">
             <div className="mx-auto max-w-7xl">
               <div className="mb-10 text-center md:mb-16">
                 <h2 className={`text-2xl font-extrabold md:text-4xl ${sectionTitleColor}`}>සිසුන්ගේ අදහස්</h2>
-                <div className="mx-auto mt-4 h-1.5 w-16 rounded-full bg-blue-600 md:w-24"></div>
+                <div className="mx-auto mt-4 h-1.5 w-16 rounded-full bg-red-600 md:w-24"></div>
               </div>
 
-              <div 
-                ref={testiRef}
-                onScroll={() => handleScroll(testiRef as any, setTestiIndex, testimonialsData.length)}
-                className="flex overflow-x-auto snap-x snap-mandatory gap-6 pb-6 md:grid md:grid-cols-3 md:gap-8 md:overflow-visible [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']"
-              >
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
                 {testimonialsData.map((video) => (
-                  <div key={video.id} className={`flex-none w-[85%] sm:w-[60%] snap-center overflow-hidden rounded-2xl shadow-md transition-shadow duration-300 hover:shadow-xl md:w-auto border ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-                    {/* YouTube iFrame (16:9 Aspect Ratio) */}
-                    <div className="relative w-full pb-[56.25%]">
-                      <iframe 
-                        className="absolute top-0 left-0 w-full h-full border-0"
-                        src={video.link} 
-                        title={video.title}
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                        allowFullScreen>
-                      </iframe>
+                  <a 
+                    key={video.id} 
+                    href={video.link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`group flex flex-col items-center justify-center p-6 md:p-8 overflow-hidden rounded-3xl shadow-sm transition-all duration-300 hover:-translate-y-2 hover:shadow-xl border text-center ${isDarkMode ? 'bg-slate-800 border-slate-700 hover:border-red-500/50' : 'bg-white border-slate-200 hover:border-red-400'}`}
+                  >
+                    <div className="w-16 h-16 md:w-20 md:h-20 bg-red-100 dark:bg-red-500/20 text-red-600 rounded-full flex items-center justify-center mb-6 group-hover:scale-110 group-hover:bg-red-600 group-hover:text-white transition-all duration-300 shadow-sm">
+                      <svg className="w-8 h-8 md:w-10 md:h-10 ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"/></svg>
                     </div>
-                    <div className="p-4 md:p-5 text-center">
-                      <p className={`text-sm font-bold ${cardTitle}`}>{video.title}</p>
-                    </div>
-                  </div>
+                    <h3 className={`text-base md:text-lg font-bold leading-snug group-hover:text-red-500 transition-colors ${cardTitle}`}>
+                      {video.title}
+                    </h3>
+                    <span className="mt-5 inline-block rounded-full bg-red-50 dark:bg-red-500/10 text-red-600 px-5 py-2 text-xs md:text-sm font-bold group-hover:bg-red-600 group-hover:text-white transition-colors">
+                      YouTube ඔස්සේ නරඹන්න
+                    </span>
+                  </a>
                 ))}
               </div>
             </div>
@@ -404,7 +448,6 @@ export default function HomePage() {
 
         </main>
 
-        {/* 6. Footer */}
         <footer className={`px-4 py-10 transition-colors duration-300 md:px-6 md:py-16 mt-12 ${isDarkMode ? 'bg-black text-slate-400 border-t border-slate-900' : 'bg-slate-900 text-slate-300'}`}>
           <div className="mx-auto grid max-w-7xl gap-10 md:grid-cols-3 md:gap-12">
             
@@ -435,6 +478,7 @@ export default function HomePage() {
               <ul className="space-y-3 text-sm text-slate-400">
                 <li><button onClick={() => changeViewAndScrollTop("login")} className="hover:text-white transition-colors focus:outline-none">ලොග් වන්න</button></li>
                 <li><button onClick={() => changeViewAndScrollTop("register")} className="hover:text-white transition-colors focus:outline-none">ලියාපදිංචි වන්න</button></li>
+                <li><a href="#courses" className="hover:text-white transition-colors">පාඨමාලා</a></li>
               </ul>
             </div>
             
