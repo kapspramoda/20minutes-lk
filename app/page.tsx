@@ -126,7 +126,7 @@ export default function HomePage() {
     setError("");
 
     if (heroView === "login") {
-      if (phone === "admin" && password === "Admin@1234") {
+      if (phone === "960431251V" && password === "Malindu@12411") {
         router.push("/admin");
         setLoading(false);
         return;
