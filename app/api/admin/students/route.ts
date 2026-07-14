@@ -14,7 +14,7 @@ export async function GET() {
     // 🔴 මෙතන .lean() එකතු කළා, ඒකෙන් Database එකෙන් දත්ත ඉක්මනට එනවා (Memory අවුල විසඳනවා)
     const students = await Enrollment.find({ status: "approved" })
                                      .sort({ updatedAt: -1 })
-                                     .lean(); 
+                                     .limit(100); 
     
     return NextResponse.json({ success: true, data: students }, { status: 200 });
   } catch (error: any) {
