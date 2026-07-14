@@ -27,6 +27,7 @@ export default function AdminDashboard() {
 
   const [enlargedSlip, setEnlargedSlip] = useState<string | null>(null);
 
+  // 🔴 අලුතින් එකතු කළ States (Bulk Add සඳහා)
   const [bulkPhones, setBulkPhones] = useState("");
   const [bulkCourseId, setBulkCourseId] = useState("");
   const [isBulkAdding, setIsBulkAdding] = useState(false);
@@ -45,6 +46,7 @@ export default function AdminDashboard() {
     else document.documentElement.classList.remove("dark");
   };
 
+  // --- API Functions ---
   const fetchPendingEnrollments = async () => {
     try {
       const res = await fetch("/api/admin/enrollments");
@@ -188,12 +190,12 @@ export default function AdminDashboard() {
     } catch (error) { alert("තාක්ෂණික දෝෂයක් මතු විය."); }
   };
 
+  // 🔴 අලුත්: Bulk Add Students Function
   const handleBulkAddStudents = async () => {
     if (!bulkCourseId) return alert("කරුණාකර සිසුන් ඇතුළත් කළ යුතු පාඨමාලාව තෝරන්න.");
     if (!bulkPhones.trim()) return alert("කරුණාකර දුරකථන අංක ඇතුළත් කරන්න.");
 
     const phoneArray = bulkPhones.split('\n').map(p => p.trim()).filter(p => p !== "");
-    
     if (phoneArray.length === 0) return alert("නිවැරදි දුරකථන අංක සොයාගත නොහැක.");
 
     const selectedCourse = courses.find(c => c._id === bulkCourseId);
@@ -215,7 +217,7 @@ export default function AdminDashboard() {
       if (res.ok) {
         alert(`සාර්ථකයි! ${phoneArray.length} දෙනෙකු අදාළ පාඨමාලාවට ඇතුළත් කරන ලදී.`);
         setBulkPhones(""); 
-        fetchApprovedStudents(); // පරණ සහ අලුත් ඔක්කොම ළමයි ටික Refresh වෙනවා
+        fetchApprovedStudents(); // පරණ ළමයි එක්ක අලුත් ළමයි ටිකත් ආයෙත් පේන්න Refresh කරනවා
       } else {
         alert(data.error || "ඇතුළත් කිරීමේ දෝෂයක් මතු විය.");
       }
@@ -425,8 +427,8 @@ export default function AdminDashboard() {
         {/* --- 4. Students Tab --- */}
         {activeTab === "students" && (
           <div className="animate-in fade-in duration-300">
-
-            {/* 🔴 Bulk Add Box (දැන් උඩින්ම තියෙනවා) */}
+            
+            {/* 🔴 අලුත්: Bulk Add Box එක උඩින්ම තියෙනවා */}
             <div className={`p-6 mb-8 rounded-2xl border shadow-sm bg-blue-50/50 dark:bg-blue-900/10 ${isDarkMode ? 'border-blue-800' : 'border-blue-100'}`}>
               <h3 className={`text-lg font-bold mb-2 flex items-center gap-2 ${isDarkMode ? 'text-blue-400' : 'text-blue-700'}`}>
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
@@ -512,7 +514,6 @@ export default function AdminDashboard() {
                 </div>
               </div>
             )}
-
           </div>
         )}
       </main>
