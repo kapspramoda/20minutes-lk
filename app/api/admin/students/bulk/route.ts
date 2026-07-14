@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import mongoose from "mongoose";
-// 🔴 අලුත් Student එක වෙනුවට, ඔයාගේ පරණ ළමයි ඉන්න Enrollment එකටම දත්ත යවනවා
 import Enrollment from "../../../../../models/Enrollment"; 
 
 const connectDB = async () => {
@@ -17,7 +16,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "අවශ්‍ය දත්ත නිවැරදිව ලැබී නැත." }, { status: 400 });
     }
 
-    // අදාළ ළමයින්ගේ ගෙවීම් "approved" ලෙස කෙලින්ම යාවත්කාලීන කිරීම
+    const now = new Date(); // 🔴 අලුත්: දිනය සහ වෙලාව ලබා ගැනීම
+
     const operations = phones.map((phone: string) => ({
       updateOne: {
         filter: { userPhone: phone, courseId: courseId },
@@ -27,8 +27,12 @@ export async function POST(req: Request) {
             courseId: courseId, 
             courseTitle: courseTitle, 
             status: "approved", 
-            slipImage: "Bulk Added" // Bulk Add කළ බව හඳුනා ගැනීමට
-          } 
+            slipImage: "Bulk Added",
+            updatedAt: now // 🔴 අලුත්: දිනය සේව් කිරීම
+          },
+          $setOnInsert: {
+            createdAt: now
+          }
         },
         upsert: true
       }
