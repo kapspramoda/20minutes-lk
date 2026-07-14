@@ -78,15 +78,24 @@ export default function AdminDashboard() {
     finally { setIsLoadingQuizzes(false); }
   };
 
-  const todaysIncome = useMemo(() => {
+ const todaysIncome = useMemo(() => {
     const today = new Date().toDateString();
     let total = 0;
-    approvedStudents.forEach(student => {
-      if (new Date(student.updatedAt).toDateString() === today) {
-        const course = courses.find(c => c._id === student.courseId || c.title === student.courseTitle);
-        if (course && course.price) {
-          const numericPrice = Number(course.price.replace(/[^0-9]/g, ''));
-          total += numericPrice;
+    (approvedStudents || []).forEach(student => {
+      // updatedAt හෝ createdAt තිබේදැයි පරීක්ෂා කරන්න
+      const dateToCheck = student.updatedAt || student.createdAt;
+      
+      if (dateToCheck) {
+        const d = new Date(dateToCheck);
+        if (!isNaN(d.getTime()) && d.toDateString() === today) {
+          const course = (courses || []).find(c => c._id === student.courseId || c.title === student.courseTitle);
+          // 🔴 අලුත්: සිසුවාගේ amount එක තියෙනවා නම් ඒක එකතු කරන්න, නැත්නම් course price එක ගන්න
+          if (student.amount && student.amount > 0) {
+            total += student.amount;
+          } else if (course && course.price) {
+            const numericPrice = Number(course.price.replace(/[^0-9]/g, ''));
+            total += numericPrice;
+          }
         }
       }
     });
