@@ -27,10 +27,6 @@ export default function AdminDashboard() {
 
   const [enlargedSlip, setEnlargedSlip] = useState<string | null>(null);
 
-  const [bulkPhones, setBulkPhones] = useState("");
-  const [bulkCourseId, setBulkCourseId] = useState("");
-  const [isBulkAdding, setIsBulkAdding] = useState(false);
-
   useEffect(() => {
     if (document.documentElement.classList.contains("dark")) setIsDarkMode(true);
     fetchPendingEnrollments();
@@ -45,18 +41,12 @@ export default function AdminDashboard() {
     else document.documentElement.classList.remove("dark");
   };
 
-  // දිනය නිවැරදිව පෙන්වීමට ආරක්ෂිත Function එක
-  const formatDate = (dateStr: any) => {
-    if (!dateStr) return "N/A";
-    const d = new Date(dateStr);
-    return isNaN(d.getTime()) ? "N/A" : d.toLocaleDateString('si-LK');
-  };
-
+  // --- API Functions ---
   const fetchPendingEnrollments = async () => {
     try {
       const res = await fetch("/api/admin/enrollments");
       const data = await res.json();
-      if (res.ok) setPendingApprovals(data.enrollments || []);
+      if (res.ok) setPendingApprovals(data.enrollments);
     } catch (error) { console.error(error); } 
     finally { setIsLoadingApprovals(false); }
   };
@@ -65,7 +55,7 @@ export default function AdminDashboard() {
     try {
       const res = await fetch("/api/courses");
       const data = await res.json();
-      if (res.ok) setCourses(data.data || []);
+      if (res.ok) setCourses(data.data);
     } catch (error) { console.error(error); }
     finally { setIsLoadingCourses(false); }
   };
@@ -74,16 +64,8 @@ export default function AdminDashboard() {
     try {
       const res = await fetch("/api/admin/students");
       const data = await res.json();
-      if (res.ok) {
-        setApprovedStudents(data.data || []);
-      } else {
-        console.error("Students API Error:", data.error);
-        setApprovedStudents([]);
-      }
-    } catch (error) { 
-      console.error("Fetch Students Error:", error); 
-      setApprovedStudents([]);
-    }
+      if (res.ok) setApprovedStudents(data.data);
+    } catch (error) { console.error(error); }
     finally { setIsLoadingStudents(false); }
   };
 
@@ -91,24 +73,20 @@ export default function AdminDashboard() {
     try {
       const res = await fetch("/api/admin/quizzes");
       const data = await res.json();
-      if (res.ok) setQuizzes(data.data || []);
+      if (res.ok) setQuizzes(data.data);
     } catch (error) { console.error(error); }
     finally { setIsLoadingQuizzes(false); }
   };
 
-  // ආරක්ෂිත ආදායම් ගණනය කිරීම
   const todaysIncome = useMemo(() => {
     const today = new Date().toDateString();
     let total = 0;
-    (approvedStudents || []).forEach(student => {
-      if (student.updatedAt) {
-        const d = new Date(student.updatedAt);
-        if (!isNaN(d.getTime()) && d.toDateString() === today) {
-          const course = (courses || []).find(c => c._id === student.courseId || c.title === student.courseTitle);
-          if (course && course.price) {
-            const numericPrice = Number(course.price.replace(/[^0-9]/g, ''));
-            total += numericPrice;
-          }
+    approvedStudents.forEach(student => {
+      if (new Date(student.updatedAt).toDateString() === today) {
+        const course = courses.find(c => c._id === student.courseId || c.title === student.courseTitle);
+        if (course && course.price) {
+          const numericPrice = Number(course.price.replace(/[^0-9]/g, ''));
+          total += numericPrice;
         }
       }
     });
@@ -140,7 +118,7 @@ export default function AdminDashboard() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ isVisible: !currentVisibility }),
       });
-      if (res.ok) setCourses((courses || []).map(c => c._id === courseId ? { ...c, isVisible: !currentVisibility } : c));
+      if (res.ok) setCourses(courses.map(c => c._id === courseId ? { ...c, isVisible: !currentVisibility } : c));
     } catch (error) { alert("තාක්ෂණික දෝෂයක්."); }
   };
 
@@ -149,14 +127,18 @@ export default function AdminDashboard() {
     if (!confirmDelete) return;
 
     try {
-      const res = await fetch(`/api/courses/${courseId}`, { method: "DELETE" });
+      const res = await fetch(`/api/courses/${courseId}`, {
+        method: "DELETE",
+      });
       if (res.ok) {
-        setCourses((courses || []).filter(c => c._id !== courseId));
+        setCourses(courses.filter(c => c._id !== courseId));
         alert("පාඨමාලාව සාර්ථකව මකා දමන ලදී.");
       } else {
         alert("මකා දැමීම අසාර්ථකයි.");
       }
-    } catch (error) { alert("තාක්ෂණික දෝෂයක් මතු විය."); }
+    } catch (error) {
+      alert("තාක්ෂණික දෝෂයක් මතු විය.");
+    }
   };
 
   const toggleQuizVisibility = async (quizId: string, currentVisibility: boolean) => {
@@ -166,23 +148,28 @@ export default function AdminDashboard() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ isVisible: !currentVisibility }),
       });
-      if (res.ok) setQuizzes((quizzes || []).map(q => q._id === quizId ? { ...q, isVisible: !currentVisibility } : q));
+      if (res.ok) setQuizzes(quizzes.map(q => q._id === quizId ? { ...q, isVisible: !currentVisibility } : q));
     } catch (error) { alert("තාක්ෂණික දෝෂයක්."); }
   };
 
+  // 🔴 අලුත්: Quiz එකක් මකා දැමීම (Delete Quiz)
   const handleDeleteQuiz = async (quizId: string, quizTitle: string) => {
     const confirmDelete = window.confirm(`"${quizTitle}" ප්‍රශ්න පත්‍රය සම්පූර්ණයෙන්ම මකා දැමීමට අවශ්‍ය බව ඔබට විශ්වාසද? \n\nමෙම ක්‍රියාව ආපසු හැරවිය නොහැක!`);
     if (!confirmDelete) return;
 
     try {
-      const res = await fetch(`/api/admin/quizzes/${quizId}`, { method: "DELETE" });
+      const res = await fetch(`/api/admin/quizzes/${quizId}`, {
+        method: "DELETE",
+      });
       if (res.ok) {
-        setQuizzes((quizzes || []).filter(q => q._id !== quizId));
+        setQuizzes(quizzes.filter(q => q._id !== quizId));
         alert("ප්‍රශ්න පත්‍රය සාර්ථකව මකා දමන ලදී.");
       } else {
         alert("මකා දැමීම අසාර්ථකයි.");
       }
-    } catch (error) { alert("තාක්ෂණික දෝෂයක් මතු විය."); }
+    } catch (error) {
+      alert("තාක්ෂණික දෝෂයක් මතු විය.");
+    }
   };
 
   const handleRemoveStudent = async (enrollmentId: string, studentPhone: string) => {
@@ -191,7 +178,7 @@ export default function AdminDashboard() {
     try {
       const res = await fetch(`/api/admin/students?id=${enrollmentId}`, { method: "DELETE" });
       if (res.ok) {
-        setApprovedStudents((approvedStudents || []).filter(s => s._id !== enrollmentId));
+        setApprovedStudents(approvedStudents.filter(s => s._id !== enrollmentId));
         alert("සිසුවා සාර්ථකව ඉවත් කරන ලදී.");
       } else {
         alert("ඉවත් කිරීම අසාර්ථකයි.");
@@ -199,46 +186,7 @@ export default function AdminDashboard() {
     } catch (error) { alert("තාක්ෂණික දෝෂයක් මතු විය."); }
   };
 
-  const handleBulkAddStudents = async () => {
-    if (!bulkCourseId) return alert("කරුණාකර සිසුන් ඇතුළත් කළ යුතු පාඨමාලාව තෝරන්න.");
-    if (!bulkPhones.trim()) return alert("කරුණාකර දුරකථන අංක ඇතුළත් කරන්න.");
-
-    const phoneArray = bulkPhones.split('\n').map(p => p.trim()).filter(p => p !== "");
-    if (phoneArray.length === 0) return alert("නිවැරදි දුරකථන අංක සොයාගත නොහැක.");
-
-    const selectedCourse = (courses || []).find(c => c._id === bulkCourseId);
-    if (!selectedCourse) return alert("පාඨමාලාව සොයාගැනීමේ දෝෂයක්.");
-
-    setIsBulkAdding(true);
-    try {
-      const res = await fetch("/api/admin/students/bulk", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          phones: phoneArray,
-          courseId: selectedCourse._id,
-          courseTitle: selectedCourse.title
-        })
-      });
-
-      const data = await res.json();
-      if (res.ok) {
-        alert(`සාර්ථකයි! ${phoneArray.length} දෙනෙකු අදාළ පාඨමාලාවට ඇතුළත් කරන ලදී.`);
-        setBulkPhones(""); 
-        fetchApprovedStudents(); 
-      } else {
-        alert(data.error || "ඇතුළත් කිරීමේ දෝෂයක් මතු විය.");
-      }
-    } catch (error) {
-      alert("තාක්ෂණික දෝෂයක් මතු විය.");
-    } finally {
-      setIsBulkAdding(false);
-    }
-  };
-
-  const filteredStudents = selectedFilterCourse === "ALL" 
-    ? (approvedStudents || []) 
-    : (approvedStudents || []).filter(s => s.courseTitle === selectedFilterCourse);
+  const filteredStudents = selectedFilterCourse === "ALL" ? approvedStudents : approvedStudents.filter(s => s.courseTitle === selectedFilterCourse);
 
   const themeBg = isDarkMode ? "bg-slate-900 text-slate-100" : "bg-slate-50 text-slate-800";
   const headerBg = isDarkMode ? "bg-slate-900/80 border-slate-800" : "bg-white/80 border-slate-200";
@@ -272,15 +220,15 @@ export default function AdminDashboard() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           <div className={`p-5 rounded-2xl border shadow-sm ${cardBg}`}>
             <h4 className={textSecondary}>අලුත් Slips</h4>
-            <p className="text-3xl font-extrabold text-amber-500 mt-2">{(pendingApprovals || []).length}</p>
+            <p className="text-3xl font-extrabold text-amber-500 mt-2">{pendingApprovals.length}</p>
           </div>
           <div className={`p-5 rounded-2xl border shadow-sm ${cardBg}`}>
             <h4 className={textSecondary}>මුළු සිසුන්</h4>
-            <p className="text-3xl font-extrabold text-blue-500 mt-2">{(approvedStudents || []).length}</p>
+            <p className="text-3xl font-extrabold text-blue-500 mt-2">{approvedStudents.length}</p>
           </div>
           <div className={`p-5 rounded-2xl border shadow-sm ${cardBg}`}>
             <h4 className={textSecondary}>සක්‍රීය පාඨමාලා</h4>
-            <p className="text-3xl font-extrabold text-emerald-500 mt-2">{(courses || []).filter(c => c.isVisible).length || '0'}</p>
+            <p className="text-3xl font-extrabold text-emerald-500 mt-2">{courses.filter(c => c.isVisible).length || '0'}</p>
           </div>
           <div className={`p-5 rounded-2xl border shadow-sm ${cardBg}`}>
             <h4 className={textSecondary}>අද ආදායම</h4>
@@ -288,6 +236,7 @@ export default function AdminDashboard() {
           </div>
         </div>
 
+        {/* 🔴 Tabs */}
         <div className="flex space-x-2 mb-6 overflow-x-auto pb-2 [&::-webkit-scrollbar]:hidden">
           <button onClick={() => setActiveTab("approvals")} className={`px-5 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all ${activeTab === "approvals" ? tabActive : tabInactive}`}>රිසිට්පත් අනුමත කිරීම</button>
           <button onClick={() => setActiveTab("courses")} className={`px-5 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all ${activeTab === "courses" ? tabActive : tabInactive}`}>පාඨමාලා කළමනාකරණය</button>
@@ -295,18 +244,19 @@ export default function AdminDashboard() {
           <button onClick={() => setActiveTab("students")} className={`px-5 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all ${activeTab === "students" ? tabActive : tabInactive}`}>සිසුන්ගේ විස්තර</button>
         </div>
 
+        {/* --- 1. Approvals Tab --- */}
         {activeTab === "approvals" && (
           <div className="animate-in fade-in duration-300">
             {isLoadingApprovals ? (
               <div className="text-center py-10 text-slate-500 font-bold animate-pulse">දත්ත ලබාගනිමින් පවතී...</div>
-            ) : (pendingApprovals || []).length === 0 ? (
+            ) : pendingApprovals.length === 0 ? (
               <div className={`p-10 rounded-3xl border text-center ${cardBg}`}>
                 <h3 className={`text-xl font-bold ${textPrimary}`}>අලුත් රිසිට්පත් නොමැත! 🎉</h3>
                 <p className={`mt-2 ${textSecondary}`}>සියලුම ශිෂ්‍යයන්ගේ ගෙවීම් පරීක්ෂා කර අවසන්.</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {(pendingApprovals || []).map((req) => (
+                {pendingApprovals.map((req) => (
                   <div key={req._id} className={`flex flex-col overflow-hidden rounded-2xl border shadow-sm transition-all ${cardBg}`}>
                     <div className="h-48 overflow-hidden bg-slate-200 relative group cursor-pointer" onClick={() => setEnlargedSlip(req.slipImage)}>
                       <img src={req.slipImage} alt="Bank Slip" className="w-full h-full object-cover hover:scale-110 transition-transform duration-500" />
@@ -331,6 +281,7 @@ export default function AdminDashboard() {
           </div>
         )}
 
+        {/* --- 2. Courses Tab --- */}
         {activeTab === "courses" && (
           <div className="animate-in fade-in duration-300">
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
@@ -344,13 +295,13 @@ export default function AdminDashboard() {
             </div>
             {isLoadingCourses ? (
               <div className="text-center py-10 text-slate-500 font-bold animate-pulse">පාඨමාලා ලබාගනිමින් පවතී...</div>
-            ) : (courses || []).length === 0 ? (
+            ) : courses.length === 0 ? (
               <div className={`p-10 rounded-3xl border text-center ${cardBg}`}>
                 <h3 className={`text-lg font-bold ${textPrimary}`}>තවමත් පාඨමාලා කිසිවක් නැත!</h3>
               </div>
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {(courses || []).map((course) => (
+                {courses.map((course) => (
                   <div key={course._id} className={`p-5 rounded-2xl border shadow-sm flex flex-col ${cardBg}`}>
                     <div className="flex justify-between items-start mb-4">
                       <div>
@@ -380,6 +331,7 @@ export default function AdminDashboard() {
           </div>
         )}
 
+        {/* --- 3. Quizzes (විභාග) Tab --- */}
         {activeTab === "quizzes" && (
           <div className="animate-in fade-in duration-300">
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
@@ -394,14 +346,14 @@ export default function AdminDashboard() {
             
             {isLoadingQuizzes ? (
               <div className="text-center py-10 text-slate-500 font-bold animate-pulse">විභාග ලබාගනිමින් පවතී...</div>
-            ) : (quizzes || []).length === 0 ? (
+            ) : quizzes.length === 0 ? (
               <div className={`p-10 rounded-3xl border text-center ${cardBg}`}>
                 <h3 className={`text-lg font-bold ${textPrimary}`}>තවමත් විභාග කිසිවක් සාදා නැත!</h3>
               </div>
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {(quizzes || []).map((quiz) => {
-                  const linkedCourse = (courses || []).find(c => c._id === quiz.courseId);
+                {quizzes.map((quiz) => {
+                  const linkedCourse = courses.find(c => c._id === quiz.courseId);
                   return (
                     <div key={quiz._id} className={`p-5 rounded-2xl border shadow-sm flex flex-col ${cardBg}`}>
                       <div className="flex justify-between items-start mb-4">
@@ -415,6 +367,7 @@ export default function AdminDashboard() {
                         </span>
                       </div>
                       
+                      {/* 🔴 වෙනස් කළ කොටස: මෙහි Quiz Delete බොත්තම එකතු කර ඇත */}
                       <div className="flex flex-wrap gap-2 mt-auto pt-4 border-t border-slate-200 dark:border-slate-700">
                         <Link href={`/admin/edit-quiz/${quiz._id}`} className="flex-1 flex items-center justify-center gap-2 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white px-4 py-2.5 rounded-xl text-sm font-bold transition-all border border-blue-200">
                           Edit
@@ -434,62 +387,24 @@ export default function AdminDashboard() {
           </div>
         )}
 
+        {/* --- 4. Students Tab --- */}
         {activeTab === "students" && (
           <div className="animate-in fade-in duration-300">
-            
-            <div className={`p-6 mb-8 rounded-2xl border shadow-sm bg-blue-50/50 dark:bg-blue-900/10 ${isDarkMode ? 'border-blue-800' : 'border-blue-100'}`}>
-              <h3 className={`text-lg font-bold mb-2 flex items-center gap-2 ${isDarkMode ? 'text-blue-400' : 'text-blue-700'}`}>
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-                එකවර සිසුන් කිහිපදෙනෙකු ඇතුළත් කිරීම (Bulk Add)
-              </h3>
-              <p className={`text-xs md:text-sm mb-4 ${textSecondary}`}>
-                පහත කොටුවේ දුරකථන අංක ඇතුළත් කර අදාළ පාඨමාලාව තෝරන්න. (එක් පේළියකට එක් අංකයක් පමණක් සිටින සේ ඇතුළත් කරන්න).
-              </p>
-              <div className="flex flex-col md:flex-row gap-4">
-                <textarea 
-                  className={`w-full md:w-2/3 h-32 p-3 rounded-xl border text-sm outline-none focus:ring-2 focus:ring-blue-500 resize-none ${inputBg}`} 
-                  placeholder="0771577711&#10;0701567679&#10;0705956020"
-                  value={bulkPhones}
-                  onChange={(e) => setBulkPhones(e.target.value)}
-                />
-                <div className="w-full md:w-1/3 flex flex-col gap-3">
-                  <select 
-                    value={bulkCourseId} 
-                    onChange={(e) => setBulkCourseId(e.target.value)} 
-                    className={`p-3 rounded-xl border font-bold text-sm outline-none w-full ${inputBg}`}
-                  >
-                    <option value="">-- පාඨමාලාව තෝරන්න --</option>
-                    {(courses || []).map(c => (
-                      <option key={c._id} value={c._id}>{c.title}</option>
-                    ))}
-                  </select>
-                  <button 
-                    onClick={handleBulkAddStudents}
-                    disabled={isBulkAdding}
-                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-colors shadow-sm disabled:opacity-70 disabled:cursor-not-allowed"
-                  >
-                    {isBulkAdding ? "ඇතුළත් කරමින් පවතී..." : "ඇතුළත් කරන්න (Add Students)"}
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div className={`flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4 border-t pt-8 ${isDarkMode ? 'border-slate-800' : 'border-slate-200'}`}>
+            <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
               <div>
-                <h2 className={`text-xl font-bold ${textPrimary}`}>දැනට සිටින සිසුන්ගේ විස්තර</h2>
+                <h2 className={`text-xl font-bold ${textPrimary}`}>සිසුන් කළමනාකරණය</h2>
                 <p className={`text-sm ${textSecondary}`}>අනුමත වූ සිසුන්ගේ විස්තර සහ ඔවුන්ව පාඨමාලා වලින් ඉවත් කිරීම.</p>
               </div>
               <select value={selectedFilterCourse} onChange={(e) => setSelectedFilterCourse(e.target.value)} className={`p-3 rounded-xl border font-bold text-sm outline-none shadow-sm md:w-64 ${inputBg}`}>
-                <option value="ALL">සියලුම පාඨමාලා ({(approvedStudents || []).length})</option>
-                {(courses || []).map(c => (
+                <option value="ALL">සියලුම පාඨමාලා ({approvedStudents.length})</option>
+                {courses.map(c => (
                   <option key={c._id} value={c.title}>{c.title}</option>
                 ))}
               </select>
             </div>
-
             {isLoadingStudents ? (
               <div className="text-center py-10 text-slate-500 font-bold animate-pulse">සිසුන්ගේ දත්ත ගෙනෙමින් පවතී...</div>
-            ) : (filteredStudents || []).length === 0 ? (
+            ) : filteredStudents.length === 0 ? (
               <div className={`p-10 rounded-3xl border text-center ${cardBg}`}>
                 <h3 className={`text-lg font-bold ${textPrimary}`}>මෙම පාඨමාලාව සඳහා තවමත් සිසුන් නොමැත.</h3>
               </div>
@@ -506,16 +421,11 @@ export default function AdminDashboard() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-                      {(filteredStudents || []).map((student) => (
+                      {filteredStudents.map((student) => (
                         <tr key={student._id} className={`transition-colors ${isDarkMode ? 'hover:bg-slate-700/50' : 'hover:bg-slate-50'}`}>
-                          <td className={`px-6 py-4 font-bold ${textPrimary}`}>{student.userPhone || "N/A"}</td>
-                          <td className={`px-6 py-4 font-bold text-blue-500`}>{student.courseTitle || "N/A"}</td>
-                          
-                          {/* 🔴 අලුත්: ආරක්ෂිතව දිනය පෙන්වීම */}
-                          <td className={`px-6 py-4 ${textSecondary}`}>
-                            {formatDate(student.updatedAt)}
-                          </td>
-
+                          <td className={`px-6 py-4 font-bold ${textPrimary}`}>{student.userPhone}</td>
+                          <td className={`px-6 py-4 font-bold text-blue-500`}>{student.courseTitle}</td>
+                          <td className={`px-6 py-4 ${textSecondary}`}>{new Date(student.updatedAt).toLocaleDateString('si-LK')}</td>
                           <td className="px-6 py-4 text-right">
                             <button onClick={() => handleRemoveStudent(student._id, student.userPhone)} className="text-xs font-bold text-red-500 hover:text-white border border-red-500 hover:bg-red-500 px-4 py-2 rounded-lg transition-all">Remove</button>
                           </td>
@@ -530,6 +440,7 @@ export default function AdminDashboard() {
         )}
       </main>
 
+      {/* Slip විශාල කර පෙන්වන Modal */}
       {enlargedSlip && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in duration-200" onClick={() => setEnlargedSlip(null)}>
           <div className="relative w-full max-w-4xl h-[85vh] flex items-center justify-center">
