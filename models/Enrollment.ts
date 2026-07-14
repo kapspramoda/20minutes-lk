@@ -15,7 +15,7 @@ const EnrollmentSchema = new Schema(
     courseId: { type: String, required: true },
     courseTitle: { type: String, required: true },
     amount: { type: Number, default: 0 }, // 🔴 අලුතින් එකතු කළ කොටස
-    slipImage: { type: String, required: true },
+    slipImage: { type: String, required: false },
     status: { type: String, default: "pending" }, 
   },
   { timestamps: true }

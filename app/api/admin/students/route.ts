@@ -11,11 +11,10 @@ const connectDB = async () => {
 export async function GET() {
   try {
     await connectDB();
-    // 🔴 මෙතන .sort({ createdAt: -1 }).limit(100) එකතු කළා
-    // මේකෙන් අලුත්ම ළමයි 100 දෙනාව විතරක් අරගෙන Memory එක බේරගන්නවා.
+    // 🔴 මෙතන .lean() එකතු කළා, ඒකෙන් Database එකෙන් දත්ත ඉක්මනට එනවා (Memory අවුල විසඳනවා)
     const students = await Enrollment.find({ status: "approved" })
-                                     .sort({ createdAt: -1 })
-                                     .limit(100); 
+                                     .sort({ updatedAt: -1 })
+                                     .lean(); 
     
     return NextResponse.json({ success: true, data: students }, { status: 200 });
   } catch (error: any) {
