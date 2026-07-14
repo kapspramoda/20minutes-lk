@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import mongoose from "mongoose";
-import Student from "@/models/Student"; 
+import Student from "../../../../../models/Student";
 
 const connectDB = async () => {
   if (mongoose.connection.readyState >= 1) return;
