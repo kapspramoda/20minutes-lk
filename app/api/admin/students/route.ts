@@ -11,10 +11,15 @@ const connectDB = async () => {
 export async function GET() {
   try {
     await connectDB();
-    const students = await Enrollment.find({ status: "approved" }).sort({ updatedAt: -1 });
+    // 🔴 මෙතන .sort({ createdAt: -1 }).limit(100) එකතු කළා
+    // මේකෙන් අලුත්ම ළමයි 100 දෙනාව විතරක් අරගෙන Memory එක බේරගන්නවා.
+    const students = await Enrollment.find({ status: "approved" })
+                                     .sort({ createdAt: -1 })
+                                     .limit(100); 
+    
     return NextResponse.json({ success: true, data: students }, { status: 200 });
   } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
