@@ -27,7 +27,6 @@ export default function AdminDashboard() {
 
   const [enlargedSlip, setEnlargedSlip] = useState<string | null>(null);
 
-  // 🔴 Bulk Add සඳහා අලුත් States
   const [bulkPhones, setBulkPhones] = useState("");
   const [bulkCourseId, setBulkCourseId] = useState("");
   const [isBulkAdding, setIsBulkAdding] = useState(false);
@@ -189,12 +188,10 @@ export default function AdminDashboard() {
     } catch (error) { alert("තාක්ෂණික දෝෂයක් මතු විය."); }
   };
 
-  // 🔴 අලුත්: එකවර සිසුන් ඇතුළත් කිරීමේ Function එක
   const handleBulkAddStudents = async () => {
     if (!bulkCourseId) return alert("කරුණාකර සිසුන් ඇතුළත් කළ යුතු පාඨමාලාව තෝරන්න.");
     if (!bulkPhones.trim()) return alert("කරුණාකර දුරකථන අංක ඇතුළත් කරන්න.");
 
-    // දුරකථන අංක ටික පේළියෙන් පේළියට කඩා, හිස් තැන් අයින් කර Array එකක් සාදා ගැනීම
     const phoneArray = bulkPhones.split('\n').map(p => p.trim()).filter(p => p !== "");
     
     if (phoneArray.length === 0) return alert("නිවැරදි දුරකථන අංක සොයාගත නොහැක.");
@@ -217,8 +214,8 @@ export default function AdminDashboard() {
       const data = await res.json();
       if (res.ok) {
         alert(`සාර්ථකයි! ${phoneArray.length} දෙනෙකු අදාළ පාඨමාලාවට ඇතුළත් කරන ලදී.`);
-        setBulkPhones(""); // Textarea එක හිස් කිරීම
-        fetchApprovedStudents(); // අලුත් ළමයි ටික පේන්න List එක Refresh කිරීම
+        setBulkPhones(""); 
+        fetchApprovedStudents(); // පරණ සහ අලුත් ඔක්කොම ළමයි ටික Refresh වෙනවා
       } else {
         alert(data.error || "ඇතුළත් කිරීමේ දෝෂයක් මතු විය.");
       }
@@ -425,22 +422,11 @@ export default function AdminDashboard() {
           </div>
         )}
 
+        {/* --- 4. Students Tab --- */}
         {activeTab === "students" && (
           <div className="animate-in fade-in duration-300">
-            <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
-              <div>
-                <h2 className={`text-xl font-bold ${textPrimary}`}>සිසුන් කළමනාකරණය</h2>
-                <p className={`text-sm ${textSecondary}`}>අනුමත වූ සිසුන්ගේ විස්තර සහ ඔවුන්ව පාඨමාලා වලින් ඉවත් කිරීම.</p>
-              </div>
-              <select value={selectedFilterCourse} onChange={(e) => setSelectedFilterCourse(e.target.value)} className={`p-3 rounded-xl border font-bold text-sm outline-none shadow-sm md:w-64 ${inputBg}`}>
-                <option value="ALL">සියලුම පාඨමාලා ({approvedStudents.length})</option>
-                {courses.map(c => (
-                  <option key={c._id} value={c.title}>{c.title}</option>
-                ))}
-              </select>
-            </div>
 
-            {/* 🔴 අලුත්: Bulk Add Students Section */}
+            {/* 🔴 Bulk Add Box (දැන් උඩින්ම තියෙනවා) */}
             <div className={`p-6 mb-8 rounded-2xl border shadow-sm bg-blue-50/50 dark:bg-blue-900/10 ${isDarkMode ? 'border-blue-800' : 'border-blue-100'}`}>
               <h3 className={`text-lg font-bold mb-2 flex items-center gap-2 ${isDarkMode ? 'text-blue-400' : 'text-blue-700'}`}>
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
@@ -478,6 +464,20 @@ export default function AdminDashboard() {
               </div>
             </div>
 
+            {/* 🔴 Dropdown එකයි, Students Table එකයි දැන් පල්ලෙහාට ගෙනාවා */}
+            <div className={`flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4 border-t pt-8 ${isDarkMode ? 'border-slate-800' : 'border-slate-200'}`}>
+              <div>
+                <h2 className={`text-xl font-bold ${textPrimary}`}>දැනට සිටින සිසුන්ගේ විස්තර</h2>
+                <p className={`text-sm ${textSecondary}`}>අනුමත වූ සිසුන්ගේ විස්තර සහ ඔවුන්ව පාඨමාලා වලින් ඉවත් කිරීම.</p>
+              </div>
+              <select value={selectedFilterCourse} onChange={(e) => setSelectedFilterCourse(e.target.value)} className={`p-3 rounded-xl border font-bold text-sm outline-none shadow-sm md:w-64 ${inputBg}`}>
+                <option value="ALL">සියලුම පාඨමාලා ({approvedStudents.length})</option>
+                {courses.map(c => (
+                  <option key={c._id} value={c.title}>{c.title}</option>
+                ))}
+              </select>
+            </div>
+
             {isLoadingStudents ? (
               <div className="text-center py-10 text-slate-500 font-bold animate-pulse">සිසුන්ගේ දත්ත ගෙනෙමින් පවතී...</div>
             ) : filteredStudents.length === 0 ? (
@@ -512,6 +512,7 @@ export default function AdminDashboard() {
                 </div>
               </div>
             )}
+
           </div>
         )}
       </main>

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import mongoose from "mongoose";
-import Student from "../../../../../models/Student";
+// 🔴 අලුත් Student එක වෙනුවට, ඔයාගේ පරණ ළමයි ඉන්න Enrollment එකටම දත්ත යවනවා
+import Enrollment from "../../../../../models/Enrollment"; 
 
 const connectDB = async () => {
   if (mongoose.connection.readyState >= 1) return;
@@ -16,17 +17,24 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "අවශ්‍ය දත්ත නිවැරදිව ලැබී නැත." }, { status: 400 });
     }
 
-    // දුරකථන අංක ලැයිස්තුවෙන් හිස් තැන් ඉවත් කර එකින් එක Database එකට Update/Insert කිරීම (Upsert)
-    // මෙයින් සිදුවන්නේ එකම ළමයා දෙපාරක් ඇඩ් වීම වැළැක්වීමයි
+    // අදාළ ළමයින්ගේ ගෙවීම් "approved" ලෙස කෙලින්ම යාවත්කාලීන කිරීම
     const operations = phones.map((phone: string) => ({
       updateOne: {
         filter: { userPhone: phone, courseId: courseId },
-        update: { $set: { userPhone: phone, courseId: courseId, courseTitle: courseTitle, status: "active" } },
+        update: { 
+          $set: { 
+            userPhone: phone, 
+            courseId: courseId, 
+            courseTitle: courseTitle, 
+            status: "approved", 
+            slipImage: "Bulk Added" // Bulk Add කළ බව හඳුනා ගැනීමට
+          } 
+        },
         upsert: true
       }
     }));
 
-    const result = await Student.bulkWrite(operations);
+    const result = await Enrollment.bulkWrite(operations);
 
     return NextResponse.json({ 
       success: true, 
