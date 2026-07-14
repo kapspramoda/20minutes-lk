@@ -27,6 +27,11 @@ export default function AdminDashboard() {
 
   const [enlargedSlip, setEnlargedSlip] = useState<string | null>(null);
 
+  // 🔴 Bulk Add සඳහා අලුත් States
+  const [bulkPhones, setBulkPhones] = useState("");
+  const [bulkCourseId, setBulkCourseId] = useState("");
+  const [isBulkAdding, setIsBulkAdding] = useState(false);
+
   useEffect(() => {
     if (document.documentElement.classList.contains("dark")) setIsDarkMode(true);
     fetchPendingEnrollments();
@@ -41,7 +46,6 @@ export default function AdminDashboard() {
     else document.documentElement.classList.remove("dark");
   };
 
-  // --- API Functions ---
   const fetchPendingEnrollments = async () => {
     try {
       const res = await fetch("/api/admin/enrollments");
@@ -152,7 +156,6 @@ export default function AdminDashboard() {
     } catch (error) { alert("තාක්ෂණික දෝෂයක්."); }
   };
 
-  // 🔴 අලුත්: Quiz එකක් මකා දැමීම (Delete Quiz)
   const handleDeleteQuiz = async (quizId: string, quizTitle: string) => {
     const confirmDelete = window.confirm(`"${quizTitle}" ප්‍රශ්න පත්‍රය සම්පූර්ණයෙන්ම මකා දැමීමට අවශ්‍ය බව ඔබට විශ්වාසද? \n\nමෙම ක්‍රියාව ආපසු හැරවිය නොහැක!`);
     if (!confirmDelete) return;
@@ -184,6 +187,46 @@ export default function AdminDashboard() {
         alert("ඉවත් කිරීම අසාර්ථකයි.");
       }
     } catch (error) { alert("තාක්ෂණික දෝෂයක් මතු විය."); }
+  };
+
+  // 🔴 අලුත්: එකවර සිසුන් ඇතුළත් කිරීමේ Function එක
+  const handleBulkAddStudents = async () => {
+    if (!bulkCourseId) return alert("කරුණාකර සිසුන් ඇතුළත් කළ යුතු පාඨමාලාව තෝරන්න.");
+    if (!bulkPhones.trim()) return alert("කරුණාකර දුරකථන අංක ඇතුළත් කරන්න.");
+
+    // දුරකථන අංක ටික පේළියෙන් පේළියට කඩා, හිස් තැන් අයින් කර Array එකක් සාදා ගැනීම
+    const phoneArray = bulkPhones.split('\n').map(p => p.trim()).filter(p => p !== "");
+    
+    if (phoneArray.length === 0) return alert("නිවැරදි දුරකථන අංක සොයාගත නොහැක.");
+
+    const selectedCourse = courses.find(c => c._id === bulkCourseId);
+    if (!selectedCourse) return alert("පාඨමාලාව සොයාගැනීමේ දෝෂයක්.");
+
+    setIsBulkAdding(true);
+    try {
+      const res = await fetch("/api/admin/students/bulk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          phones: phoneArray,
+          courseId: selectedCourse._id,
+          courseTitle: selectedCourse.title
+        })
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        alert(`සාර්ථකයි! ${phoneArray.length} දෙනෙකු අදාළ පාඨමාලාවට ඇතුළත් කරන ලදී.`);
+        setBulkPhones(""); // Textarea එක හිස් කිරීම
+        fetchApprovedStudents(); // අලුත් ළමයි ටික පේන්න List එක Refresh කිරීම
+      } else {
+        alert(data.error || "ඇතුළත් කිරීමේ දෝෂයක් මතු විය.");
+      }
+    } catch (error) {
+      alert("තාක්ෂණික දෝෂයක් මතු විය.");
+    } finally {
+      setIsBulkAdding(false);
+    }
   };
 
   const filteredStudents = selectedFilterCourse === "ALL" ? approvedStudents : approvedStudents.filter(s => s.courseTitle === selectedFilterCourse);
@@ -236,7 +279,6 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* 🔴 Tabs */}
         <div className="flex space-x-2 mb-6 overflow-x-auto pb-2 [&::-webkit-scrollbar]:hidden">
           <button onClick={() => setActiveTab("approvals")} className={`px-5 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all ${activeTab === "approvals" ? tabActive : tabInactive}`}>රිසිට්පත් අනුමත කිරීම</button>
           <button onClick={() => setActiveTab("courses")} className={`px-5 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all ${activeTab === "courses" ? tabActive : tabInactive}`}>පාඨමාලා කළමනාකරණය</button>
@@ -244,7 +286,6 @@ export default function AdminDashboard() {
           <button onClick={() => setActiveTab("students")} className={`px-5 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all ${activeTab === "students" ? tabActive : tabInactive}`}>සිසුන්ගේ විස්තර</button>
         </div>
 
-        {/* --- 1. Approvals Tab --- */}
         {activeTab === "approvals" && (
           <div className="animate-in fade-in duration-300">
             {isLoadingApprovals ? (
@@ -281,7 +322,6 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* --- 2. Courses Tab --- */}
         {activeTab === "courses" && (
           <div className="animate-in fade-in duration-300">
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
@@ -331,7 +371,6 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* --- 3. Quizzes (විභාග) Tab --- */}
         {activeTab === "quizzes" && (
           <div className="animate-in fade-in duration-300">
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
@@ -367,7 +406,6 @@ export default function AdminDashboard() {
                         </span>
                       </div>
                       
-                      {/* 🔴 වෙනස් කළ කොටස: මෙහි Quiz Delete බොත්තම එකතු කර ඇත */}
                       <div className="flex flex-wrap gap-2 mt-auto pt-4 border-t border-slate-200 dark:border-slate-700">
                         <Link href={`/admin/edit-quiz/${quiz._id}`} className="flex-1 flex items-center justify-center gap-2 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white px-4 py-2.5 rounded-xl text-sm font-bold transition-all border border-blue-200">
                           Edit
@@ -387,7 +425,6 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* --- 4. Students Tab --- */}
         {activeTab === "students" && (
           <div className="animate-in fade-in duration-300">
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
@@ -402,6 +439,45 @@ export default function AdminDashboard() {
                 ))}
               </select>
             </div>
+
+            {/* 🔴 අලුත්: Bulk Add Students Section */}
+            <div className={`p-6 mb-8 rounded-2xl border shadow-sm bg-blue-50/50 dark:bg-blue-900/10 ${isDarkMode ? 'border-blue-800' : 'border-blue-100'}`}>
+              <h3 className={`text-lg font-bold mb-2 flex items-center gap-2 ${isDarkMode ? 'text-blue-400' : 'text-blue-700'}`}>
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                එකවර සිසුන් කිහිපදෙනෙකු ඇතුළත් කිරීම (Bulk Add)
+              </h3>
+              <p className={`text-xs md:text-sm mb-4 ${textSecondary}`}>
+                පහත කොටුවේ දුරකථන අංක ඇතුළත් කර අදාළ පාඨමාලාව තෝරන්න. (එක් පේළියකට එක් අංකයක් පමණක් සිටින සේ ඇතුළත් කරන්න).
+              </p>
+              <div className="flex flex-col md:flex-row gap-4">
+                <textarea 
+                  className={`w-full md:w-2/3 h-32 p-3 rounded-xl border text-sm outline-none focus:ring-2 focus:ring-blue-500 resize-none ${inputBg}`} 
+                  placeholder="0771577711&#10;0701567679&#10;0705956020"
+                  value={bulkPhones}
+                  onChange={(e) => setBulkPhones(e.target.value)}
+                />
+                <div className="w-full md:w-1/3 flex flex-col gap-3">
+                  <select 
+                    value={bulkCourseId} 
+                    onChange={(e) => setBulkCourseId(e.target.value)} 
+                    className={`p-3 rounded-xl border font-bold text-sm outline-none w-full ${inputBg}`}
+                  >
+                    <option value="">-- පාඨමාලාව තෝරන්න --</option>
+                    {courses.map(c => (
+                      <option key={c._id} value={c._id}>{c.title}</option>
+                    ))}
+                  </select>
+                  <button 
+                    onClick={handleBulkAddStudents}
+                    disabled={isBulkAdding}
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-colors shadow-sm disabled:opacity-70 disabled:cursor-not-allowed"
+                  >
+                    {isBulkAdding ? "ඇතුළත් කරමින් පවතී..." : "ඇතුළත් කරන්න (Add Students)"}
+                  </button>
+                </div>
+              </div>
+            </div>
+
             {isLoadingStudents ? (
               <div className="text-center py-10 text-slate-500 font-bold animate-pulse">සිසුන්ගේ දත්ත ගෙනෙමින් පවතී...</div>
             ) : filteredStudents.length === 0 ? (
@@ -440,7 +516,6 @@ export default function AdminDashboard() {
         )}
       </main>
 
-      {/* Slip විශාල කර පෙන්වන Modal */}
       {enlargedSlip && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in duration-200" onClick={() => setEnlargedSlip(null)}>
           <div className="relative w-full max-w-4xl h-[85vh] flex items-center justify-center">
