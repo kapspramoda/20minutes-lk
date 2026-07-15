@@ -8,10 +8,10 @@ import Link from "next/link";
 export default function HomePage() {
   const router = useRouter();
 
-  // Day/Night Theme State
   const [isDarkMode, setIsDarkMode] = useState(false);
-
-  const [heroView, setHeroView] = useState<"carousel" | "login" | "register">("carousel");
+  
+  // 🔴 අලුත්: "forgot" කියන State එක එකතු කළා
+  const [heroView, setHeroView] = useState<"carousel" | "login" | "register" | "forgot">("carousel");
 
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -22,11 +22,9 @@ export default function HomePage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Admin විසින් එකතු කරන පාඨමාලා ගබඩා කරගැනීමට
   const [apiCourses, setApiCourses] = useState<any[]>([]);
   const [isLoadingCourses, setIsLoadingCourses] = useState(true);
 
-  // ප්‍රතිඵල පින්තූර 
   const resultsData = [
     { id: 1, img: "/RESULTS.jpeg", name: "විශිෂ්ට ප්‍රතිඵල", rank: "ප්‍රාථමික අධ්‍යාපන" },
     { id: 2, img: "/2425.png", name: "විශිෂ්ට ප්‍රතිඵල", rank: "නීතීවේදී" },
@@ -34,51 +32,19 @@ export default function HomePage() {
     { id: 4, img: "/LLBOUSL.png", name: "විශිෂ්ට ප්‍රතිඵල", rank: "නීතිවේදී" }
   ];
 
-  // සිසුන්ගේ අදහස් (YouTube Playlists)
   const testimonialsData = [
-    { 
-      id: 1, 
-      title: "📌 විශ්වවිද්‍යාල තෝරාගැනීමේ පරීක්ෂණ සමත් වූ සිසුන්ගේ අදහස්", 
-      link: "https://youtube.com/playlist?list=PLUmQc9YvKzLIHxO1GHa0kafOGwHen68mc&si=gjrOl9dDrqrOKVZN" 
-    },
-    { 
-      id: 2, 
-      title: "📌 විවෘත විශ්වවිද්‍යාල තෝරාගැනීමේ පරීක්ෂණ සමත් වූ සිසුන්ගේ අදහස්", 
-      link: "https://youtube.com/playlist?list=PLUmQc9YvKzLJSolBkpLrbr_xZDKy5Z-lZ&si=aXygorZ3VS4m1tVV" 
-    },
-    { 
-      id: 3, 
-      title: "📌 රාජ්‍ය සේවා තරග විභාග ජයග්‍රහණය කළ සිසුන්ගේ අදහස්", 
-      link: "https://youtube.com/playlist?list=PLUmQc9YvKzLLnvf1AkQbEhtw-9i-BDryq&si=mD0YS2oIAm9BDhCg" 
-    }
+    { id: 1, title: "📌 විශ්වවිද්‍යාල තෝරාගැනීමේ පරීක්ෂණ සමත් වූ සිසුන්ගේ අදහස්", link: "https://youtube.com/playlist?list=PLUmQc9YvKzLIHxO1GHa0kafOGwHen68mc&si=gjrOl9dDrqrOKVZN" },
+    { id: 2, title: "📌 විවෘත විශ්වවිද්‍යාල තෝරාගැනීමේ පරීක්ෂණ සමත් වූ සිසුන්ගේ අදහස්", link: "https://youtube.com/playlist?list=PLUmQc9YvKzLJSolBkpLrbr_xZDKy5Z-lZ&si=aXygorZ3VS4m1tVV" },
+    { id: 3, title: "📌 රාජ්‍ය සේවා තරග විභාග ජයග්‍රහණය කළ සිසුන්ගේ අදහස්", link: "https://youtube.com/playlist?list=PLUmQc9YvKzLLnvf1AkQbEhtw-9i-BDryq&si=mD0YS2oIAm9BDhCg" }
   ];
 
   const slides = [
-    { 
-      id: 1, 
-      title: "ඔබේ සිහිනය සැබෑ කරන හොඳම මාර්ගගත වේදිකාව", 
-      subtitle: "කෙටි කාලයකින් වැඩි විෂය කරුණු ප්‍රමාණයක් අවබෝධ කරගනිමින් තරග විභාග ජයගන්න.", 
-      btnText: "දැන්ම එක්වන්න", 
-      image: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=1920&auto=format&fit=crop" 
-    },
-    { 
-      id: 2, 
-      title: "2023 වසරේ විශිෂ්ටතම ප්‍රතිඵල", 
-      subtitle: "LLB ප්‍රවේශ විභාගයෙන් දිවයිනේ ඉහළම සාමාර්ථ ලබාගත් අපගේ සිසුන්.", 
-      btnText: "ප්‍රතිඵල බලන්න", 
-      image: "https://images.unsplash.com/photo-1523240795612-9a054b0db644?q=80&w=1920&auto=format&fit=crop" 
-    },
-    { 
-      id: 3, 
-      title: "විශේෂ වට්ටම් සහිතයි!", 
-      subtitle: "මෙම දීමනාව සීමිත කාලයක් සඳහා පමණි.", 
-      btnText: "වට්ටම ලබාගන්න", 
-      image: "https://images.unsplash.com/photo-1434030216411-0b793f4b4173?q=80&w=1920&auto=format&fit=crop" 
-    }
+    { id: 1, title: "ඔබේ සිහිනය සැබෑ කරන හොඳම මාර්ගගත වේදිකාව", subtitle: "කෙටි කාලයකින් වැඩි විෂය කරුණු ප්‍රමාණයක් අවබෝධ කරගනිමින් තරග විභාග ජයගන්න.", btnText: "දැන්ම එක්වන්න", image: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=1920&auto=format&fit=crop" },
+    { id: 2, title: "2023 වසරේ විශිෂ්ටතම ප්‍රතිඵල", subtitle: "LLB ප්‍රවේශ විභාගයෙන් දිවයිනේ ඉහළම සාමාර්ථ ලබාගත් අපගේ සිසුන්.", btnText: "ප්‍රතිඵල බලන්න", image: "https://images.unsplash.com/photo-1523240795612-9a054b0db644?q=80&w=1920&auto=format&fit=crop" },
+    { id: 3, title: "විශේෂ වට්ටම් සහිතයි!", subtitle: "මෙම දීමනාව සීමිත කාලයක් සඳහා පමණි.", btnText: "වට්ටම ලබාගන්න", image: "https://images.unsplash.com/photo-1434030216411-0b793f4b4173?q=80&w=1920&auto=format&fit=crop" }
   ];
 
   const [currentSlide, setCurrentSlide] = useState(0);
-
   const [courseIndex, setCourseIndex] = useState(0);
   const [resultIndex, setResultIndex] = useState(0);
   const [testiIndex, setTestiIndex] = useState(0);
@@ -87,20 +53,14 @@ export default function HomePage() {
   const resultRef = useRef<HTMLDivElement>(null);
   const testiRef = useRef<HTMLDivElement>(null);
 
-  // Database එකෙන් පාඨමාලා ගෙන ඒම
   useEffect(() => {
     const fetchAvailableCourses = async () => {
       try {
         const res = await fetch("/api/courses");
         const data = await res.json();
-        if (res.ok) {
-          setApiCourses(data.data.filter((c: any) => c.isVisible === true));
-        }
-      } catch (error) { 
-        console.error(error); 
-      } finally { 
-        setIsLoadingCourses(false); 
-      }
+        if (res.ok) setApiCourses(data.data.filter((c: any) => c.isVisible === true));
+      } catch (error) { console.error(error); } 
+      finally { setIsLoadingCourses(false); }
     };
     fetchAvailableCourses();
   }, []);
@@ -120,8 +80,7 @@ export default function HomePage() {
     if (!ref.current) return;
     const { scrollLeft, scrollWidth } = ref.current;
     const itemWidth = scrollWidth / totalItems;
-    const newIndex = Math.round(scrollLeft / itemWidth);
-    setIndex(newIndex);
+    setIndex(Math.round(scrollLeft / itemWidth));
   };
 
   const scrollToIndex = (ref: React.RefObject<HTMLDivElement | null>, index: number, totalItems: number) => {
@@ -130,9 +89,11 @@ export default function HomePage() {
     ref.current.scrollTo({ left: index * itemWidth, behavior: 'smooth' });
   };
 
-  const changeViewAndScrollTop = (view: "carousel" | "login" | "register") => {
+  const changeViewAndScrollTop = (view: "carousel" | "login" | "register" | "forgot") => {
     setHeroView(view);
     setError("");
+    setPassword("");
+    setConfirmPassword("");
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -155,7 +116,8 @@ export default function HomePage() {
       } else {
         router.push("/dashboard");
       }
-    } else if (heroView === "register") {
+    } 
+    else if (heroView === "register") {
       if (password !== confirmPassword) {
         setError("මුරපදයන් එකිනෙකට නොගැලපේ. කරුණාකර නැවත පරීක්ෂා කරන්න.");
         setLoading(false);
@@ -181,9 +143,35 @@ export default function HomePage() {
         setLoading(false);
       }
     }
+    // 🔴 අලුත්: Forgot Password Submit එක
+    else if (heroView === "forgot") {
+      if (password !== confirmPassword) {
+        setError("මුරපදයන් එකිනෙකට නොගැලපේ.");
+        setLoading(false);
+        return;
+      }
+      try {
+        const res = await fetch("/api/auth/forgot", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ phone, newPassword: password }),
+        });
+        if (res.ok) {
+          setPassword(""); setConfirmPassword(""); setPhone("");
+          changeViewAndScrollTop("login");
+          alert("✅ ඔබගේ ඉල්ලීම Admin වෙත යොමු කරන ලදී! ඉල්ලීම අනුමත වූ පසු ඔබට WhatsApp පණිවිඩයක් ලැබෙනු ඇත.");
+        } else {
+          const data = await res.json();
+          setError(data.message || "දෝෂයක් මතු විය.");
+        }
+      } catch (err) {
+        setError("තාක්ෂණික දෝෂයකි.");
+      } finally {
+        setLoading(false);
+      }
+    }
   };
 
-  // --- Theme Classes (මෙතනයි textSecondary එකතු කළේ) ---
   const themeBg = isDarkMode ? "bg-slate-900 text-slate-100" : "bg-slate-50 text-slate-800";
   const headerBg = isDarkMode ? "bg-slate-900/80 border-slate-800" : "bg-white/80 border-slate-200";
   const logoTextColor = isDarkMode ? "text-white" : "text-slate-900";
@@ -192,7 +180,7 @@ export default function HomePage() {
   const sectionDescColor = isDarkMode ? "text-slate-400" : "text-slate-500";
   const cardBg = isDarkMode ? "bg-slate-800 border-slate-700" : "bg-white border-slate-100";
   const cardTitle = isDarkMode ? "text-white" : "text-slate-800";
-  const textSecondary = isDarkMode ? "text-slate-400" : "text-slate-500"; // 🔴 මෙන්න මේකයි අඩු වෙලා තිබුණේ
+  const textSecondary = isDarkMode ? "text-slate-400" : "text-slate-500"; 
   const authBg = isDarkMode ? "bg-slate-950" : "bg-slate-100";
   const authCardBg = isDarkMode ? "bg-slate-800/95 border-slate-700 shadow-blue-900/20" : "bg-white/90 border-white shadow-2xl";
   const inputBg = isDarkMode ? "bg-slate-700 border-slate-600 text-white placeholder-slate-400 focus:border-blue-500 focus:bg-slate-600" : "bg-slate-50 border-slate-200 text-slate-900 focus:border-blue-500 focus:bg-white";
@@ -268,12 +256,12 @@ export default function HomePage() {
             </section>
           )}
 
-          {(heroView === "login" || heroView === "register") && (
+          {(heroView === "login" || heroView === "register" || heroView === "forgot") && (
             <section className={`flex min-h-[450px] items-center justify-center py-12 px-4 transition-colors duration-300 md:min-h-[550px] ${authBg}`}>
               <div className={`w-full max-w-md rounded-3xl border p-6 backdrop-blur-lg transition-colors duration-300 md:p-10 ${authCardBg}`}>
                 <div className="mb-6 flex items-center justify-between">
                   <h2 className={`text-2xl font-extrabold ${cardTitle}`}>
-                    {heroView === "login" ? "පද්ධතියට ඇතුළු වන්න" : "නව ගිණුමක් සාදන්න"}
+                    {heroView === "login" ? "පද්ධතියට ඇතුළු වන්න" : heroView === "register" ? "නව ගිණුමක් සාදන්න" : "මුරපදය යාවත්කාලීන කිරීම"}
                   </h2>
                   <button onClick={() => changeViewAndScrollTop("carousel")} className={`rounded-full p-2 transition-colors focus:outline-none ${isDarkMode ? 'bg-slate-700 text-slate-300 hover:text-red-400 hover:bg-slate-600' : 'bg-slate-100 text-slate-400 hover:bg-red-50 hover:text-red-500'}`}>
                     <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
@@ -282,6 +270,12 @@ export default function HomePage() {
                 
                 {error && <div className="mb-6 rounded-xl bg-red-50 p-4 text-sm font-medium text-red-600 border border-red-100">{error}</div>}
                 
+                {heroView === "forgot" && (
+                  <p className={`text-xs mb-5 font-bold p-3 rounded-xl ${isDarkMode ? 'bg-blue-900/30 text-blue-300 border border-blue-800' : 'bg-blue-50 text-blue-700 border border-blue-100'}`}>
+                    ඔබගේ දුරකථන අංකය සහ ඔබට අවශ්‍ය නව මුරපදය පහතින් ලබාදෙන්න.
+                  </p>
+                )}
+
                 <form onSubmit={handleAuthSubmit} className="space-y-5">
                   {heroView === "register" && (
                     <div>
@@ -296,7 +290,9 @@ export default function HomePage() {
                   </div>
 
                   <div>
-                    <label className={`mb-1.5 block text-sm font-bold ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>මුරපදය (Password)</label>
+                    <label className={`mb-1.5 block text-sm font-bold ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>
+                      {heroView === "forgot" ? "නව මුරපදය (New Password)" : "මුරපදය (Password)"}
+                    </label>
                     <div className="relative">
                       <input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="රහස්‍ය මුරපදයක් ලබා දෙන්න" className={`w-full rounded-xl border px-4 py-3 pr-12 text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/20 transition-all ${inputBg}`} required />
                       <button type="button" onClick={() => setShowPassword(!showPassword)} className={`absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1.5 transition-colors focus:outline-none ${isDarkMode ? 'text-slate-400 hover:text-white hover:bg-slate-600' : 'text-slate-400 hover:bg-slate-200 hover:text-slate-600'}`}>
@@ -305,7 +301,7 @@ export default function HomePage() {
                     </div>
                   </div>
 
-                  {heroView === "register" && (
+                  {(heroView === "register" || heroView === "forgot") && (
                     <div>
                       <label className={`mb-1.5 block text-sm font-bold ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>මුරපදය තහවුරු කරන්න</label>
                       <div className="relative">
@@ -317,14 +313,17 @@ export default function HomePage() {
                     </div>
                   )}
 
-                  <button type="submit" disabled={loading} className={`mt-2 w-full rounded-full px-4 py-3.5 text-sm font-bold text-white shadow-lg transition-all focus:outline-none focus:ring-4 disabled:opacity-70 disabled:cursor-not-allowed ${heroView === "login" ? "bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 focus:ring-emerald-500/30" : "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 focus:ring-blue-500/30"}`}>
-                    {loading ? (heroView === "login" ? "ඇතුළු වෙමින් පවතී..." : "ලියාපදිංචි කරමින් පවතී...") : (heroView === "login" ? "ඇතුළු වන්න" : "ලියාපදිංචි වන්න")}
+                  <button type="submit" disabled={loading} className={`mt-2 w-full rounded-full px-4 py-3.5 text-sm font-bold text-white shadow-lg transition-all focus:outline-none focus:ring-4 disabled:opacity-70 disabled:cursor-not-allowed ${heroView === "login" ? "bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 focus:ring-emerald-500/30" : heroView === "register" ? "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 focus:ring-blue-500/30" : "bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 focus:ring-purple-500/30"}`}>
+                    {loading ? "කරුණාකර රැඳෙන්න..." : (heroView === "login" ? "ඇතුළු වන්න" : heroView === "register" ? "ලියාපදිංචි වන්න" : "ඉල්ලීම යොමු කරන්න")}
                   </button>
                 </form>
                 
                 <div className={`mt-6 text-center text-sm font-medium ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
                   {heroView === "login" ? (
-                    <p>ගිණුමක් නැද්ද? <button onClick={() => changeViewAndScrollTop("register")} className={`font-bold transition-colors ${isDarkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-700'}`}>ලියාපදිංචි වන්න</button></p>
+                    <>
+                      <p className="mb-3"><button type="button" onClick={() => changeViewAndScrollTop("forgot")} className={`font-bold transition-colors ${isDarkMode ? 'text-red-400 hover:text-red-300' : 'text-red-500 hover:text-red-600'}`}>මුරපදය අමතක වුණාද?</button></p>
+                      <p>ගිණුමක් නැද්ද? <button onClick={() => changeViewAndScrollTop("register")} className={`font-bold transition-colors ${isDarkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-700'}`}>ලියාපදිංචි වන්න</button></p>
+                    </>
                   ) : (
                     <p>දැනටමත් ගිණුමක් තිබේද? <button onClick={() => changeViewAndScrollTop("login")} className={`font-bold transition-colors ${isDarkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-700'}`}>ලොග් වන්න</button></p>
                   )}

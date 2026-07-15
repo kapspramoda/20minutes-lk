@@ -10,7 +10,8 @@ export default function AdminDashboard() {
   const router = useRouter();
   const [isDarkMode, setIsDarkMode] = useState(false);
   
-  const [activeTab, setActiveTab] = useState<"approvals" | "courses" | "quizzes" | "students">("approvals");
+  // 🔴 අලුත්: passwords Tab එකතු කළා
+  const [activeTab, setActiveTab] = useState<"approvals" | "courses" | "quizzes" | "students" | "passwords">("approvals");
   
   const [pendingApprovals, setPendingApprovals] = useState<any[]>([]);
   const [isLoadingApprovals, setIsLoadingApprovals] = useState(true);
@@ -25,13 +26,15 @@ export default function AdminDashboard() {
   const [quizzes, setQuizzes] = useState<any[]>([]);
   const [isLoadingQuizzes, setIsLoadingQuizzes] = useState(true);
 
+  // 🔴 අලුත්: මුරපද ඉල්ලීම් ගබඩා කිරීමට
+  const [passwordRequests, setPasswordRequests] = useState<any[]>([]);
+
   const [enlargedSlip, setEnlargedSlip] = useState<string | null>(null);
 
   const [bulkPhones, setBulkPhones] = useState("");
   const [bulkCourseId, setBulkCourseId] = useState("");
   const [isBulkAdding, setIsBulkAdding] = useState(false);
 
-  // 🔴 අලුත්: Notification Modal එක සඳහා States
   const [isNotiModalOpen, setIsNotiModalOpen] = useState(false);
   const [selectedCourseForNoti, setSelectedCourseForNoti] = useState<any>(null);
   const [notiText, setNotiText] = useState("");
@@ -43,6 +46,7 @@ export default function AdminDashboard() {
     fetchCourses();
     fetchApprovedStudents();
     fetchQuizzes(); 
+    fetchPasswordRequests(); // අලුත්
   }, []);
 
   const toggleTheme = () => {
@@ -91,6 +95,14 @@ export default function AdminDashboard() {
       if (res.ok) setQuizzes(data.data || []);
     } catch (error) { console.error(error); }
     finally { setIsLoadingQuizzes(false); }
+  };
+
+  const fetchPasswordRequests = async () => {
+    try {
+      const res = await fetch("/api/admin/passwords");
+      const data = await res.json();
+      if (res.ok) setPasswordRequests(data.data || []);
+    } catch (error) { console.error(error); }
   };
 
   const todaysIncome = useMemo(() => {
@@ -158,7 +170,6 @@ export default function AdminDashboard() {
     } catch (error) { alert("තාක්ෂණික දෝෂයක් මතු විය."); }
   };
 
-  // 🔴 අලුත්: Notification එක Save කරන Function එක
   const handleSaveNotification = async () => {
     if (!selectedCourseForNoti) return;
     setIsSavingNoti(true);
@@ -269,6 +280,41 @@ export default function AdminDashboard() {
     }
   };
 
+  // 🔴 අලුත්: මුරපද Approve කර WhatsApp එකට යැවීම
+  const handleApprovePassword = async (req: any) => {
+    const confirmApprove = window.confirm(`${req.phone} අංකයට අලුත් මුරපදය අනුමත කර WhatsApp පණිවිඩය යැවීමට අවශ්‍යද?`);
+    if (!confirmApprove) return;
+
+    try {
+      const res = await fetch("/api/admin/passwords", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: req._id, phone: req.phone, newPasswordPlain: req.newPasswordPlain })
+      });
+
+      if (res.ok) {
+        // ලිස්ට් එකෙන් අයින් කිරීම
+        setPasswordRequests(prev => prev.filter(r => r._id !== req._id));
+
+        // WhatsApp අංකය හැදීම (077... වෙනුවට 9477... කිරීම)
+        let formattedPhone = req.phone;
+        if (formattedPhone.startsWith('0')) {
+          formattedPhone = '94' + formattedPhone.substring(1);
+        }
+
+        // WhatsApp මැසේජ් එක
+        const msg = `ආයුබෝවන්, ඔබගේ 20minutes.lk ගිණුමේ මුරපදය සාර්ථකව වෙනස් කර ඇත.\n\n📱 දුරකථන අංකය: ${req.phone}\n🔑 නව මුරපදය: ${req.newPasswordPlain}\n\nකරුණාකර පහත සබැඳියෙන් ලොග් වන්න:\nhttps://www.20minutes.lk/`;
+        
+        // Auto Open WhatsApp
+        window.open(`https://wa.me/${formattedPhone}?text=${encodeURIComponent(msg)}`, '_blank');
+      } else {
+        alert("මුරපදය යාවත්කාලීන කිරීම අසාර්ථකයි.");
+      }
+    } catch (error) {
+      alert("තාක්ෂණික දෝෂයකි.");
+    }
+  };
+
   const filteredStudents = selectedFilterCourse === "ALL" 
     ? (approvedStudents || []) 
     : (approvedStudents || []).filter(s => s.courseTitle === selectedFilterCourse);
@@ -294,7 +340,7 @@ export default function AdminDashboard() {
             <button onClick={toggleTheme} className={`rounded-full p-2 transition-colors focus:outline-none ${isDarkMode ? 'bg-slate-800 text-yellow-400' : 'bg-slate-100 text-slate-600'}`}>
               {isDarkMode ? <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" /></svg> : <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>}
             </button>
-            <button onClick={() => signOut({ callbackUrl: "/" })} className="rounded-full bg-red-500/10 border border-red-500/50 px-4 py-1.5 text-xs md:text-sm font-semibold text-red-500 transition hover:bg-red-500 hover:text-white">
+            <button onClick={() => signOut({ callbackUrl: "/" })} className="rounded-full bg-red-500/10 border border-red-500/50 px-4 py-1.5 text-xs md:text-sm font-semibold text-red-500 transition hover:bg-red-50 hover:text-white">
               ඉවත් වන්න
             </button>
           </div>
@@ -326,6 +372,10 @@ export default function AdminDashboard() {
           <button onClick={() => setActiveTab("courses")} className={`px-5 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all ${activeTab === "courses" ? tabActive : tabInactive}`}>පාඨමාලා කළමනාකරණය</button>
           <button onClick={() => setActiveTab("quizzes")} className={`px-5 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all ${activeTab === "quizzes" ? tabActive : tabInactive}`}>විභාග කළමනාකරණය</button>
           <button onClick={() => setActiveTab("students")} className={`px-5 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all ${activeTab === "students" ? tabActive : tabInactive}`}>සිසුන්ගේ විස්තර</button>
+          {/* 🔴 අලුත්: මුරපද ඉල්ලීම් Tab එක */}
+          <button onClick={() => setActiveTab("passwords")} className={`px-5 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all ${activeTab === "passwords" ? tabActive : tabInactive} flex items-center gap-2`}>
+            මුරපද ඉල්ලීම් {passwordRequests.length > 0 && <span className="bg-red-500 text-white rounded-full px-2 py-0.5 text-xs">{passwordRequests.length}</span>}
+          </button>
         </div>
 
         {/* --- 1. Approvals Tab --- */}
@@ -342,8 +392,18 @@ export default function AdminDashboard() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {(pendingApprovals || []).map((req) => (
                   <div key={req._id} className={`flex flex-col overflow-hidden rounded-2xl border shadow-sm transition-all ${cardBg}`}>
-                    <div className="h-48 overflow-hidden bg-slate-200 relative group cursor-pointer" onClick={() => setEnlargedSlip(req.slipImage)}>
-                      <img src={req.slipImage} alt="Bank Slip" className="w-full h-full object-cover hover:scale-110 transition-transform duration-500" />
+                    <div 
+                      className="h-48 overflow-hidden bg-slate-200 dark:bg-slate-700 relative group cursor-pointer flex items-center justify-center" 
+                      onClick={() => setEnlargedSlip(req.slipImage)}
+                    >
+                      <img 
+                        src={req.slipImage && req.slipImage.length > 30 ? req.slipImage : "https://placehold.co/600x400/e2e8f0/64748b?text=Image+Not+Found"} 
+                        alt="Bank Slip" 
+                        className="w-full h-full object-cover hover:scale-110 transition-transform duration-500" 
+                        onError={(e) => { 
+                          e.currentTarget.src = "https://placehold.co/600x400/e2e8f0/64748b?text=Image+Load+Error"; 
+                        }}
+                      />
                       <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
                          <span className="text-white text-sm font-bold flex items-center gap-2">විශාල කර බලන්න</span>
                       </div>
@@ -355,7 +415,7 @@ export default function AdminDashboard() {
                       </div>
                       <div className="mt-auto grid grid-cols-2 gap-3">
                         <button onClick={() => handleUpdateStatus(req._id, "approved")} className="rounded-xl bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500 hover:text-white border border-emerald-500/20 py-2.5 text-sm font-bold transition-all">අනුමත කරන්න</button>
-                        <button onClick={() => handleUpdateStatus(req._id, "rejected")} className="rounded-xl bg-red-500/10 text-red-600 hover:bg-red-500 hover:text-white border border-red-500/20 py-2.5 text-sm font-bold transition-all">ප්‍රතික්ෂේප කරන්න</button>
+                        <button onClick={() => handleUpdateStatus(req._id, "rejected")} className="rounded-xl bg-red-500/10 text-red-600 hover:bg-red-50 hover:text-white border border-red-500/20 py-2.5 text-sm font-bold transition-all">ප්‍රතික්ෂේප කරන්න</button>
                       </div>
                     </div>
                   </div>
@@ -398,19 +458,9 @@ export default function AdminDashboard() {
                     </div>
                     
                     <div className="flex flex-wrap gap-2 mt-auto pt-4 border-t border-slate-200 dark:border-slate-700">
-                      
-                      {/* 🔴 අලුත්: Notification Button එක */}
-                      <button 
-                        onClick={() => { 
-                          setSelectedCourseForNoti(course); 
-                          setNotiText(course.notification || ""); 
-                          setIsNotiModalOpen(true); 
-                        }} 
-                        className="flex-none flex items-center justify-center gap-2 bg-purple-50 text-purple-600 hover:bg-purple-600 hover:text-white px-4 py-2.5 rounded-xl text-sm font-bold transition-all border border-purple-200"
-                      >
+                      <button onClick={() => { setSelectedCourseForNoti(course); setNotiText(course.notification || ""); setIsNotiModalOpen(true); }} className="flex-none flex items-center justify-center gap-2 bg-purple-50 text-purple-600 hover:bg-purple-600 hover:text-white px-4 py-2.5 rounded-xl text-sm font-bold transition-all border border-purple-200">
                         🔔 Notice
                       </button>
-
                       <Link href={`/admin/edit-course/${course._id}`} className="flex-1 flex items-center justify-center gap-2 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white px-4 py-2.5 rounded-xl text-sm font-bold transition-all border border-blue-200">
                         Edit
                       </Link>
@@ -572,9 +622,54 @@ export default function AdminDashboard() {
             )}
           </div>
         )}
+
+        {/* --- 5. අලුත්: Passwords Tab --- */}
+        {activeTab === "passwords" && (
+          <div className="animate-in fade-in duration-300">
+            <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
+              <div>
+                <h2 className={`text-xl font-bold ${textPrimary}`}>මුරපද වෙනස් කිරීමේ ඉල්ලීම්</h2>
+                <p className={`text-sm ${textSecondary}`}>සිසුන් විසින් ඉල්ලා ඇති නව මුරපද අනුමත කර WhatsApp හරහා යවන්න.</p>
+              </div>
+              <button onClick={fetchPasswordRequests} className="flex items-center gap-2 bg-blue-100 hover:bg-blue-200 text-blue-700 px-4 py-2 rounded-xl text-sm font-bold transition-all">
+                🔄 Refresh
+              </button>
+            </div>
+
+            {passwordRequests.length === 0 ? (
+              <div className={`p-10 rounded-3xl border text-center ${cardBg}`}>
+                <h3 className={`text-lg font-bold ${textPrimary}`}>අලුත් මුරපද ඉල්ලීම් කිසිවක් නැත! 🎉</h3>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {passwordRequests.map((req) => (
+                  <div key={req._id} className={`p-5 rounded-2xl border shadow-sm flex flex-col ${cardBg}`}>
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-xl font-bold">
+                        📞
+                      </div>
+                      <div>
+                        <p className={`text-xs font-bold uppercase tracking-wider text-slate-400 mb-1`}>දුරකථන අංකය</p>
+                        <h3 className={`text-lg font-extrabold ${textPrimary}`}>{req.phone}</h3>
+                      </div>
+                    </div>
+                    <div className={`p-4 rounded-xl mb-4 border ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                      <p className={`text-xs font-bold text-slate-500 mb-1`}>ඉල්ලුම් කළ නව මුරපදය:</p>
+                      <p className="text-base font-bold text-blue-500 tracking-wide">{req.newPasswordPlain}</p>
+                    </div>
+                    <button onClick={() => handleApprovePassword(req)} className="mt-auto w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-all shadow-md flex items-center justify-center gap-2">
+                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12.031 0C5.385 0 0 5.383 0 12.032c0 2.128.552 4.195 1.6 6.012L.15 24l6.105-1.597A11.964 11.964 0 0012.031 24c6.643 0 12.032-5.385 12.032-12.032C24.063 5.383 18.674 0 12.031 0zm7.143 17.15c-.302.854-1.745 1.622-2.42 1.706-.527.067-1.196.126-3.414-.795-2.65-1.1-4.329-3.82-4.46-3.993-.134-.176-1.066-1.423-1.066-2.715 0-1.291.674-1.93 9.17-2.18.232-.174.526-.298.777-.074.251.222.79 1.107.962 1.328.172.222.155.397-.094.646-.248.248-.567.58-.826.855-.276.294-.567.616-.251 1.157.316.541 1.405 2.321 3.003 3.766 2.062 1.865 3.864 2.457 4.417 2.712.553.254.877.206 1.206-.178.328-.383 1.41-1.642 1.79-2.204.381-.564.76-.469 1.258-.293.498.177 3.153 1.488 3.693 1.754.541.266.903.398 1.036.621.132.222.132 1.288-.17 2.143z" /></svg>
+                      Approve & WhatsApp
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </main>
 
-      {/* 🔴 අලුත්: Notification Modal එක */}
+      {/* Notification Modal */}
       {isNotiModalOpen && selectedCourseForNoti && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className={`w-full max-w-lg p-6 rounded-3xl shadow-2xl border ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
@@ -605,14 +700,22 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* Slip Modal */}
+      {/* Slip Modal with Fallback Error Image */}
       {enlargedSlip && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in duration-200" onClick={() => setEnlargedSlip(null)}>
           <div className="relative w-full max-w-4xl h-[85vh] flex items-center justify-center">
             <button onClick={(e) => { e.stopPropagation(); setEnlargedSlip(null); }} className="absolute -top-12 right-0 md:-right-12 text-white/70 hover:text-red-500 bg-white/10 hover:bg-white/20 rounded-full p-2 transition-all">
               <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
-            <img src={enlargedSlip} alt="Enlarged Bank Slip" className="max-w-full max-h-full object-contain rounded-xl shadow-2xl" onClick={(e) => e.stopPropagation()} />
+            <img 
+              src={enlargedSlip && enlargedSlip.length > 30 ? enlargedSlip : "https://placehold.co/600x400/e2e8f0/64748b?text=Image+Not+Found"} 
+              alt="Enlarged Bank Slip" 
+              className="max-w-full max-h-full object-contain rounded-xl shadow-2xl" 
+              onClick={(e) => e.stopPropagation()} 
+              onError={(e) => { 
+                e.currentTarget.src = "https://placehold.co/600x400/e2e8f0/64748b?text=Image+Load+Error"; 
+              }}
+            />
           </div>
         </div>
       )}
