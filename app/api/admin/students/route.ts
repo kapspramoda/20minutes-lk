@@ -11,14 +11,20 @@ const connectDB = async () => {
 export async function GET() {
   try {
     await connectDB();
-    // 🔴 මෙතන .lean() එකතු කළා, ඒකෙන් Database එකෙන් දත්ත ඉක්මනට එනවා (Memory අවුල විසඳනවා)
+    
+    // 🔴 මෙතන .lean() සහ .limit() දෙකම පාවිච්චි කළා
+    // .lean() මගින් Database එකෙන් දත්ත වේගයෙන් ගෙනෙන අතර Memory Crash වීම සම්පූර්ණයෙන්ම නවත්වයි.
+    // අලුත්ම සිසුන් 300 ක් පමණක් පෙන්වීමට සීමා කර ඇත (අවශ්‍ය නම් 300 වෙනස් කළ හැක).
     const students = await Enrollment.find({ status: "approved" })
                                      .sort({ updatedAt: -1 })
-                                     .limit(100); 
+                                     .limit(300)
+                                     .lean(); 
     
     return NextResponse.json({ success: true, data: students }, { status: 200 });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    // 🔴 මොකක් හරි අවුලක් ගියොත් Vercel Logs වල පැහැදිලිව Error එක පෙන්වීමට
+    console.error("GET /api/admin/students Error:", error);
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
 
@@ -35,6 +41,7 @@ export async function DELETE(req: Request) {
     
     return NextResponse.json({ success: true, message: "සිසුවා පාඨමාලාවෙන් සාර්ථකව ඉවත් කරන ලදී." }, { status: 200 });
   } catch (error: any) {
+    console.error("DELETE /api/admin/students Error:", error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }

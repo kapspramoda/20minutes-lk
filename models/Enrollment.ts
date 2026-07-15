@@ -1,24 +1,18 @@
-import mongoose, { Schema, Document } from "mongoose";
+import mongoose, { Schema, Document, models } from "mongoose"; // models import එකතු කළා
 
-export interface IEnrollment extends Document {
-  userPhone: string;
-  courseId: string;
-  courseTitle: string;
-  amount: number;        // 🔴 අලුතින් එකතු කළ කොටස: ගෙවූ මුදල (ආදායම් ගණනය කිරීමට)
-  slipImage: string;
-  status: string;
-}
+// ... IEnrollment interface එක ...
 
 const EnrollmentSchema = new Schema(
   {
-    userPhone: { type: String, required: true },
-    courseId: { type: String, required: true },
-    courseTitle: { type: String, required: true },
-    amount: { type: Number, default: 0 }, // 🔴 අලුතින් එකතු කළ කොටස
-    slipImage: { type: String, required: false },
+    // ... අනිත් fields ...
+    amount: { type: Number, default: 0 },
+    slipImage: { type: String, required: false }, // 🔴 required: false විය යුතුමයි!
     status: { type: String, default: "pending" }, 
   },
   { timestamps: true }
 );
 
-export default mongoose.models.Enrollment || mongoose.model<IEnrollment>("Enrollment", EnrollmentSchema);
+// 🔴 Model එක compile කිරීමේ ආරක්ෂිත ක්‍රමය (වැදගත්)
+const Enrollment = models.Enrollment || mongoose.model<IEnrollment>("Enrollment", EnrollmentSchema);
+
+export default Enrollment;
