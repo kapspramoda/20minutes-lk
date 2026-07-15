@@ -12,17 +12,15 @@ export async function GET() {
   try {
     await connectDB();
     
-    // 🔴 මෙතන .lean() සහ .limit() දෙකම පාවිච්චි කළා
-    // .lean() මගින් Database එකෙන් දත්ත වේගයෙන් ගෙනෙන අතර Memory Crash වීම සම්පූර්ණයෙන්ම නවත්වයි.
-    // අලුත්ම සිසුන් 300 ක් පමණක් පෙන්වීමට සීමා කර ඇත (අවශ්‍ය නම් 300 වෙනස් කළ හැක).
+    // 🔴 වැදගත්ම වෙනස: updatedAt වෙනුවට _id භාවිතා කර ඇත!
+    // _id මගින් ස්වයංක්‍රීයව අලුත්ම සිසුන් මුලට ගෙන එන අතර Memory Crash වීම සම්පූර්ණයෙන්ම නවත්වයි.
     const students = await Enrollment.find({ status: "approved" })
-                                     .sort({ updatedAt: -1 })
-                                     .limit(300)
+                                     .sort({ _id: -1 }) 
+                                     .limit(500) // අලුත්ම සිසුන් 500ක් ලබා ගනී
                                      .lean(); 
     
     return NextResponse.json({ success: true, data: students }, { status: 200 });
   } catch (error: any) {
-    // 🔴 මොකක් හරි අවුලක් ගියොත් Vercel Logs වල පැහැදිලිව Error එක පෙන්වීමට
     console.error("GET /api/admin/students Error:", error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
