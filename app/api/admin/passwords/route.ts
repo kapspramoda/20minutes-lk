@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import mongoose from "mongoose";
 import User from "@/models/User";
 import PasswordReset from "@/models/PasswordReset";
-import bcrypt from "bcrypt"; 
+import bcrypt from "bcryptjs"; 
 
 const connectDB = async () => {
   if (mongoose.connection.readyState >= 1) return;
