@@ -189,7 +189,6 @@ export default function CoursePlayerPage({ params }: PageProps) {
     else document.documentElement.classList.remove("dark");
   };
 
-  // 🔴 මෙතන තමයි YouTube Live/Watch ලින්ක් Auto Convert වෙන්න හැදුවේ
   const getSecuredVideoUrl = (originalUrl: string) => {
     if(!originalUrl) return "";
     
@@ -288,6 +287,19 @@ export default function CoursePlayerPage({ params }: PageProps) {
 
       <main className="mx-auto max-w-7xl p-4 md:p-6 lg:p-8 mt-2 md:mt-4 pb-12">
         
+        {/* 🔴 අලුත්: Notification කොටස (WhatsApp ලින්ක් එකට උඩින්) */}
+        {course.notification && (
+          <div className="mb-6 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl flex items-start gap-3 shadow-sm animate-in fade-in">
+            <span className="text-2xl">📢</span>
+            <div>
+              <h4 className="text-amber-800 dark:text-amber-400 font-bold text-sm mb-1">විශේෂ පණිවිඩයයි</h4>
+              <p className="text-amber-900 dark:text-amber-200 text-sm whitespace-pre-wrap">
+                {course.notification}
+              </p>
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 md:mb-8">
           {course.whatsappLink && (
             <div className={`flex items-center justify-between rounded-2xl p-4 border shadow-sm ${isDarkMode ? 'bg-emerald-900/10 border-emerald-800/30' : 'bg-emerald-50/60 border-emerald-100'}`}>
@@ -459,15 +471,16 @@ export default function CoursePlayerPage({ params }: PageProps) {
             
             <h3 className="text-xs md:text-sm font-extrabold uppercase tracking-wider text-slate-400 mb-3">විෂයයන් තෝරන්න</h3>
             
-            <div className="flex gap-2 mb-4 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden border-b pb-3 dark:border-slate-700">
+            {/* 🔴 වෙනස් කළ කොටස: flex-col යෙදීම මගින් විෂයයන් එකක් යටින් එකක් පෙන්වයි */}
+            <div className="flex flex-col gap-2 mb-4 border-b pb-3 dark:border-slate-700">
               {course.subjects?.map((subject: any) => (
                 <button 
                   key={subject._id || subject.subjectId}
                   onClick={() => handleSubjectChange(subject.subjectId || subject._id)}
-                  className={`px-3 md:px-4 py-1.5 md:py-2 rounded-lg md:rounded-xl text-[11px] md:text-xs font-bold whitespace-nowrap transition-all flex-shrink-0 ${
+                  className={`w-full text-left px-3 md:px-4 py-2 md:py-2.5 rounded-lg md:rounded-xl text-[11px] md:text-xs font-bold transition-all ${
                     activeSubjectId === (subject.subjectId || subject._id)
                       ? "bg-blue-600 text-white shadow-sm" 
-                      : "bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200"
+                      : "bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600"
                   }`}
                 >
                   {subject.name}

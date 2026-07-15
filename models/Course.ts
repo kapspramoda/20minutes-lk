@@ -30,6 +30,7 @@ const CourseSchema = new Schema({
   coverImage: { type: String },               // 🔴 අලුත්: Cover Picture (Base64)
   price: { type: String, required: true },    // 🔴 අලුත්: Course Price (උදා: රු. 2500)
   whatsappLink: { type: String },
+  notification: { type: String, default: "" }, // 🔴 අලුත්: Notification පණිවිඩය
   bankAccounts: [BankAccountSchema],          // 🔴 අලුත්: Bank Accounts ලැයිස්තුව
   subjects: [SubjectSchema],
   isVisible: { type: Boolean, default: true },

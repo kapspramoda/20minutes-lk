@@ -31,6 +31,12 @@ export default function AdminDashboard() {
   const [bulkCourseId, setBulkCourseId] = useState("");
   const [isBulkAdding, setIsBulkAdding] = useState(false);
 
+  // 🔴 අලුත්: Notification Modal එක සඳහා States
+  const [isNotiModalOpen, setIsNotiModalOpen] = useState(false);
+  const [selectedCourseForNoti, setSelectedCourseForNoti] = useState<any>(null);
+  const [notiText, setNotiText] = useState("");
+  const [isSavingNoti, setIsSavingNoti] = useState(false);
+
   useEffect(() => {
     if (document.documentElement.classList.contains("dark")) setIsDarkMode(true);
     fetchPendingEnrollments();
@@ -152,6 +158,30 @@ export default function AdminDashboard() {
     } catch (error) { alert("තාක්ෂණික දෝෂයක් මතු විය."); }
   };
 
+  // 🔴 අලුත්: Notification එක Save කරන Function එක
+  const handleSaveNotification = async () => {
+    if (!selectedCourseForNoti) return;
+    setIsSavingNoti(true);
+    try {
+      const res = await fetch(`/api/courses/${selectedCourseForNoti._id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ notification: notiText }),
+      });
+      if (res.ok) {
+        setCourses((courses || []).map(c => c._id === selectedCourseForNoti._id ? { ...c, notification: notiText } : c));
+        alert("Notification එක සාර්ථකව යාවත්කාලීන කරන ලදී!");
+        setIsNotiModalOpen(false);
+      } else {
+        alert("සමාවෙන්න, දෝෂයක් මතු විය.");
+      }
+    } catch (error) {
+      alert("තාක්ෂණික දෝෂයක්.");
+    } finally {
+      setIsSavingNoti(false);
+    }
+  };
+
   const toggleQuizVisibility = async (quizId: string, currentVisibility: boolean) => {
     try {
       const res = await fetch(`/api/admin/quizzes/${quizId}`, {
@@ -192,7 +222,6 @@ export default function AdminDashboard() {
     } catch (error) { alert("තාක්ෂණික දෝෂයක් මතු විය."); }
   };
 
-  // 🔴 Bulk Add Function (වෙනස් කළ කොටස)
   const handleBulkAddStudents = async () => {
     if (!bulkCourseId) return alert("කරුණාකර සිසුන් ඇතුළත් කළ යුතු පාඨමාලාව තෝරන්න.");
     if (!bulkPhones.trim()) return alert("කරුණාකර දුරකථන අංක ඇතුළත් කරන්න.");
@@ -200,17 +229,13 @@ export default function AdminDashboard() {
     const phoneArray = bulkPhones
       .split('\n')
       .map(p => {
-        // 1. දුරකථන අංකයේ ඇති සියලුම හිස්තැන් (Spaces) ඉවත් කිරීම
         let cleanedPhone = p.replace(/\s+/g, '').trim(); 
-        
-        // 2. අංකය හිස් එකක් නෙවෙයි නම් සහ මුලින් '0' අකුර නැත්නම්, 0 එකතු කිරීම
         if (cleanedPhone.length > 0 && !cleanedPhone.startsWith('0')) {
           cleanedPhone = '0' + cleanedPhone;
         }
-        
         return cleanedPhone;
       })
-      .filter(p => p !== ""); // හිස් පේළි ඉවත් කිරීම
+      .filter(p => p !== "");
 
     if (phoneArray.length === 0) return alert("නිවැරදි දුරකථන අංක සොයාගත නොහැක.");
 
@@ -373,6 +398,19 @@ export default function AdminDashboard() {
                     </div>
                     
                     <div className="flex flex-wrap gap-2 mt-auto pt-4 border-t border-slate-200 dark:border-slate-700">
+                      
+                      {/* 🔴 අලුත්: Notification Button එක */}
+                      <button 
+                        onClick={() => { 
+                          setSelectedCourseForNoti(course); 
+                          setNotiText(course.notification || ""); 
+                          setIsNotiModalOpen(true); 
+                        }} 
+                        className="flex-none flex items-center justify-center gap-2 bg-purple-50 text-purple-600 hover:bg-purple-600 hover:text-white px-4 py-2.5 rounded-xl text-sm font-bold transition-all border border-purple-200"
+                      >
+                        🔔 Notice
+                      </button>
+
                       <Link href={`/admin/edit-course/${course._id}`} className="flex-1 flex items-center justify-center gap-2 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white px-4 py-2.5 rounded-xl text-sm font-bold transition-all border border-blue-200">
                         Edit
                       </Link>
@@ -448,8 +486,6 @@ export default function AdminDashboard() {
         {/* --- 4. Students Tab --- */}
         {activeTab === "students" && (
           <div className="animate-in fade-in duration-300">
-            
-            {/* 🔴 එකවර සිසුන් ඇතුළත් කිරීමේ කොටස (උඩින්ම) */}
             <div className={`p-6 mb-8 rounded-2xl border shadow-sm bg-blue-50/50 dark:bg-blue-900/10 ${isDarkMode ? 'border-blue-800' : 'border-blue-100'}`}>
               <h3 className={`text-lg font-bold mb-2 flex items-center gap-2 ${isDarkMode ? 'text-blue-400' : 'text-blue-700'}`}>
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
@@ -487,7 +523,6 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            {/* 🔴 සිසුන් කළමනාකරණය (දැනට සිටින සිසුන් පෙන්වන තැන) */}
             <div className={`flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4 border-t pt-8 ${isDarkMode ? 'border-slate-800' : 'border-slate-200'}`}>
               <div>
                 <h2 className={`text-xl font-bold ${textPrimary}`}>සිසුන් කළමනාකරණය</h2>
@@ -538,6 +573,37 @@ export default function AdminDashboard() {
           </div>
         )}
       </main>
+
+      {/* 🔴 අලුත්: Notification Modal එක */}
+      {isNotiModalOpen && selectedCourseForNoti && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className={`w-full max-w-lg p-6 rounded-3xl shadow-2xl border ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className={`text-xl font-bold flex items-center gap-2 ${textPrimary}`}>
+                <span className="text-2xl">📢</span> පණිවිඩය වෙනස් කරන්න
+              </h3>
+              <button onClick={() => setIsNotiModalOpen(false)} className="text-slate-400 hover:text-red-500 transition-colors">
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <p className={`text-sm mb-4 ${textSecondary}`}>
+              <span className="font-bold text-blue-500">{selectedCourseForNoti.title}</span> පාඨමාලාවට අදාළ සිසුන්ට මෙම පණිවිඩය පෙන්වනු ඇත. (මැකීමට අවශ්‍ය නම් හිස්ව තබා සේව් කරන්න).
+            </p>
+            <textarea
+              className={`w-full h-32 p-4 rounded-xl border text-sm outline-none focus:ring-2 focus:ring-purple-500 resize-none shadow-inner ${inputBg}`}
+              placeholder="උදා: හෙට දින පන්තිය පෙ.ව. 8.00 ට ආරම්භ වේ..."
+              value={notiText}
+              onChange={(e) => setNotiText(e.target.value)}
+            />
+            <div className="flex justify-end gap-3 mt-6">
+              <button onClick={() => setIsNotiModalOpen(false)} className={`px-5 py-2.5 rounded-xl text-sm font-bold border transition-colors ${isDarkMode ? 'hover:bg-slate-700 border-slate-600' : 'hover:bg-slate-100 border-slate-300'}`}>අවලංගු කරන්න</button>
+              <button onClick={handleSaveNotification} disabled={isSavingNoti} className="px-5 py-2.5 rounded-xl text-sm font-bold bg-purple-600 text-white hover:bg-purple-700 transition-all shadow-md disabled:opacity-70 flex items-center gap-2">
+                {isSavingNoti ? "යාවත්කාලීන වෙමින්..." : "සේව් කරන්න (Save)"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Slip Modal */}
       {enlargedSlip && (
