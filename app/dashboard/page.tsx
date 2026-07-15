@@ -6,7 +6,6 @@ import imageCompression from "browser-image-compression";
 import Link from "next/link";
 
 export default function DashboardPage() {
-  // 1. Hooks හැමවිටම උඩින්ම තිබිය යුතුය
   const { data: session, status } = useSession();
   
   // --- States ---
@@ -32,7 +31,6 @@ export default function DashboardPage() {
   const [pendingIndex, setPendingIndex] = useState(0);
   const [availableIndex, setAvailableIndex] = useState(0);
 
-  // Theme check on load
   useEffect(() => {
     if (document.documentElement.classList.contains("dark")) setIsDarkMode(true);
   }, []);
@@ -43,7 +41,6 @@ export default function DashboardPage() {
     else document.documentElement.classList.remove("dark");
   };
 
-  // 🔴 වෙනත් උපාංගයකින් ලොග් වී ඇත්දැයි ක්ෂණිකව පරීක්ෂා කිරීම (Security)
   useEffect(() => {
     let interval: NodeJS.Timeout;
 
@@ -90,7 +87,6 @@ export default function DashboardPage() {
     };
   }, [status, session]);
 
-  // Quiz Results ලබා ගැනීම
   useEffect(() => {
     const fetchQuizResults = async () => {
       const userPhone = (session?.user as any)?.phone || session?.user?.name || session?.user?.email;
@@ -104,7 +100,6 @@ export default function DashboardPage() {
     if (status === "authenticated") fetchQuizResults();
   }, [status, session]);
 
-  // ළමයාගේ පාඨමාලා ගෙන්වා ගැනීම
   useEffect(() => {
     const fetchMyCourses = async () => {
       const userPhone = (session?.user as any)?.phone || session?.user?.name || session?.user?.email;
@@ -122,7 +117,6 @@ export default function DashboardPage() {
     if (status === "authenticated") fetchMyCourses();
   }, [status, session]);
 
-  // ලබාගත හැකි පාඨමාලා ගෙන්වා ගැනීම
   useEffect(() => {
     const fetchAvailableCourses = async () => {
       try {
@@ -135,7 +129,6 @@ export default function DashboardPage() {
     fetchAvailableCourses();
   }, []);
   
-  // Slider Scroll Handler
   const handleScroll = (ref: React.RefObject<HTMLDivElement | null>, setIndex: (idx: number) => void, totalItems: number) => {
     if (!ref.current) return;
     const { scrollLeft, scrollWidth } = ref.current;
@@ -156,7 +149,12 @@ export default function DashboardPage() {
 
   const handleSubmitSlip = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!slipFile) return alert("කරුණාකර Bank Slip එක ඇතුළත් කරන්න.");
+    
+    // 🔴 පින්තූරය තෝරාගෙන නැත්නම් Validation එක
+    if (!slipFile) {
+      alert("කරුණාකර Bank Slip එක ඇතුළත් කරන්න.");
+      return;
+    }
 
     const userPhone = (session?.user as any)?.phone || session?.user?.name || session?.user?.email;
     if (!userPhone) return alert("කරුණාකර නැවත ලොග් වන්න.");
@@ -164,8 +162,14 @@ export default function DashboardPage() {
     setIsSubmitting(true);
     try {
       let fileToUpload: File | Blob = slipFile;
+      
+      // 🔴 වෙනස් කළ කොටස: Vercel සීමාවට ගැලපෙන්න පින්තූරය තදින් Compress කිරීම (150KB පමණ)
       if (slipFile.type.startsWith("image/")) {
-        fileToUpload = await imageCompression(slipFile, { maxSizeMB: 1, maxWidthOrHeight: 1920, useWebWorker: true });
+        fileToUpload = await imageCompression(slipFile, { 
+          maxSizeMB: 0.15, // උපරිම 150KB
+          maxWidthOrHeight: 800, // විභේදනය අඩු කිරීම
+          useWebWorker: true 
+        });
       }
 
       const reader = new FileReader();
@@ -200,7 +204,6 @@ export default function DashboardPage() {
     }
   };
 
-  // --- Theme Classes ---
   const themeBg = isDarkMode ? "bg-slate-900 text-slate-100" : "bg-slate-50 text-slate-800";
   const headerBg = isDarkMode ? "bg-slate-900/80 border-slate-800" : "bg-white/80 border-slate-200";
   const logoTextColor = isDarkMode ? "text-white" : "text-slate-900";
@@ -214,7 +217,6 @@ export default function DashboardPage() {
   const textPrimary = isDarkMode ? "text-white" : "text-slate-900";
   const textSecondary = isDarkMode ? "text-slate-400" : "text-slate-500";
 
-  // 🔴 මෙතැන් සිට සියල්ල return එක ඇතුළේ විය යුතුය
   return (
     <div className={`modern-font flex min-h-screen flex-col transition-colors duration-300 ${themeBg}`}>
       
@@ -343,7 +345,7 @@ export default function DashboardPage() {
           </>
         )}
 
-        {/* 📊 MCQ විභාග ප්‍රතිඵල ලේඛනය (මෙය දැන් නිවැරදිව return එක ඇතුළේ ඇත) */}
+        {/* 📊 MCQ විභාග ප්‍රතිඵල ලේඛනය */}
         {quizResults.length > 0 && (
           <section className="mb-12 md:mb-16">
             <h2 className={`mb-6 text-xl md:text-2xl font-bold border-l-4 border-purple-500 pl-3 ${sectionTitleColor}`}>මුහුණ දුන් MCQ විභාග ප්‍රතිඵල (Quiz Results)</h2>
