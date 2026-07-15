@@ -27,7 +27,6 @@ export default function AdminDashboard() {
 
   const [enlargedSlip, setEnlargedSlip] = useState<string | null>(null);
 
-  // 🔴 Bulk Add සඳහා අවශ්‍ය States
   const [bulkPhones, setBulkPhones] = useState("");
   const [bulkCourseId, setBulkCourseId] = useState("");
   const [isBulkAdding, setIsBulkAdding] = useState(false);
@@ -193,12 +192,26 @@ export default function AdminDashboard() {
     } catch (error) { alert("තාක්ෂණික දෝෂයක් මතු විය."); }
   };
 
-  // 🔴 Bulk Add Function
+  // 🔴 Bulk Add Function (වෙනස් කළ කොටස)
   const handleBulkAddStudents = async () => {
     if (!bulkCourseId) return alert("කරුණාකර සිසුන් ඇතුළත් කළ යුතු පාඨමාලාව තෝරන්න.");
     if (!bulkPhones.trim()) return alert("කරුණාකර දුරකථන අංක ඇතුළත් කරන්න.");
 
-    const phoneArray = bulkPhones.split('\n').map(p => p.trim()).filter(p => p !== "");
+    const phoneArray = bulkPhones
+      .split('\n')
+      .map(p => {
+        // 1. දුරකථන අංකයේ ඇති සියලුම හිස්තැන් (Spaces) ඉවත් කිරීම
+        let cleanedPhone = p.replace(/\s+/g, '').trim(); 
+        
+        // 2. අංකය හිස් එකක් නෙවෙයි නම් සහ මුලින් '0' අකුර නැත්නම්, 0 එකතු කිරීම
+        if (cleanedPhone.length > 0 && !cleanedPhone.startsWith('0')) {
+          cleanedPhone = '0' + cleanedPhone;
+        }
+        
+        return cleanedPhone;
+      })
+      .filter(p => p !== ""); // හිස් පේළි ඉවත් කිරීම
+
     if (phoneArray.length === 0) return alert("නිවැරදි දුරකථන අංක සොයාගත නොහැක.");
 
     const selectedCourse = (courses || []).find(c => c._id === bulkCourseId);
@@ -448,7 +461,7 @@ export default function AdminDashboard() {
               <div className="flex flex-col md:flex-row gap-4">
                 <textarea 
                   className={`w-full md:w-2/3 h-32 p-3 rounded-xl border text-sm outline-none focus:ring-2 focus:ring-blue-500 resize-none ${inputBg}`} 
-                  placeholder="0771577711&#10;0701567679&#10;0705956020"
+                  placeholder="0771577711&#10;0701567679&#10;070 595 6020"
                   value={bulkPhones}
                   onChange={(e) => setBulkPhones(e.target.value)}
                 />
