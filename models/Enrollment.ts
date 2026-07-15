@@ -1,18 +1,31 @@
-import mongoose, { Schema, Document, models } from "mongoose"; // models import එකතු කළා
+import mongoose, { Schema, Document, models } from "mongoose";
 
-// ... IEnrollment interface එක ...
+// 1. අනිවාර්යයෙන්ම තිබිය යුතු IEnrollment Interface එක
+export interface IEnrollment extends Document {
+  userPhone: string;
+  courseId: string;
+  courseTitle: string;
+  amount: number;
+  slipImage?: string; // ? ලකුණ දැම්මේ මේක අනිවාර්ය නැති නිසා
+  status: string;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
 
-const EnrollmentSchema = new Schema(
+// 2. Database Schema එක
+const EnrollmentSchema = new Schema<IEnrollment>(
   {
-    // ... අනිත් fields ...
+    userPhone: { type: String, required: true },
+    courseId: { type: String, required: true },
+    courseTitle: { type: String, required: true },
     amount: { type: Number, default: 0 },
-    slipImage: { type: String, required: false }, // 🔴 required: false විය යුතුමයි!
+    slipImage: { type: String, required: false }, // 🔴 500 Error එක එන්නේ නැති වෙන්න මේක false කළා
     status: { type: String, default: "pending" }, 
   },
   { timestamps: true }
 );
 
-// 🔴 Model එක compile කිරීමේ ආරක්ෂිත ක්‍රමය (වැදගත්)
+// 3. ආරක්ෂිතව Model එක Export කිරීම
 const Enrollment = models.Enrollment || mongoose.model<IEnrollment>("Enrollment", EnrollmentSchema);
 
 export default Enrollment;
