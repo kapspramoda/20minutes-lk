@@ -44,7 +44,6 @@ export default function CoursePlayerPage({ params }: PageProps) {
     if (document.documentElement.classList.contains("dark")) setIsDarkMode(true);
   }, []);
 
-  // වෙනත් උපාංගයකින් ලොග් වී ඇත්දැයි බැලීමේ Security Check එක
   useEffect(() => {
     let interval: NodeJS.Timeout;
 
@@ -53,41 +52,31 @@ export default function CoursePlayerPage({ params }: PageProps) {
       
       const phone = (session.user as any).phone || session.user.name || session.user.email;
       const sessionId = (session.user as any).sessionId;
-      
       if (!phone || !sessionId) return;
 
       try {
+        // 🔴 සරල fetch එකක් පමණක් පාවිච්චි කරන්න
         const res = await fetch("/api/student/check-device", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ phone, currentSessionId: sessionId }),
-          cache: "no-store"
+          cache: "no-store" 
         });
-        
         const data = await res.json();
         if (data.logout) {
-          alert("⚠️ ඔබගේ ගිණුම වෙනත් උපාංගයකින් ලොග් වී ඇත. වීඩියෝ නැරඹීම නතර කර ඔබව ඉවත් කෙරේ.");
           signOut({ callbackUrl: "/" });
         }
       } catch (error) {
-        console.error("Session check failed", error);
+        // මෙතන මුකුත් කරන්න එපා, Error එකක් ආවත් Loop එක දිගටම යන්න ඕනේ නැහැ
       }
     };
 
     if (status === "authenticated") {
-      checkSession();
-      interval = setInterval(checkSession, 15000);
-      window.addEventListener("focus", checkSession);
-      window.addEventListener("visibilitychange", () => {
-        if (document.visibilityState === 'visible') checkSession();
-      });
+      // 🔴 15 තත්පර වෙනුවට 60 තත්පර වරක් පරීක්ෂා කරමු
+      interval = setInterval(checkSession, 60000); 
     }
 
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener("focus", checkSession);
-      window.removeEventListener("visibilitychange", checkSession);
-    };
+    return () => clearInterval(interval);
   }, [status, session]);
 
   // Database එකෙන් පාඨමාලාව සහ Quizzes ගෙන ඒම
