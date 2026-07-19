@@ -299,7 +299,7 @@ export default function CoursePlayerPage({ params }: PageProps) {
         
         {/* 🔴 අලුත්: Notification කොටස (WhatsApp ලින්ක් එකට උඩින්) */}
         {/* 🔴 notification එක තියෙනවා නම් විතරක් පෙන්වන්න (Optional chaining - ? භාවිතා කරන්න) */}
-      {course?.notification && course.notification.trim() !== "" && (
+      {/* {course?.notification && course.notification.trim() !== "" && (
         <div className="mb-6 p-4 md:p-5 bg-yellow-100 dark:bg-amber-900/30 border-2 border-yellow-400 dark:border-amber-600 rounded-xl flex items-start gap-3 shadow-md animate-in fade-in">
           <span className="text-2xl mt-0.5">📢</span>
           <div>
@@ -309,7 +309,7 @@ export default function CoursePlayerPage({ params }: PageProps) {
             </p>
           </div>
         </div>
-      )}
+      )} */}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 md:mb-8">
           {course.whatsappLink && (
