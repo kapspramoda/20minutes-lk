@@ -257,6 +257,16 @@ export default function CoursePlayerPage({ params }: PageProps) {
       </div>
     );
   }
+  // 🔴 ළමයි මේක බලන්න: course එක නැත්නම් null return කරන්න එපා, ඒක error එකක්
+  if (!course) {
+    return (
+      <div className={`min-h-screen flex flex-col items-center justify-center ${themeBg}`}>
+        <p className="font-bold text-lg text-red-500">පාඨමාලාව සොයාගැනීමට නොහැක!</p>
+      </div>
+    );
+  }
+
+  if (!hasAccess) return null;
 
   if (!hasAccess || !course) return null;
 
@@ -288,7 +298,8 @@ export default function CoursePlayerPage({ params }: PageProps) {
       <main className="mx-auto max-w-7xl p-4 md:p-6 lg:p-8 mt-2 md:mt-4 pb-12">
         
         {/* 🔴 අලුත්: Notification කොටස (WhatsApp ලින්ක් එකට උඩින්) */}
-        {course.notification && (
+        {/* 🔴 notification එක තියෙනවා නම් විතරක් පෙන්වන්න (Optional chaining - ? භාවිතා කරන්න) */}
+      {course?.notification && course.notification.trim() !== "" && (
         <div className="mb-6 p-4 md:p-5 bg-yellow-100 dark:bg-amber-900/30 border-2 border-yellow-400 dark:border-amber-600 rounded-xl flex items-start gap-3 shadow-md animate-in fade-in">
           <span className="text-2xl mt-0.5">📢</span>
           <div>
