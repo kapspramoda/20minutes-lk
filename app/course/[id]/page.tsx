@@ -268,7 +268,27 @@ export default function CoursePlayerPage({ params }: PageProps) {
 
   if (!hasAccess) return null;
 
-  if (!hasAccess || !course) return null;
+  // if (!hasAccess || !course) return null;
+
+  // ඒ වෙනුවට මේ ටික දාන්න (දත්ත නැත්නම් Loading පෙන්වන්න)
+if (isLoading) {
+  return (
+    <div className={`min-h-screen flex flex-col items-center justify-center ${themeBg}`}>
+      <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+      <p className="font-bold text-lg text-slate-500">පාඨමාලාව ලෝඩ් වේ...</p>
+    </div>
+  );
+}
+
+// දත්ත එන්න බැරි වුණොත් Error එක පෙන්වන්න
+if (!course) {
+  return (
+    <div className={`min-h-screen flex flex-col items-center justify-center ${themeBg}`}>
+      <h2 className="text-xl font-bold text-red-500">පාඨමාලාව සොයාගත නොහැක!</h2>
+      <button onClick={() => router.push('/dashboard')} className="mt-4 bg-blue-600 text-white px-6 py-2 rounded-lg">Dashboard එකට යන්න</button>
+    </div>
+  );
+}
 
   const activeSubject = course.subjects?.find((s: any) => (s.subjectId || s._id) === activeSubjectId);
 
@@ -299,7 +319,7 @@ export default function CoursePlayerPage({ params }: PageProps) {
         
         {/* 🔴 අලුත්: Notification කොටස (WhatsApp ලින්ක් එකට උඩින්) */}
         {/* 🔴 notification එක තියෙනවා නම් විතරක් පෙන්වන්න (Optional chaining - ? භාවිතා කරන්න) */}
-      {/* {course?.notification && course.notification.trim() !== "" && (
+          {course && course.notification && course.notification.trim() !== "" && (
         <div className="mb-6 p-4 md:p-5 bg-yellow-100 dark:bg-amber-900/30 border-2 border-yellow-400 dark:border-amber-600 rounded-xl flex items-start gap-3 shadow-md animate-in fade-in">
           <span className="text-2xl mt-0.5">📢</span>
           <div>
@@ -309,8 +329,7 @@ export default function CoursePlayerPage({ params }: PageProps) {
             </p>
           </div>
         </div>
-      )} */}
-
+      )}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 md:mb-8">
           {course.whatsappLink && (
             <div className={`flex items-center justify-between rounded-2xl p-4 border shadow-sm ${isDarkMode ? 'bg-emerald-900/10 border-emerald-800/30' : 'bg-emerald-50/60 border-emerald-100'}`}>
