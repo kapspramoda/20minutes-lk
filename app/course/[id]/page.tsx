@@ -44,40 +44,50 @@ export default function CoursePlayerPage({ params }: PageProps) {
     if (document.documentElement.classList.contains("dark")) setIsDarkMode(true);
   }, []);
 
+  // 🔴 Device Check එක සඳහා අලුත් Logic එක
   useEffect(() => {
-    let interval: NodeJS.Timeout;
-
+    // 1. මුලින්ම checkSession එක Define කරගන්න
     const checkSession = async () => {
       if (status !== "authenticated" || !session?.user) return;
       
       const phone = (session.user as any).phone || session.user.name || session.user.email;
       const sessionId = (session.user as any).sessionId;
+      
       if (!phone || !sessionId) return;
 
       try {
-        // 🔴 සරල fetch එකක් පමණක් පාවිච්චි කරන්න
         const res = await fetch("/api/student/check-device", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ phone, currentSessionId: sessionId }),
-          cache: "no-store" 
+          cache: "no-store"
         });
+        
         const data = await res.json();
         if (data.logout) {
+          alert("⚠️ ඔබගේ ගිණුම වෙනත් උපාංගයකින් ලොග් වී ඇත.");
           signOut({ callbackUrl: "/" });
         }
       } catch (error) {
-        // මෙතන මුකුත් කරන්න එපා, Error එකක් ආවත් Loop එක දිගටම යන්න ඕනේ නැහැ
+        console.error("Session check failed");
       }
     };
 
+    // 2. පේජ් එක ලෝඩ් වුණු ගමන් එක පාරක් බලන්න
     if (status === "authenticated") {
-      // 🔴 15 තත්පර වෙනුවට 60 තත්පර වරක් පරීක්ෂා කරමු
-      interval = setInterval(checkSession, 60000); 
+      checkSession();
     }
 
-    return () => clearInterval(interval);
-  }, [status, session]);
+    // 3. 🔴 ලූප් එක නතර කරන්න මෙතන setInterval පාවිච්චි කරන්න එපා!
+    // ඒ වෙනුවට window focus වුණාම පරීක්ෂා කරන්න
+    const handleFocus = () => checkSession();
+    window.addEventListener("focus", handleFocus);
+
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+    };
+    // 🔴 මෙතන Dependency Array එකෙන් status, session අයින් කරන්න
+  }, []);
 
   // Database එකෙන් පාඨමාලාව සහ Quizzes ගෙන ඒම
   useEffect(() => {
