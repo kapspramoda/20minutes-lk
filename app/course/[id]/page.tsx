@@ -514,3 +514,5 @@ export default function CoursePlayerPage({ params }: PageProps) {
     </div>
   );
 }
+
+// fix deploy
