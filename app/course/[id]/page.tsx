@@ -44,50 +44,50 @@ export default function CoursePlayerPage({ params }: PageProps) {
     if (document.documentElement.classList.contains("dark")) setIsDarkMode(true);
   }, []);
 
-  // 🔴 Device Check එක සඳහා අලුත් Logic එක
-  useEffect(() => {
-    // 1. මුලින්ම checkSession එක Define කරගන්න
-    const checkSession = async () => {
-      if (status !== "authenticated" || !session?.user) return;
+  // // 🔴 Device Check එක සඳහා අලුත් Logic එක
+  // useEffect(() => {
+  //   // 1. මුලින්ම checkSession එක Define කරගන්න
+  //   const checkSession = async () => {
+  //     if (status !== "authenticated" || !session?.user) return;
       
-      const phone = (session.user as any).phone || session.user.name || session.user.email;
-      const sessionId = (session.user as any).sessionId;
+  //     const phone = (session.user as any).phone || session.user.name || session.user.email;
+  //     const sessionId = (session.user as any).sessionId;
       
-      if (!phone || !sessionId) return;
+  //     if (!phone || !sessionId) return;
 
-      try {
-        const res = await fetch("/api/student/check-device", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ phone, currentSessionId: sessionId }),
-          cache: "no-store"
-        });
+  //     try {
+  //       const res = await fetch("/api/student/check-device", {
+  //         method: "POST",
+  //         headers: { "Content-Type": "application/json" },
+  //         body: JSON.stringify({ phone, currentSessionId: sessionId }),
+  //         cache: "no-store"
+  //       });
         
-        const data = await res.json();
-        if (data.logout) {
-          alert("⚠️ ඔබගේ ගිණුම වෙනත් උපාංගයකින් ලොග් වී ඇත.");
-          signOut({ callbackUrl: "/" });
-        }
-      } catch (error) {
-        console.error("Session check failed");
-      }
-    };
+  //       const data = await res.json();
+  //       if (data.logout) {
+  //         alert("⚠️ ඔබගේ ගිණුම වෙනත් උපාංගයකින් ලොග් වී ඇත.");
+  //         signOut({ callbackUrl: "/" });
+  //       }
+  //     } catch (error) {
+  //       console.error("Session check failed");
+  //     }
+  //   };
 
-    // 2. පේජ් එක ලෝඩ් වුණු ගමන් එක පාරක් බලන්න
-    if (status === "authenticated") {
-      checkSession();
-    }
+  //   // 2. පේජ් එක ලෝඩ් වුණු ගමන් එක පාරක් බලන්න
+  //   if (status === "authenticated") {
+  //     checkSession();
+  //   }
 
-    // 3. 🔴 ලූප් එක නතර කරන්න මෙතන setInterval පාවිච්චි කරන්න එපා!
-    // ඒ වෙනුවට window focus වුණාම පරීක්ෂා කරන්න
-    const handleFocus = () => checkSession();
-    window.addEventListener("focus", handleFocus);
+  //   // 3. 🔴 ලූප් එක නතර කරන්න මෙතන setInterval පාවිච්චි කරන්න එපා!
+  //   // ඒ වෙනුවට window focus වුණාම පරීක්ෂා කරන්න
+  //   const handleFocus = () => checkSession();
+  //   window.addEventListener("focus", handleFocus);
 
-    return () => {
-      window.removeEventListener("focus", handleFocus);
-    };
-    // 🔴 මෙතන Dependency Array එකෙන් status, session අයින් කරන්න
-  }, []);
+  //   return () => {
+  //     window.removeEventListener("focus", handleFocus);
+  //   };
+  //   // 🔴 මෙතන Dependency Array එකෙන් status, session අයින් කරන්න
+  // }, []);
 
   // Database එකෙන් පාඨමාලාව සහ Quizzes ගෙන ඒම
   useEffect(() => {
