@@ -17,11 +17,12 @@ export default function CoursePlayerPage({ params }: PageProps) {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [course, setCourse] = useState<any>(null);
   
-  // Loading State එක
   const [isLoading, setIsLoading] = useState(true);
   const [hasAccess, setHasAccess] = useState(false);
-  // Error එකක් ආවොත් පෙන්වන්න
   const [errorMsg, setErrorMsg] = useState<string>("");
+  
+  // 🔴 අලුත්: දෝෂය හොයාගන්න X-Ray (Debug) state එක
+  const [debugStep, setDebugStep] = useState<string>("1. පේජ් එක ලෝඩ් වීම ආරම්භ විය...");
 
   const [courseQuizzes, setCourseQuizzes] = useState<any[]>([]);
   const [activeSubjectId, setActiveSubjectId] = useState<string>("");
@@ -36,6 +37,7 @@ export default function CoursePlayerPage({ params }: PageProps) {
 
   useEffect(() => {
     const resolveParams = async () => {
+      setDebugStep("2. Course ID එක ලබා ගනිමින් පවතී...");
       const resolved = await params;
       setCourseId(resolved.id);
     };
@@ -46,8 +48,6 @@ export default function CoursePlayerPage({ params }: PageProps) {
     if (document.documentElement.classList.contains("dark")) setIsDarkMode(true);
   }, []);
 
-  // 🔴 Device Check Loop එක මම සම්පූර්ණයෙන්ම අයින් කළා, පේජ් එක හිරවෙන එක නවත්වන්න.
-
   // Database එකෙන් පාඨමාලාව සහ Quizzes ගෙන ඒම
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -56,12 +56,19 @@ export default function CoursePlayerPage({ params }: PageProps) {
     }
 
     const verifyAccessAndFetchCourse = async () => {
-      if (status !== "authenticated" || !courseId) return;
+      if (status !== "authenticated") {
+        setDebugStep(`3. User Login දත්ත පරීක්ෂා කරමින්... (Status: ${status})`);
+        return;
+      }
+      if (!courseId) {
+        setDebugStep("3. Course ID එක තවම ලැබී නැත...");
+        return;
+      }
 
       try {
+        setDebugStep("4. ශිෂ්‍යයාගේ අවසර පරීක්ෂා කරමින්... (Fetching API 1)");
         const userPhone = (session?.user as any)?.phone || session?.user?.name || session?.user?.email;
 
-        // 1. ළමයාට අවසර තියෙනවද කියලා බලනවා
         const accessRes = await fetch(`/api/student/courses?phone=${userPhone}`);
         const accessData = await accessRes.json();
 
@@ -73,7 +80,7 @@ export default function CoursePlayerPage({ params }: PageProps) {
           return;
         }
 
-        // 2. පාඨමාලාවේ දත්ත ගෙනෙනවා
+        setDebugStep("5. පාඨමාලාවේ දත්ත ගෙනෙමින්... (Fetching API 2)");
         const courseRes = await fetch(`/api/courses/${courseId}`);
         const courseDataRes = await courseRes.json();
 
@@ -97,7 +104,7 @@ export default function CoursePlayerPage({ params }: PageProps) {
           return;
         }
 
-        // 3. Quizzes ගෙන එන කොටස
+        setDebugStep("6. MCQ විභාග (Quizzes) ගෙනෙමින්... (Fetching API 3)");
         try {
           const quizRes = await fetch(`/api/student/quizzes/course/${courseId}`);
           if (quizRes.ok) {
@@ -110,11 +117,12 @@ export default function CoursePlayerPage({ params }: PageProps) {
           console.error("Quizzes Fetch Error:", quizError);
         }
 
+        setDebugStep("7. සියලුම දත්ත සාර්ථකයි! පේජ් එක විවෘත කරමින්...");
+        setIsLoading(false);
+
       } catch (error: any) {
         console.error("DEBUG ERROR - Course Player Error:", error);
         setErrorMsg("දත්ත ලබාගැනීමේදී දෝෂයක් මතු විය: " + error.message);
-      } finally {
-        setIsLoading(false);
       }
     };
 
@@ -196,12 +204,22 @@ export default function CoursePlayerPage({ params }: PageProps) {
   const textSecondary = isDarkMode ? "text-slate-400" : "text-slate-500";
   const playlistActiveBg = isDarkMode ? "bg-blue-600/20 border-blue-500" : "bg-blue-50 border-blue-500";
 
-  // 🔴 Loading State
+  // 🔴 අලුත්: Loading State (මෙතන තමයි පියවරෙන් පියවර පෙන්නන්නේ)
   if (isLoading) {
     return (
-      <div className={`min-h-screen flex flex-col items-center justify-center ${themeBg}`}>
+      <div className={`min-h-screen flex flex-col items-center justify-center p-6 ${themeBg}`}>
         <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-        <p className="font-bold text-lg text-slate-500">පාඨමාලාවට පිවිසෙමින් පවතී...</p>
+        <p className="font-bold text-lg text-slate-500 mb-6">පාඨමාලාවට පිවිසෙමින් පවතී...</p>
+        
+        {/* Debug (X-Ray) Box */}
+        <div className="w-full max-w-lg bg-slate-900 text-green-400 p-5 rounded-xl border border-slate-700 shadow-xl font-mono text-sm leading-relaxed">
+          <h4 className="text-white font-bold mb-3 border-b border-slate-700 pb-2">🔍 පද්ධති පරීක්ෂාව (Debug Info)</h4>
+          <p>Login Status: <span className="text-white">{status}</span></p>
+          <p>Course ID: <span className="text-white">{courseId || "තවම නැත"}</span></p>
+          <p className="mt-3 text-yellow-400 font-bold border-t border-slate-700 pt-3">
+            ▶️ {debugStep}
+          </p>
+        </div>
       </div>
     );
   }
