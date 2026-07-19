@@ -17,7 +17,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ logout: false });
     }
 
-    const user = await User.findOne({ phone });
+  const user = await User.findOne({ phone }).select("phone sessionId").lean();
     
     if (!user) return NextResponse.json({ logout: true });
 
