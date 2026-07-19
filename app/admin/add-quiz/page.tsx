@@ -14,10 +14,11 @@ export default function AddQuizPage() {
 
   const [courses, setCourses] = useState<any[]>([]);
 
-  // Quiz දත්ත ව්‍යුහය
+  // 🔴 Quiz දත්ත ව්‍යුහයට pdfUrl එකතු කළා
   const [quizData, setQuizData] = useState({
     courseId: "",
     title: "",
+    pdfUrl: "", // 🔴 අලුත්
     questions: [
       { questionText: "", options: ["", "", "", ""], correctOptionIndex: 0 }
     ]
@@ -163,6 +164,21 @@ export default function AddQuizPage() {
                   <label className="block text-sm font-bold mb-2">ප්‍රශ්න පත්‍රයේ නම (Title) *</label>
                   <input type="text" required value={quizData.title} onChange={(e) => setQuizData({...quizData, title: e.target.value})} className={`w-full p-3 rounded-xl border outline-none ${inputBg}`} placeholder="උදා: 1 වන ඒකකය ඇගයීම" />
                 </div>
+              </div>
+
+              {/* 🔴 අලුත්: PDF ලින්ක් එක දාන කොටස */}
+              <div className="mt-6 border-t border-slate-200 dark:border-slate-700 pt-6">
+                <label className="block text-sm font-bold mb-2">
+                  ප්‍රශ්න පත්‍රයේ PDF ලින්ක් එක <span className="text-slate-400 font-normal text-xs ml-2">(අත්‍යවශ්‍ය නැත)</span>
+                </label>
+                <input 
+                  type="url" 
+                  value={quizData.pdfUrl} 
+                  onChange={(e) => setQuizData({...quizData, pdfUrl: e.target.value})} 
+                  className={`w-full p-3 rounded-xl border outline-none ${inputBg}`} 
+                  placeholder="උදා: https://drive.google.com/file/d/..." 
+                />
+                <p className="text-xs text-slate-400 mt-2">Google Drive හි Upload කර "Anyone with the link can view" ලෙස සකසා ලින්ක් එක මෙහි ඇතුළත් කරන්න.</p>
               </div>
             </div>
 

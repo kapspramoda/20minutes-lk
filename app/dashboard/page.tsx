@@ -1,46 +1,50 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { signOut, useSession } from "next-auth/react";
-import imageCompression from "browser-image-compression";
-import Link from "next/link";
+import { useSession, signOut } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import Link from "next/link"; 
 
-export default function DashboardPage() {
+type PageProps = {
+  params: Promise<{ id: string }> | { id: string };
+};
+
+export default function CoursePlayerPage({ params }: PageProps) {
   const { data: session, status } = useSession();
+  const router = useRouter();
   
-  // --- States ---
+  const [courseId, setCourseId] = useState<string>("");
   const [isDarkMode, setIsDarkMode] = useState(false);
-  const [quizResults, setQuizResults] = useState<any[]>([]);
-  const [myCourses, setMyCourses] = useState<any[]>([]);
-  const [pendingCourses, setPendingCourses] = useState<any[]>([]);
-  const [isLoadingCourses, setIsLoadingCourses] = useState(true);
-  const [availableCourses, setAvailableCourses] = useState<any[]>([]);
-  const [isLoadingAvailable, setIsLoadingAvailable] = useState(true);
+  const [course, setCourse] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasAccess, setHasAccess] = useState(false);
 
-  // --- Modal States ---
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedCourse, setSelectedCourse] = useState<any>(null);
-  const [slipFile, setSlipFile] = useState<File | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  // Quizzes ගබඩා කරගන්න State එක
+  const [courseQuizzes, setCourseQuizzes] = useState<any[]>([]);
 
-  // --- Slider Refs ---
-  const myCourseRef = useRef<HTMLDivElement>(null);
-  const pendingRef = useRef<HTMLDivElement>(null);
-  const availableRef = useRef<HTMLDivElement>(null);
-  const [myCourseIndex, setMyCourseIndex] = useState(0);
-  const [pendingIndex, setPendingIndex] = useState(0);
-  const [availableIndex, setAvailableIndex] = useState(0);
+  const [activeSubjectId, setActiveSubjectId] = useState<string>("");
+  const [activeVideoUrl, setActiveVideoUrl] = useState<string>("");
+  const [activeVideoTitle, setActiveVideoTitle] = useState<string>("");
+  const [activePdfUrl, setActivePdfUrl] = useState<string>("");
+
+  const playerRef = useRef<HTMLIFrameElement>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const [volumeLevel, setVolumeLevel] = useState(100);
+
+  useEffect(() => {
+    const resolveParams = async () => {
+      const resolved = await params;
+      setCourseId(resolved.id);
+    };
+    resolveParams();
+  }, [params]);
 
   useEffect(() => {
     if (document.documentElement.classList.contains("dark")) setIsDarkMode(true);
   }, []);
 
-  const toggleTheme = () => {
-    setIsDarkMode(!isDarkMode);
-    if (!isDarkMode) document.documentElement.classList.add("dark");
-    else document.documentElement.classList.remove("dark");
-  };
-
+  // වෙනත් උපාංගයකින් ලොග් වී ඇත්දැයි බැලීමේ Security Check එක
   useEffect(() => {
     let interval: NodeJS.Timeout;
 
@@ -57,12 +61,12 @@ export default function DashboardPage() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ phone, currentSessionId: sessionId }),
-          cache: "no-store" 
+          cache: "no-store"
         });
         
         const data = await res.json();
         if (data.logout) {
-          alert("⚠️ ඔබගේ ගිණුම වෙනත් උපාංගයකින් ලොග් වී ඇත. ආරක්ෂාව තහවුරු කිරීම සඳහා ඔබව ඉවත් කෙරේ.");
+          alert("⚠️ ඔබගේ ගිණුම වෙනත් උපාංගයකින් ලොග් වී ඇත. වීඩියෝ නැරඹීම නතර කර ඔබව ඉවත් කෙරේ.");
           signOut({ callbackUrl: "/" });
         }
       } catch (error) {
@@ -71,9 +75,8 @@ export default function DashboardPage() {
     };
 
     if (status === "authenticated") {
-      checkSession(); 
-      interval = setInterval(checkSession, 15000); 
-      
+      checkSession();
+      interval = setInterval(checkSession, 15000);
       window.addEventListener("focus", checkSession);
       window.addEventListener("visibilitychange", () => {
         if (document.visibilityState === 'visible') checkSession();
@@ -87,425 +90,452 @@ export default function DashboardPage() {
     };
   }, [status, session]);
 
+  // Database එකෙන් පාඨමාලාව සහ Quizzes ගෙන ඒම
   useEffect(() => {
-    const fetchQuizResults = async () => {
-      const userPhone = (session?.user as any)?.phone || session?.user?.name || session?.user?.email;
-      if (!userPhone) return;
-      try {
-        const res = await fetch(`/api/student/quizzes/results?phone=${userPhone}`);
-        const data = await res.json();
-        if (res.ok) setQuizResults(data.data);
-      } catch (error) { console.error(error); }
-    };
-    if (status === "authenticated") fetchQuizResults();
-  }, [status, session]);
-
-  useEffect(() => {
-    const fetchMyCourses = async () => {
-      const userPhone = (session?.user as any)?.phone || session?.user?.name || session?.user?.email;
-      if (!userPhone) return;
-      try {
-        const res = await fetch(`/api/student/courses?phone=${userPhone}`);
-        const data = await res.json();
-        if (res.ok) {
-          setMyCourses(data.approvedCourses);
-          setPendingCourses(data.pendingCourses);
-        }
-      } catch (error) { console.error(error); } 
-      finally { setIsLoadingCourses(false); }
-    };
-    if (status === "authenticated") fetchMyCourses();
-  }, [status, session]);
-
-  useEffect(() => {
-    const fetchAvailableCourses = async () => {
-      try {
-        const res = await fetch("/api/courses");
-        const data = await res.json();
-        if (res.ok) setAvailableCourses(data.data.filter((c: any) => c.isVisible === true));
-      } catch (error) { console.error(error); } 
-      finally { setIsLoadingAvailable(false); }
-    };
-    fetchAvailableCourses();
-  }, []);
-  
-  const handleScroll = (ref: React.RefObject<HTMLDivElement | null>, setIndex: (idx: number) => void, totalItems: number) => {
-    if (!ref.current) return;
-    const { scrollLeft, scrollWidth } = ref.current;
-    const itemWidth = scrollWidth / totalItems;
-    setIndex(Math.round(scrollLeft / itemWidth));
-  };
-
-  const handleEnrollClick = (course: any) => {
-    setSelectedCourse(course);
-    setIsModalOpen(true);
-  };
-
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-    setSelectedCourse(null);
-    setSlipFile(null);
-  };
-
-  const handleSubmitSlip = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // 🔴 පින්තූරය තෝරාගෙන නැත්නම් Validation එක
-    if (!slipFile) {
-      alert("කරුණාකර Bank Slip එක ඇතුළත් කරන්න.");
+    if (status === "unauthenticated") {
+      router.push("/dashboard");
       return;
     }
 
-    const userPhone = (session?.user as any)?.phone || session?.user?.name || session?.user?.email;
-    if (!userPhone) return alert("කරුණාකර නැවත ලොග් වන්න.");
+    const verifyAccessAndFetchCourse = async () => {
+      if (status !== "authenticated" || !courseId) return;
 
-    setIsSubmitting(true);
-    try {
-      let fileToUpload: File | Blob = slipFile;
-      
-      // 🔴 වෙනස් කළ කොටස: Vercel සීමාවට ගැලපෙන්න පින්තූරය තදින් Compress කිරීම (150KB පමණ)
-      if (slipFile.type.startsWith("image/")) {
-        fileToUpload = await imageCompression(slipFile, { 
-          maxSizeMB: 0.15, // උපරිම 150KB
-          maxWidthOrHeight: 800, // විභේදනය අඩු කිරීම
-          useWebWorker: true 
-        });
-      }
+      try {
+        const userPhone = (session?.user as any)?.phone || session?.user?.name || session?.user?.email;
 
-      const reader = new FileReader();
-      reader.readAsDataURL(fileToUpload);
-      reader.onload = async () => {
-        const numericPrice = Number(selectedCourse.price?.replace(/[^0-9]/g, '')) || 0;
+        const accessRes = await fetch(`/api/student/courses?phone=${userPhone}`);
+        const accessData = await accessRes.json();
 
-        const res = await fetch("/api/enroll", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            userPhone,
-            courseId: selectedCourse._id,
-            courseTitle: selectedCourse.title,
-            amount: numericPrice,
-            slipImage: reader.result,
-          }),
-        });
+        const isApproved = accessData.approvedCourses?.some((c: any) => c.courseId === courseId || c._id === courseId);
 
-        const data = await res.json();
-        if (res.ok) {
-          alert("ඔබේ රිසිට් පත සාර්ථකව යොමු කරන ලදී!");
-          window.location.reload(); 
-        } else {
-          alert(data.message || "දෝෂයක් මතු විය.");
+        if (!isApproved) {
+          alert("🚫 ඔබට මෙම පාඨමාලාව නැරඹීමට අවසර නොමැත. කරුණාකර මුදල් ගෙවා අනුමැතිය ලබාගන්න.");
+          router.push("/dashboard");
+          return;
         }
-        setIsSubmitting(false);
-      };
-    } catch (error) {
-      alert("තාක්ෂණික දෝෂයකි.");
-      setIsSubmitting(false);
+
+        const courseRes = await fetch(`/api/courses/${courseId}`);
+        const courseDataRes = await courseRes.json();
+
+        if (courseDataRes.success) {
+          const fetchedCourse = courseDataRes.data;
+          setCourse(fetchedCourse);
+          setHasAccess(true);
+
+          if (fetchedCourse.subjects && fetchedCourse.subjects.length > 0) {
+            const firstSub = fetchedCourse.subjects[0];
+            setActiveSubjectId(firstSub.subjectId || firstSub._id);
+            
+            if (firstSub.lessons && firstSub.lessons.length > 0) {
+              setActiveVideoUrl(firstSub.lessons[0].videoEmbed);
+              setActiveVideoTitle(firstSub.lessons[0].title);
+              setActivePdfUrl(firstSub.lessons[0].pdfUrl);
+            }
+          }
+        } else {
+          alert("පාඨමාලාව සොයාගැනීමට නොහැක!");
+          router.push("/dashboard");
+          return;
+        }
+
+        // Quizzes ගෙන එන කොටස
+        try {
+          const quizRes = await fetch(`/api/student/quizzes/course/${courseId}`, {
+            cache: "no-store",
+            headers: {
+              'Cache-Control': 'no-cache',
+              'Pragma': 'no-cache'
+            }
+          });
+          
+          if (quizRes.ok) {
+            const quizData = await quizRes.json();
+            if (quizData.success) {
+              setCourseQuizzes(quizData.data);
+            }
+          } else {
+             console.log("Quiz API එක සොයාගැනීමට නොහැක.");
+          }
+        } catch (quizError) {
+          console.error("Quizzes ගෙන ඒමේදී දෝෂයක්:", quizError);
+        }
+
+      } catch (error) {
+        console.error("Course Player Error:", error);
+        alert("තාක්ෂණික දෝෂයක් මතු විය. කරුණාකර නැවත උත්සාහ කරන්න.");
+        router.push("/dashboard");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    verifyAccessAndFetchCourse();
+  }, [status, session, courseId, router]);
+
+  // --- Player Functions ---
+  const handleSubjectChange = (subId: string) => {
+    setActiveSubjectId(subId);
+    const selectedSub = course?.subjects?.find((s: any) => (s.subjectId || s._id) === subId);
+    if (selectedSub && selectedSub.lessons && selectedSub.lessons.length > 0) {
+      setActiveVideoUrl(selectedSub.lessons[0].videoEmbed);
+      setActiveVideoTitle(selectedSub.lessons[0].title);
+      setActivePdfUrl(selectedSub.lessons[0].pdfUrl);
     }
   };
 
+  const toggleTheme = () => {
+    setIsDarkMode(!isDarkMode);
+    if (!isDarkMode) document.documentElement.classList.add("dark");
+    else document.documentElement.classList.remove("dark");
+  };
+
+  const getSecuredVideoUrl = (originalUrl: string) => {
+    if(!originalUrl) return "";
+    
+    // YouTube Video ID එක හොයාගන්න Regex එක (Live, Watch, Youtu.be සියල්ලටම සපෝට් කරයි)
+    const ytRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?|live)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i;
+    const match = originalUrl.match(ytRegex);
+    
+    if (match && match[1]) {
+      // YouTube ලින්ක් එකක් නම්, ඒක නිවැරදි Embed ලින්ක් එකක් විදිහටම හදනවා
+      return `https://www.youtube.com/embed/${match[1]}?rel=0&modestbranding=1&showinfo=0&controls=1&disablekb=1&iv_load_policy=3&fs=0&enablejsapi=1`;
+    }
+    
+    // වෙනත් ලින්ක් එකක් නම් (උදා: Vimeo), තිබුණු එකටම පරාමිතීන් එකතු කරනවා
+    const separator = originalUrl.includes("?") ? "&" : "?";
+    return `${originalUrl}${separator}rel=0&modestbranding=1&showinfo=0&controls=1&disablekb=1&iv_load_policy=3&fs=0&enablejsapi=1`;
+  };
+
+  const sendYouTubeCommand = (func: string, args: any[] = []) => {
+    if (playerRef.current && playerRef.current.contentWindow) {
+      playerRef.current.contentWindow.postMessage(JSON.stringify({ event: "command", func: func, args: args }), "*");
+    }
+  };
+
+  const handleToggleMute = () => {
+    if (isMuted) { sendYouTubeCommand("unMute"); setIsMuted(false); } 
+    else { sendYouTubeCommand("mute"); setIsMuted(true); }
+  };
+
+  const handleVolumeDown = () => {
+    const newVol = Math.max(volumeLevel - 10, 0);
+    setVolumeLevel(newVol);
+    sendYouTubeCommand("setVolume", [newVol]);
+    if (newVol === 0) { sendYouTubeCommand("mute"); setIsMuted(true); }
+  };
+
+  const handleVolumeUp = () => {
+    const newVol = Math.min(volumeLevel + 10, 100);
+    setVolumeLevel(newVol);
+    sendYouTubeCommand("setVolume", [newVol]);
+    if (isMuted) { sendYouTubeCommand("unMute"); setIsMuted(false); }
+  };
+
+  const toggleFullScreen = () => {
+    if (!isFullscreen) {
+      setIsFullscreen(true);
+      try { if (screen.orientation && (screen.orientation as any).lock) (screen.orientation as any).lock("landscape").catch(() => {}); } catch (e) {}
+    } else {
+      setIsFullscreen(false);
+      try { if (screen.orientation && (screen.orientation as any).unlock) (screen.orientation as any).unlock(); } catch (e) {}
+    }
+  };
+
+  // --- Styles ---
   const themeBg = isDarkMode ? "bg-slate-900 text-slate-100" : "bg-slate-50 text-slate-800";
   const headerBg = isDarkMode ? "bg-slate-900/80 border-slate-800" : "bg-white/80 border-slate-200";
-  const logoTextColor = isDarkMode ? "text-white" : "text-slate-900";
-  const sectionTitleColor = isDarkMode ? "text-white" : "text-slate-900";
-  const cardBg = isDarkMode ? "bg-slate-800 border-slate-700" : "bg-white border-slate-100";
-  const cardTitle = isDarkMode ? "text-white" : "text-slate-800";
-  const inputBg = isDarkMode ? "bg-slate-700 border-slate-600 text-white placeholder-slate-400" : "bg-slate-50 border-slate-200 text-slate-900";
-  const modalOverlayBg = isDarkMode ? "bg-slate-950/80" : "bg-slate-900/60";
-  const modalBodyBg = isDarkMode ? "bg-slate-800 border-slate-700" : "bg-white border-transparent";
-  const modalBoxBg = isDarkMode ? "bg-slate-700/50 border-slate-600" : "bg-slate-50 border-slate-200";
+  const cardBg = isDarkMode ? "bg-slate-800 border-slate-700" : "bg-white border-slate-200";
   const textPrimary = isDarkMode ? "text-white" : "text-slate-900";
   const textSecondary = isDarkMode ? "text-slate-400" : "text-slate-500";
+  const playlistActiveBg = isDarkMode ? "bg-blue-600/20 border-blue-500" : "bg-blue-50 border-blue-500";
+
+  if (isLoading) {
+    return (
+      <div className={`min-h-screen flex flex-col items-center justify-center ${themeBg}`}>
+        <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+        <p className="font-bold text-lg text-slate-500">පාඨමාලාවේ ආරක්ෂාව තහවුරු කරමින් පවතී...</p>
+      </div>
+    );
+  }
+
+  if (!hasAccess || !course) return null;
+
+  const activeSubject = course.subjects?.find((s: any) => (s.subjectId || s._id) === activeSubjectId);
 
   return (
-    <div className={`modern-font flex min-h-screen flex-col transition-colors duration-300 ${themeBg}`}>
+    <div className={`modern-font min-h-screen transition-colors duration-300 ${themeBg}`}>
       
-      {/* --- Header --- */}
-      <header className={`sticky top-0 z-50 w-full border-b backdrop-blur-md transition-all duration-300 ${headerBg}`}>
+      <header className={`sticky top-0 z-50 w-full border-b backdrop-blur-md ${headerBg}`}>
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 md:px-6 md:py-4">
           <div className="flex items-center gap-2 md:gap-3">
-            <img src="/logo.png" alt="20minutes.lk Logo" className="h-7 w-auto sm:h-8 md:h-10 rounded-xl shadow-sm opacity-95" />
-            <span className={`logo-font text-lg md:text-2xl font-semibold truncate ${logoTextColor}`}>20minutes.lk</span>
-          </div>
-
-          <div className="flex items-center space-x-3 md:space-x-5 flex-shrink-0">
-            <button 
-              onClick={toggleTheme}
-              className={`rounded-full p-2 transition-colors focus:outline-none ${isDarkMode ? 'bg-slate-800 text-yellow-400 hover:bg-slate-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
-            >
-              {isDarkMode ? (
-                <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" /></svg>
-              ) : (
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
-              )}
+            <button onClick={() => router.push('/dashboard')} className={`p-2 rounded-full ${isDarkMode ? 'bg-slate-800 hover:bg-slate-700' : 'bg-slate-100 hover:bg-slate-200'}`}>
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
             </button>
-
-            <div className="hidden md:block font-medium text-sm">
-              ආයුබෝවන්, <span className="text-blue-500 font-bold">{session?.user?.name || "ශිෂ්‍යයා"}</span>
-            </div>
-            
-            <button
-              onClick={() => signOut({ callbackUrl: "/" })}
-              className="rounded-full bg-red-500/10 border border-red-500/50 px-4 py-1.5 text-xs md:text-sm font-semibold text-red-500 transition hover:bg-red-500 hover:text-white"
-            >
+            <h1 className={`text-base md:text-xl font-bold truncate max-w-[200px] sm:max-w-md md:max-w-lg ${textPrimary}`}>{course.title}</h1>
+          </div>
+          
+          <div className="flex items-center flex-shrink-0 gap-3">
+            <button onClick={toggleTheme} className={`rounded-full p-2 transition-colors focus:outline-none ${isDarkMode ? 'bg-slate-800 text-yellow-400' : 'bg-slate-100 text-slate-600'}`}>
+              {isDarkMode ? <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" /></svg> : <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>}
+            </button>
+            <button onClick={() => signOut({ callbackUrl: "/" })} className="rounded-full bg-red-500/10 border border-red-500/50 px-4 py-1.5 text-xs md:text-sm font-semibold text-red-500 transition hover:bg-red-50 hover:text-white">
               ඉවත් වන්න
             </button>
           </div>
         </div>
       </header>
 
-      <main className="flex-grow mx-auto w-full max-w-7xl p-4 md:p-6 mt-4">
+      <main className="mx-auto max-w-7xl p-4 md:p-6 lg:p-8 mt-2 md:mt-4 pb-12">
         
-        {isLoadingCourses ? (
-          <div className="flex justify-center items-center h-40">
-            <p className="text-lg font-bold text-slate-400 animate-pulse">ඔබගේ දත්ත ගෙනෙමින් පවතී...</p>
-          </div>
-        ) : (
-          <>
-            {/* 1. මගේ පාඨමාලා */}
-            {myCourses.length > 0 && (
-              <section className="mb-12 md:mb-16">
-                <h2 className={`mb-6 text-xl md:text-2xl font-bold border-l-4 border-emerald-500 pl-3 ${sectionTitleColor}`}>මගේ පාඨමාලා (My Courses)</h2>
-                
-                <div 
-                  ref={myCourseRef}
-                  onScroll={() => handleScroll(myCourseRef as any, setMyCourseIndex, myCourses.length)}
-                  className="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-4 md:flex-wrap md:justify-start md:gap-8 md:overflow-visible [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']"
-                >
-                  {myCourses.map((course) => {
-                    const fullCourse = availableCourses.find(c => c._id === course.courseId);
-                    return (
-                      <div key={course._id} className={`flex-none w-[75%] sm:w-[45%] md:w-[30%] snap-center overflow-hidden rounded-2xl shadow-sm transition hover:shadow-md border flex flex-col ${cardBg}`}>
-                        {fullCourse?.coverImage ? (
-                          <img src={fullCourse.coverImage} className="w-full h-32 md:h-40 object-cover" alt="Cover" />
-                        ) : (
-                          <div className="bg-emerald-500/10 h-32 md:h-40 flex items-center justify-center">
-                            <svg className="w-10 h-10 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                          </div>
-                        )}
-                        <div className="p-5 flex flex-col flex-grow justify-between">
-                          <h3 className={`mb-4 text-sm md:text-base font-bold line-clamp-2 ${cardTitle}`}>{course.courseTitle}</h3>
-                          <Link 
-                            href={`/course/${course.courseId}`} 
-                            className="w-full text-center rounded-full bg-emerald-500 py-2.5 text-xs md:text-sm font-bold text-white hover:bg-emerald-600 transition shadow-sm mt-auto block"
-                          >
-                            පාඨමාලාවට පිවිසෙන්න
-                          </Link>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </section>
-            )}
-
-            {/* 2. අනුමැතිය පවතින */}
-            {pendingCourses.length > 0 && (
-              <section className="mb-12 md:mb-16">
-                <h2 className={`mb-6 text-xl md:text-2xl font-bold border-l-4 border-amber-500 pl-3 ${sectionTitleColor}`}>අනුමැතිය පවතින (Pending Approvals)</h2>
-                
-                <div 
-                  ref={pendingRef}
-                  onScroll={() => handleScroll(pendingRef as any, setPendingIndex, pendingCourses.length)}
-                  className="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-4 md:flex-wrap md:justify-start md:gap-8 md:overflow-visible [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']"
-                >
-                  {pendingCourses.map((course) => {
-                    const fullCourse = availableCourses.find(c => c._id === course.courseId);
-                    return (
-                      <div key={course._id} className={`flex-none w-[75%] sm:w-[45%] md:w-[30%] snap-center overflow-hidden rounded-2xl shadow-sm border relative opacity-80 flex flex-col ${cardBg}`}>
-                        <div className="absolute top-3 right-3 bg-amber-500/90 text-white shadow-sm text-xs font-bold px-2.5 py-1 rounded-full z-10">Pending</div>
-                        {fullCourse?.coverImage ? (
-                          <img src={fullCourse.coverImage} className="w-full h-32 md:h-40 object-cover grayscale opacity-70" alt="Cover" />
-                        ) : (
-                          <div className="bg-slate-500/10 h-32 md:h-40 flex items-center justify-center">
-                            <svg className={`w-10 h-10 ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                          </div>
-                        )}
-                        <div className="p-5 flex flex-col flex-grow justify-between">
-                          <h3 className={`mb-2 text-sm md:text-base font-bold line-clamp-2 ${cardTitle}`}>{course.courseTitle}</h3>
-                          <p className={`text-xs mb-4 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Admin විසින් රිසිට් පත පරීක්ෂා කරමින් පවතී.</p>
-                          <button disabled className={`w-full rounded-full py-2.5 text-xs md:text-sm font-bold cursor-not-allowed mt-auto ${isDarkMode ? 'bg-slate-700 text-slate-500' : 'bg-slate-100 text-slate-400'}`}>
-                            අනුමත වනතුරු රැඳෙන්න
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </section>
-            )}
-
-            {/* ළමයාට කිසිම පාඨමාලාවක් නැත්නම් */}
-            {myCourses.length === 0 && pendingCourses.length === 0 && (
-              <div className={`mb-12 p-8 text-center rounded-2xl border ${isDarkMode ? 'border-slate-700 bg-slate-800/50' : 'border-slate-200 bg-slate-50'}`}>
-                <h3 className={`text-lg font-bold mb-2 ${textPrimary}`}>ඔබ තවමත් කිසිදු පාඨමාලාවකට ඇතුළත් වී නොමැත! 📚</h3>
-                <p className={`text-sm ${textSecondary}`}>පහතින් ඇති පාඨමාලා වලින් ඔබට අවශ්‍ය පාඨමාලාව තෝරාගෙන ඇතුළත් වන්න.</p>
-              </div>
-            )}
-          </>
-        )}
-
-        {/* 📊 MCQ විභාග ප්‍රතිඵල ලේඛනය */}
-        {quizResults.length > 0 && (
-          <section className="mb-12 md:mb-16">
-            <h2 className={`mb-6 text-xl md:text-2xl font-bold border-l-4 border-purple-500 pl-3 ${sectionTitleColor}`}>මුහුණ දුන් MCQ විභාග ප්‍රතිඵල (Quiz Results)</h2>
-            <div className={`rounded-2xl border overflow-hidden shadow-sm ${cardBg}`}>
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm">
-                  <thead className={`text-xs uppercase font-bold border-b ${isDarkMode ? 'bg-slate-800 text-slate-400 border-slate-700' : 'bg-slate-50 text-slate-500 border-slate-200'}`}>
-                    <tr>
-                      <th className="px-6 py-4">විභාගයේ නම (Exam Title)</th>
-                      <th className="px-6 py-4">ලබාගත් ලකුණු (Score)</th>
-                      <th className="px-6 py-4">ප්‍රතිශතය (Percentage)</th>
-                      <th className="px-6 py-4">දිනය (Date)</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-                    {quizResults.map((result) => {
-                      const percentage = (result.score / result.totalQuestions) * 100;
-                      return (
-                        <tr key={result._id} className={isDarkMode ? 'hover:bg-slate-700/50' : 'hover:bg-slate-50'}>
-                          <td className={`px-6 py-4 font-bold ${textPrimary}`}>{result.quizTitle}</td>
-                          <td className="px-6 py-4 font-black text-blue-500">{result.score} / {result.totalQuestions}</td>
-                          <td className="px-6 py-4">
-                            <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${percentage >= 50 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                              {percentage.toFixed(1)}%
-                            </span>
-                          </td>
-                          <td className={`px-6 py-4 ${textSecondary}`}>
-                            {new Date(result.createdAt).toLocaleDateString('si-LK')}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </section>
-        )}
-
-        {/* 3. ලබාගත හැකි අලුත් පාඨමාලා */}
-        <section>
-          <h2 className={`mb-6 text-xl md:text-2xl font-bold border-l-4 border-blue-500 pl-3 ${sectionTitleColor}`}>අලුත් පාඨමාලා (Available Courses)</h2>
-          
-          {isLoadingAvailable ? (
-            <div className="text-center py-10 font-bold text-slate-400 animate-pulse">
-              අලුත් පාඨමාලා ලබාගනිමින් පවතී...
-            </div>
-          ) : availableCourses.length === 0 ? (
-            <div className={`p-8 text-center rounded-2xl border ${cardBg}`}>
-               <p className={textSecondary}>දැනට අලුත් පාඨමාලා කිසිවක් නොමැත.</p>
-            </div>
-          ) : (
-            <div 
-              ref={availableRef}
-              onScroll={() => handleScroll(availableRef as any, setAvailableIndex, availableCourses.length)}
-              className="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-4 md:flex-wrap md:justify-start md:gap-8 md:overflow-visible [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']"
-            >
-              {availableCourses.map((course) => (
-                <div key={course._id} className={`flex-none w-[75%] sm:w-[45%] md:w-[30%] snap-center flex flex-col overflow-hidden rounded-2xl shadow-sm transition hover:shadow-md border hover:-translate-y-1 duration-300 ${cardBg}`}>
-                  {course.coverImage ? (
-                    <img src={course.coverImage} className="w-full h-40 md:h-48 object-cover" alt="Cover" />
-                  ) : (
-                    <div className="bg-blue-500/10 h-40 md:h-48 flex items-center justify-center">
-                      <svg className="w-10 h-10 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
-                    </div>
-                  )}
-                  <div className="p-5 flex flex-col flex-grow justify-between">
-                    <div>
-                      <h3 className={`mb-2 text-sm md:text-base font-bold line-clamp-2 ${cardTitle}`}>{course.title}</h3>
-                      <p className="text-sm font-extrabold text-blue-500 mb-4">{course.price || "මාසික ගාස්තුව අදාළ වේ"}</p>
-                    </div>
-                    <button 
-                      onClick={() => handleEnrollClick(course)}
-                      className="w-full rounded-full bg-blue-600 py-2.5 text-xs md:text-sm font-bold text-white hover:bg-blue-700 transition shadow-sm mt-auto"
-                    >
-                      ඇතුළත් වන්න (Enroll)
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-      </main>
-
-      {/* --- Footer --- */}
-      <footer className={`px-4 py-10 transition-colors duration-300 md:px-6 md:py-16 mt-12 ${isDarkMode ? 'bg-black text-slate-400 border-t border-slate-900' : 'bg-slate-900 text-slate-300'}`}>
-        <div className="mx-auto grid max-w-7xl gap-10 md:grid-cols-3 md:gap-12">
+        {course.notification && (
+        <div className="mb-6 p-4 md:p-5 bg-yellow-100 dark:bg-amber-900/30 border-2 border-yellow-400 dark:border-amber-600 rounded-xl flex items-start gap-3 shadow-md animate-in fade-in">
+          <span className="text-2xl mt-0.5">📢</span>
           <div>
-            <div className="flex items-center gap-3 mb-4 md:mb-6">
-              <img src="/logo.png" alt="20minutes.lk Logo" className="h-8 w-auto md:h-10 opacity-90 rounded-xl" />
-              <h3 className="logo-font text-xl font-extrabold text-white md:text-2xl tracking-tight">20minutes.lk</h3>
-            </div>
-            <p className="text-sm leading-relaxed text-slate-400">
-              තරග විභාග ජයගැනීමට අවශ්‍ය නිවැරදිම මඟපෙන්වීම ලබාදෙන ශ්‍රී ලංකාවේ ප්‍රමුඛතම මාර්ගගත වේදිකාව.
+            <h4 className="text-yellow-900 dark:text-amber-400 font-extrabold text-sm md:text-base mb-1">විශේෂ පණිවිඩයයි</h4>
+            <p className="text-yellow-900/90 dark:text-amber-200 text-sm font-bold whitespace-pre-wrap leading-relaxed">
+              {course.notification}
             </p>
-          </div>
-          
-          <div>
-            <h4 className="mb-4 text-base font-bold text-white md:mb-6 md:text-lg">අපව සම්බන්ධ කරගන්න</h4>
-            <ul className="space-y-4 text-sm text-slate-400">
-              <li className="flex items-start"><span className="mr-3 text-lg mt-0.5">📍</span><span>Sewana Mawatha, Gagabada Road,<br/>Suwarapola, Piliyandala</span></li>
-              <li className="flex items-center"><span className="mr-3 text-lg">💬</span><span>071 968 9513 (WhatsApp)</span></li>
-            </ul>
-          </div>
-        </div>
-      </footer>
-
-      {/* Payment Modal */}
-      {isModalOpen && selectedCourse && (
-        <div className={`fixed inset-0 z-[60] flex items-center justify-center p-4 backdrop-blur-sm ${modalOverlayBg}`}>
-          <div className={`w-full max-w-lg rounded-3xl p-6 md:p-8 shadow-2xl animate-in fade-in zoom-in border ${modalBodyBg}`}>
-            <div className={`mb-5 flex items-center justify-between border-b pb-4 ${isDarkMode ? 'border-slate-700' : 'border-slate-100'}`}>
-              <h3 className={`text-lg md:text-xl font-extrabold ${sectionTitleColor}`}>පාඨමාලාවට ඇතුළත් වීම</h3>
-              <button onClick={handleCloseModal} className={`rounded-full p-1.5 transition-colors ${isDarkMode ? 'bg-slate-700 text-slate-400 hover:text-red-400' : 'bg-slate-100 text-slate-400 hover:text-red-500'}`}>
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
-              </button>
-            </div>
-
-            <div className={`mb-6 rounded-2xl p-4 border ${isDarkMode ? 'bg-blue-900/20 border-blue-800/30' : 'bg-blue-50/50 border-blue-100/50'}`}>
-              <p className={`font-bold text-sm ${cardTitle}`}>{selectedCourse.title}</p>
-              <p className="mt-2 font-extrabold text-blue-500 text-lg">ගෙවිය යුතු මුදල: {selectedCourse.price || "මාසික ගාස්තුව අදාළ වේ"}</p>
-            </div>
-
-            <div className="mb-6 max-h-40 overflow-y-auto pr-2">
-              <h4 className={`mb-2 text-sm font-bold ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>පහත බැංකු ගිණුමකට මුදල් තැන්පත් කරන්න:</h4>
-              
-              {selectedCourse.bankAccounts?.length > 0 ? (
-                selectedCourse.bankAccounts.map((bank: any, idx: number) => (
-                  <div key={idx} className={`mb-3 rounded-xl p-3 text-sm border space-y-1 ${modalBoxBg} ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
-                    <p><strong className="font-bold">බැංකුව:</strong> {bank.bankName} - {bank.branch}</p>
-                    <p><strong className="font-bold">ගිණුම් අංකය:</strong> <span className="font-bold text-blue-500 text-base ml-1">{bank.accNumber}</span></p>
-                    <p><strong className="font-bold">නම:</strong> {bank.accName}</p>
-                  </div>
-                ))
-              ) : (
-                <p className="text-sm text-red-500 font-bold bg-red-50 p-3 rounded-lg">මෙම පාඨමාලාවට ගිණුම් විස්තර ඇතුළත් කර නොමැත.</p>
-              )}
-            </div>
-
-            <form onSubmit={handleSubmitSlip}>
-              <div className="mb-6">
-                <label className={`mb-2 block text-sm font-bold ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>බැංකු රිසිට් පත (Bank Slip) උඩුගත කරන්න</label>
-                <input
-                  type="file"
-                  required
-                  accept="image/*,application/pdf"
-                  onChange={(e) => setSlipFile(e.target.files ? e.target.files[0] : null)}
-                  className={`block w-full text-sm file:mr-4 file:rounded-full file:border-0 file:px-4 file:py-2 file:text-xs file:font-bold transition-all ${inputBg} ${isDarkMode ? 'file:bg-blue-900/40 file:text-blue-400 hover:file:bg-blue-800/50' : 'file:bg-blue-50 file:text-blue-600 hover:file:bg-blue-100'}`}
-                />
-              </div>
-
-              <div className="flex justify-end space-x-3 mt-8">
-                <button type="button" onClick={handleCloseModal} className={`rounded-full px-5 py-2.5 text-sm font-bold ${isDarkMode ? 'bg-slate-700 text-slate-300 hover:bg-slate-600' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>අවලංගු කරන්න</button>
-                <button type="submit" disabled={isSubmitting} className="rounded-full bg-blue-600 px-5 py-2.5 text-sm font-bold text-white shadow-md disabled:opacity-70 hover:bg-blue-700">{isSubmitting ? "යොමු කරමින් පවතී..." : "Slip එක යොමු කරන්න"}</button>
-              </div>
-            </form>
           </div>
         </div>
       )}
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 md:mb-8">
+          {course.whatsappLink && (
+            <div className={`flex items-center justify-between rounded-2xl p-4 border shadow-sm ${isDarkMode ? 'bg-emerald-900/10 border-emerald-800/30' : 'bg-emerald-50/60 border-emerald-100'}`}>
+              <div className="flex items-center gap-3 truncate">
+                <div className="bg-[#25D366] rounded-full p-2.5 text-white flex-shrink-0 shadow-sm">
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12.031 0C5.385 0 0 5.383 0 12.032c0 2.128.552 4.195 1.6 6.012L.15 24l6.105-1.597A11.964 11.964 0 0012.031 24c6.643 0 12.032-5.385 12.032-12.032C24.063 5.383 18.674 0 12.031 0zm7.143 17.15c-.302.854-1.745 1.622-2.42 1.706-.527.067-1.196.126-3.414-.795-2.65-1.1-4.329-3.82-4.46-3.993-.134-.176-1.066-1.423-1.066-2.715 0-1.291.674-1.93 9.17-2.18.232-.174.526-.298.777-.074.251.222.79 1.107.962 1.328.172.222.155.397-.094.646-.248.248-.567.58-.826.855-.276.294-.567.616-.251 1.157.316.541 1.405 2.321 3.003 3.766 2.062 1.865 3.864 2.457 4.417 2.712.553.254.877.206 1.206-.178.328-.383 1.41-1.642 1.79-2.204.381-.564.76-.469 1.258-.293.498.177 3.153 1.488 3.693 1.754.541.266.903.398 1.036.621.132.222.132 1.288-.17 2.143z" /></svg>
+                </div>
+                <div className="truncate">
+                  <h4 className="text-sm font-bold">WhatsApp Group</h4>
+                  <p className={`text-xs truncate ${textSecondary}`}>නිල නිවේදන ලබාගැනීමට</p>
+                </div>
+              </div>
+              <button onClick={() => window.open(course.whatsappLink, "_blank")} className="rounded-xl bg-[#25D366] text-white px-4 py-2 text-xs font-bold hover:bg-[#20b858] transition-all flex-shrink-0 shadow-sm">Join</button>
+            </div>
+          )}
+
+          {activeSubject?.liveClass?.zoomLink && (
+            <div className={`flex items-center justify-between rounded-2xl p-4 border shadow-sm ${isDarkMode ? 'bg-blue-900/10 border-blue-800/30' : 'bg-blue-50/60 border-blue-100'}`}>
+              <div className="flex items-center gap-3 truncate">
+                <div className="bg-[#2D8CFF] rounded-full p-2.5 text-white flex-shrink-0 shadow-sm">
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M17.064 7.604a1.442 1.442 0 00-1.428.169l-2.915 1.943v-2.3a1.944 1.944 0 00-1.943-1.943H2.943A1.944 1.944 0 001 7.417v9.166A1.944 1.944 0 002.943 18.53h7.835a1.944 1.944 0 001.943-1.943v-2.3l2.915 1.943a1.44 1.44 0 002.264-1.196V9.166a1.44 1.44 0 00-1.836-1.162z" /></svg>
+                </div>
+                <div className="truncate">
+                  <h4 className="text-sm font-bold">සජීවී Zoom පන්තිය</h4>
+                  <p className={`text-xs truncate ${textSecondary}`}>{activeSubject.liveClass.time}</p>
+                </div>
+              </div>
+              <button onClick={() => window.open(activeSubject.liveClass.zoomLink, "_blank")} className="rounded-xl bg-[#2D8CFF] text-white px-4 py-2 text-xs font-bold hover:bg-[#257ae0] transition-all flex-shrink-0 shadow-sm">Zoom</button>
+            </div>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8 items-start">
+          
+          <div className="lg:col-span-2 space-y-4 md:space-y-6">
+            
+            {/* වීඩියෝ Player එක */}
+            <div className={
+                  isFullscreen 
+                  ? "fixed inset-0 z-[99999] bg-black w-screen h-[100dvh] flex flex-col justify-center select-none" 
+                  : "aspect-video w-full bg-black relative rounded-xl md:rounded-2xl overflow-hidden shadow-lg select-none"
+                }
+                 onContextMenu={(e) => e.preventDefault()}
+            >
+              
+              {isFullscreen && (
+                <button 
+                  onClick={toggleFullScreen} 
+                  className="absolute top-4 right-4 z-[1000] bg-white/20 p-2 rounded-full text-white hover:bg-white/40 border border-white/30 backdrop-blur-sm transition-all"
+                >
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+              )}
+
+              <div className="relative w-full h-full flex-grow">
+                <div className="absolute top-0 left-0 w-full h-[65px] md:h-[75px] z-[999] bg-black pointer-events-none"></div>
+                <div className="absolute bottom-0 left-0 w-full h-[60px] md:h-[65px] z-[999] bg-black pointer-events-none flex items-center justify-end px-3 md:px-5">
+                  <span className="text-[10px] md:text-xs font-bold text-slate-500/80 mb-2 mr-1">20minutes.lk</span>
+                </div>
+
+                {activeVideoUrl ? (
+                  <iframe 
+                    ref={playerRef}
+                    src={getSecuredVideoUrl(activeVideoUrl)} 
+                    title={activeVideoTitle}
+                    className="w-full h-full relative z-0 pointer-events-auto"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                  ></iframe>
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-slate-500 font-bold">වීඩියෝවක් තෝරා නොමැත</div>
+                )}
+              </div>
+            </div>
+
+            {/* Now Playing - පාලන බොත්තම් */}
+            <div className={`p-4 md:p-5 rounded-xl md:rounded-2xl border shadow-sm flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 ${cardBg}`}>
+              <div className="truncate">
+                <span className="text-[10px] md:text-xs font-bold uppercase tracking-wider text-blue-500">දැන් ධාවනය වේ (Now Playing)</span>
+                <h3 className={`text-sm md:text-lg font-bold mt-0.5 truncate ${textPrimary}`}>{activeVideoTitle || "පාඩමක් තෝරන්න"}</h3>
+              </div>
+              
+              <div className="flex items-center gap-2 md:gap-3 flex-wrap">
+                
+                <div className={`flex items-center rounded-xl border overflow-hidden shadow-sm flex-shrink-0 ${isDarkMode ? 'bg-slate-800 border-slate-600' : 'bg-slate-100 border-slate-300'}`}>
+                  <button onClick={handleVolumeDown} className={`px-3 py-2.5 md:py-3 transition-colors ${isDarkMode ? 'hover:bg-slate-700 text-slate-300' : 'hover:bg-slate-200 text-slate-700'}`}>
+                    <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M18 12H6" /></svg>
+                  </button>
+                  <button onClick={handleToggleMute} className={`px-3 py-2.5 md:py-3 transition-colors border-x ${isDarkMode ? 'hover:bg-slate-700 border-slate-600' : 'hover:bg-slate-200 border-slate-300'}`}>
+                    {isMuted ? (
+                      <svg className="w-4 h-4 md:w-5 md:h-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" /></svg>
+                    ) : (
+                      <svg className="w-4 h-4 md:w-5 md:h-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg>
+                    )}
+                  </button>
+                  <button onClick={handleVolumeUp} className={`px-3 py-2.5 md:py-3 transition-colors ${isDarkMode ? 'hover:bg-slate-700 text-slate-300' : 'hover:bg-slate-200 text-slate-700'}`}>
+                    <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
+                  </button>
+                </div>
+
+                <button 
+                  onClick={toggleFullScreen}
+                  className={`flex items-center justify-center gap-2 rounded-xl border px-3 py-2.5 md:px-5 md:py-3 text-xs md:text-sm font-bold transition-all shadow-sm flex-shrink-0 ${isDarkMode ? 'bg-slate-800 border-slate-600 text-white hover:bg-slate-700' : 'bg-white border-slate-300 text-slate-800 hover:bg-slate-50'}`}
+                >
+                  <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" /></svg>
+                  Full Screen
+                </button>
+
+                {activePdfUrl && (
+                  <a 
+                    href={activePdfUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2 rounded-xl bg-red-600 hover:bg-red-700 text-white px-4 py-2.5 md:px-5 md:py-3 text-xs md:text-sm font-bold transition-all shadow-sm flex-shrink-0"
+                  >
+                    <svg className="w-4 h-4 md:w-5 md:h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 16l-5-5h3V4h4v7h3l-5 5zm9-2v6H3v-6H1v8h22v-8h-2z"/></svg>
+                    Tute එක (PDF)
+                  </a>
+                )}
+              </div>
+            </div>
+
+            {/* Quizzes පෙන්වන කොටස (වීඩියෝවට යටින්) */}
+            {courseQuizzes.length > 0 && (
+              <div className={`p-4 md:p-6 rounded-xl md:rounded-2xl border shadow-sm ${cardBg}`}>
+                <h3 className={`text-sm md:text-lg font-extrabold tracking-wide text-purple-600 dark:text-purple-400 mb-4 border-l-4 border-purple-500 pl-3`}>
+                  මෙම පාඨමාලාවට අදාළ MCQ විභාග
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {courseQuizzes.map((quiz: any) => (
+                    <div 
+                      key={quiz._id}
+                      className={`flex flex-col p-4 rounded-xl border transition-all ${isDarkMode ? 'bg-purple-900/10 border-purple-800/30' : 'bg-purple-50 border-purple-100'}`}
+                    >
+                      <div className="flex items-start gap-3 mb-4">
+                        <div className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-lg flex-shrink-0 bg-purple-600 text-white shadow-sm">
+                          Q
+                        </div>
+                        <div>
+                          <h4 className={`text-sm md:text-base font-bold line-clamp-2 text-purple-900 dark:text-purple-300`}>
+                            {quiz.title}
+                          </h4>
+                          <p className="text-xs font-bold text-purple-500/80 mt-1">
+                            ප්‍රශ්න {quiz.questions?.length || 0} ක් අඩංගුයි
+                          </p>
+                        </div>
+                      </div>
+                      
+                      {/* 🔴 අලුත්: PDF බටන් එක සහිත කොටස */}
+                      <div className="flex flex-col gap-2 mt-auto">
+                        <Link 
+                          href={`/course/${courseId}/quiz/${quiz._id}`} 
+                          className="w-full bg-purple-600 hover:bg-purple-700 text-white text-center text-sm font-bold py-2.5 rounded-lg transition-colors shadow-sm"
+                        >
+                          විභාගය අරඹන්න (Start)
+                        </Link>
+                        
+                        {quiz.pdfUrl && (
+                          <a 
+                            href={quiz.pdfUrl} 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            className={`w-full text-center text-sm font-bold py-2.5 rounded-lg transition-colors border shadow-sm ${isDarkMode ? 'bg-slate-800 border-red-500/50 text-red-400 hover:bg-red-500/20' : 'bg-red-50 text-red-600 border-red-200 hover:bg-red-600 hover:text-white hover:border-red-600'}`}
+                          >
+                            PDF එක බලන්න (Download)
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+          </div>
+
+          <div className={`rounded-xl md:rounded-2xl border p-4 shadow-sm md:h-[650px] overflow-y-auto ${cardBg}`}>
+            
+            <h3 className="text-xs md:text-sm font-extrabold uppercase tracking-wider text-slate-400 mb-3">විෂයයන් තෝරන්න</h3>
+            
+            <div className="flex flex-col gap-2 mb-4 border-b pb-3 dark:border-slate-700">
+              {course.subjects?.map((subject: any) => (
+                <button 
+                  key={subject._id || subject.subjectId}
+                  onClick={() => handleSubjectChange(subject.subjectId || subject._id)}
+                  className={`w-full text-left px-3 md:px-4 py-2 md:py-2.5 rounded-lg md:rounded-xl text-[11px] md:text-xs font-bold transition-all ${
+                    activeSubjectId === (subject.subjectId || subject._id)
+                      ? "bg-blue-600 text-white shadow-sm" 
+                      : "bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600"
+                  }`}
+                >
+                  {subject.name}
+                </button>
+              ))}
+            </div>
+
+            <h3 className="text-xs md:text-sm font-extrabold uppercase tracking-wider text-slate-400 mb-3">පාඩම් ලැයිස්තුව (Playlist)</h3>
+            
+            <div className="space-y-2 md:space-y-2.5 mb-6">
+              {activeSubject?.lessons?.length > 0 ? (
+                activeSubject.lessons.map((lesson: any, index: number) => {
+                  const isActive = activeVideoUrl === lesson.videoEmbed;
+                  return (
+                    <div 
+                      key={lesson.lessonId || lesson._id}
+                      onClick={() => {
+                        setActiveVideoUrl(lesson.videoEmbed);
+                        setActiveVideoTitle(lesson.title);
+                        setActivePdfUrl(lesson.pdfUrl);
+                      }}
+                      className={`flex items-start gap-2.5 md:gap-3 p-2.5 md:p-3 rounded-lg md:rounded-xl border cursor-pointer transition-all hover:scale-[1.01] ${
+                        isActive 
+                          ? playlistActiveBg 
+                          : "bg-slate-50/50 dark:bg-slate-900/40 border-slate-100 dark:border-slate-800 hover:bg-slate-100/50 dark:hover:bg-slate-800"
+                      }`}
+                    >
+                      <div className={`w-5 h-5 md:w-6 md:h-6 rounded-md md:rounded-lg flex items-center justify-center font-bold text-[10px] md:text-xs flex-shrink-0 mt-0.5 ${isActive ? 'bg-blue-600 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-500'}`}>
+                        {index + 1}
+                      </div>
+                      <div className="truncate flex-grow">
+                        <p className={`text-xs md:text-sm font-bold truncate ${isActive ? 'text-blue-600 dark:text-blue-400' : textPrimary}`}>
+                          {lesson.title}
+                        </p>
+                        <p className="text-[9px] md:text-[11px] text-slate-400 mt-0.5 flex items-center gap-1">
+                          <span>▶ Recorded Lesson</span>
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <p className="text-sm text-slate-400 font-bold text-center mt-6">දැනට පාඩම් කිසිවක් එක් කර නොමැත.</p>
+              )}
+            </div>
+            
+          </div>
+        </div>
+      </main>
     </div>
   );
 }
