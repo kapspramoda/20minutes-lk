@@ -168,7 +168,13 @@ export default function CoursePlayerPage({ params }: PageProps) {
     if (selectedSub && selectedSub.lessons && selectedSub.lessons.length > 0) {
       setActiveVideoUrl(selectedSub.lessons[0].videoEmbed);
       setActiveVideoTitle(selectedSub.lessons[0].title);
-      setActivePdfUrl(selectedSub.lessons[0].pdfUrl);
+      // 🔴 අලුත්: මෙතනත් Safe කරන්න
+      setActivePdfUrl(selectedSub.lessons[0].pdfUrl || ""); 
+    } else {
+      // කිසිම පාඩමක් නැත්නම් හිස් කරන්න
+      setActiveVideoUrl("");
+      setActiveVideoTitle("");
+      setActivePdfUrl("");
     }
   };
 
@@ -429,7 +435,7 @@ if (!course) {
                   Full Screen
                 </button>
 
-                {activePdfUrl && (
+                {activePdfUrl && activePdfUrl.trim() !== "" && (
                   <a 
                     href={activePdfUrl}
                     target="_blank"
