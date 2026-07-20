@@ -20,9 +20,6 @@ export default function CoursePlayerPage({ params }: PageProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [hasAccess, setHasAccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string>("");
-  
-  // 🔴 අලුත්: දෝෂය හොයාගන්න X-Ray (Debug) state එක
-  const [debugStep, setDebugStep] = useState<string>("1. පේජ් එක ලෝඩ් වීම ආරම්භ විය...");
 
   const [courseQuizzes, setCourseQuizzes] = useState<any[]>([]);
   const [activeSubjectId, setActiveSubjectId] = useState<string>("");
@@ -37,7 +34,6 @@ export default function CoursePlayerPage({ params }: PageProps) {
 
   useEffect(() => {
     const resolveParams = async () => {
-      setDebugStep("2. Course ID එක ලබා ගනිමින් පවතී...");
       const resolved = await params;
       setCourseId(resolved.id);
     };
@@ -54,19 +50,56 @@ export default function CoursePlayerPage({ params }: PageProps) {
       router.push("/dashboard");
       return;
     }
+// වෙනත් උපාංගයකින් ලොග් වී ඇත්දැයි බැලීමේ Security Check එක
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
 
-    const verifyAccessAndFetchCourse = async () => {
-      if (status !== "authenticated") {
-        setDebugStep(`3. User Login දත්ත පරීක්ෂා කරමින්... (Status: ${status})`);
-        return;
-      }
-      if (!courseId) {
-        setDebugStep("3. Course ID එක තවම ලැබී නැත...");
-        return;
-      }
+    const checkSession = async () => {
+      if (status !== "authenticated" || !session?.user) return;
+      
+      const phone = (session.user as any).phone || session.user.name || session.user.email;
+      const sessionId = (session.user as any).sessionId;
+      
+      if (!phone || !sessionId) return;
 
       try {
-        setDebugStep("4. ශිෂ්‍යයාගේ අවසර පරීක්ෂා කරමින්... (Fetching API 1)");
+        const res = await fetch("/api/student/check-device", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ phone, currentSessionId: sessionId }),
+          cache: "no-store"
+        });
+        
+        const data = await res.json();
+        if (data.logout) {
+          alert("⚠️ ඔබගේ ගිණුම වෙනත් උපාංගයකින් ලොග් වී ඇත. වීඩියෝ නැරඹීම නතර කර ඔබව ඉවත් කෙරේ.");
+          signOut({ callbackUrl: "/" });
+        }
+      } catch (error) {
+        console.error("Session check failed", error);
+      }
+    };
+
+    if (status === "authenticated") {
+      checkSession();
+      interval = setInterval(checkSession, 15000); // තත්පර 15කට වරක් චෙක් කරයි
+      window.addEventListener("focus", checkSession);
+      window.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === 'visible') checkSession();
+      });
+    }
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("focus", checkSession);
+      window.removeEventListener("visibilitychange", checkSession);
+    };
+  }, [status, session]);
+  
+    const verifyAccessAndFetchCourse = async () => {
+      if (status !== "authenticated" || !courseId) return;
+
+      try {
         const userPhone = (session?.user as any)?.phone || session?.user?.name || session?.user?.email;
 
         const accessRes = await fetch(`/api/student/courses?phone=${userPhone}`);
@@ -80,7 +113,6 @@ export default function CoursePlayerPage({ params }: PageProps) {
           return;
         }
 
-        setDebugStep("5. පාඨමාලාවේ දත්ත ගෙනෙමින්... (Fetching API 2)");
         const courseRes = await fetch(`/api/courses/${courseId}`);
         const courseDataRes = await courseRes.json();
 
@@ -104,7 +136,6 @@ export default function CoursePlayerPage({ params }: PageProps) {
           return;
         }
 
-        setDebugStep("6. MCQ විභාග (Quizzes) ගෙනෙමින්... (Fetching API 3)");
         try {
           const quizRes = await fetch(`/api/student/quizzes/course/${courseId}`);
           if (quizRes.ok) {
@@ -117,12 +148,11 @@ export default function CoursePlayerPage({ params }: PageProps) {
           console.error("Quizzes Fetch Error:", quizError);
         }
 
-        setDebugStep("7. සියලුම දත්ත සාර්ථකයි! පේජ් එක විවෘත කරමින්...");
-        setIsLoading(false);
-
       } catch (error: any) {
-        console.error("DEBUG ERROR - Course Player Error:", error);
+        console.error("Course Player Error:", error);
         setErrorMsg("දත්ත ලබාගැනීමේදී දෝෂයක් මතු විය: " + error.message);
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -204,27 +234,17 @@ export default function CoursePlayerPage({ params }: PageProps) {
   const textSecondary = isDarkMode ? "text-slate-400" : "text-slate-500";
   const playlistActiveBg = isDarkMode ? "bg-blue-600/20 border-blue-500" : "bg-blue-50 border-blue-500";
 
-  // 🔴 අලුත්: Loading State (මෙතන තමයි පියවරෙන් පියවර පෙන්නන්නේ)
+  // පිරිසිදු Loading State එක
   if (isLoading) {
     return (
       <div className={`min-h-screen flex flex-col items-center justify-center p-6 ${themeBg}`}>
         <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
         <p className="font-bold text-lg text-slate-500 mb-6">පාඨමාලාවට පිවිසෙමින් පවතී...</p>
-        
-        {/* Debug (X-Ray) Box */}
-        <div className="w-full max-w-lg bg-slate-900 text-green-400 p-5 rounded-xl border border-slate-700 shadow-xl font-mono text-sm leading-relaxed">
-          <h4 className="text-white font-bold mb-3 border-b border-slate-700 pb-2">🔍 පද්ධති පරීක්ෂාව (Debug Info)</h4>
-          <p>Login Status: <span className="text-white">{status}</span></p>
-          <p>Course ID: <span className="text-white">{courseId || "තවම නැත"}</span></p>
-          <p className="mt-3 text-yellow-400 font-bold border-t border-slate-700 pt-3">
-            ▶️ {debugStep}
-          </p>
-        </div>
       </div>
     );
   }
 
-  // 🔴 Error State
+  // Error State
   if (errorMsg) {
     return (
       <div className={`min-h-screen flex flex-col items-center justify-center ${themeBg}`}>
@@ -263,7 +283,6 @@ export default function CoursePlayerPage({ params }: PageProps) {
 
       <main className="mx-auto max-w-7xl p-4 md:p-6 lg:p-8 mt-2 md:mt-4 pb-12">
         
-        {/* Safe Notification Check */}
         {course?.notification && course.notification.trim() !== "" && (
           <div className="mb-6 p-4 md:p-5 bg-yellow-100 dark:bg-amber-900/30 border-2 border-yellow-400 dark:border-amber-600 rounded-xl flex items-start gap-3 shadow-md animate-in fade-in">
             <span className="text-2xl mt-0.5">📢</span>
@@ -381,7 +400,6 @@ export default function CoursePlayerPage({ params }: PageProps) {
                   Full Screen
                 </button>
 
-                {/* Safe PDF Check */}
                 {activePdfUrl && activePdfUrl.trim() !== "" && (
                   <a 
                     href={activePdfUrl}
@@ -429,7 +447,6 @@ export default function CoursePlayerPage({ params }: PageProps) {
                           විභාගය අරඹන්න (Start)
                         </Link>
                         
-                        {/* Safe PDF Check for Quiz */}
                         {quiz.pdfUrl && quiz.pdfUrl.trim() !== "" && (
                           <a 
                             href={quiz.pdfUrl} 
