@@ -207,9 +207,19 @@ export default function CoursePlayerPage({ params }: PageProps) {
   // 🔴 අලුත්: Loading State (මෙතන තමයි පියවරෙන් පියවර පෙන්නන්නේ)
   if (isLoading) {
     return (
-      <div className={`min-h-screen flex flex-col items-center justify-center ${themeBg}`}>
+      <div className={`min-h-screen flex flex-col items-center justify-center p-6 ${themeBg}`}>
         <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-        <p className="font-bold text-lg text-slate-500">පාඨමාලාවට පිවිසෙමින් පවතී...</p>
+        <p className="font-bold text-lg text-slate-500 mb-6">පාඨමාලාවට පිවිසෙමින් පවතී...</p>
+        
+        {/* Debug (X-Ray) Box */}
+        <div className="w-full max-w-lg bg-slate-900 text-green-400 p-5 rounded-xl border border-slate-700 shadow-xl font-mono text-sm leading-relaxed">
+          <h4 className="text-white font-bold mb-3 border-b border-slate-700 pb-2">🔍 පද්ධති පරීක්ෂාව (Debug Info)</h4>
+          <p>Login Status: <span className="text-white">{status}</span></p>
+          <p>Course ID: <span className="text-white">{courseId || "තවම නැත"}</span></p>
+          <p className="mt-3 text-yellow-400 font-bold border-t border-slate-700 pt-3">
+            ▶️ {debugStep}
+          </p>
+        </div>
       </div>
     );
   }
@@ -504,5 +514,3 @@ export default function CoursePlayerPage({ params }: PageProps) {
     </div>
   );
 }
-
-// fix deploy
