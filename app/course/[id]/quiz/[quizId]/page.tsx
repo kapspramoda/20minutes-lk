@@ -177,6 +177,19 @@ export default function StudentExamPage({ params }: PageProps) {
             >
               🚀 විභාගය අරඹන්න (Start Quiz)
             </button>
+
+            {/* 🔴 අලුත් PDF බටන් එක (උපදෙස් පිටුවේ) */}
+            {quiz.pdfUrl && (
+              <a 
+                href={quiz.pdfUrl} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="w-full mt-4 flex items-center justify-center gap-2 bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 font-bold py-3.5 rounded-xl transition-all text-base shadow-sm"
+              >
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 16l-5-5h3V4h4v7h3l-5 5zm9-2v6H3v-6H1v8h22v-8h-2z"/></svg>
+                ප්‍රශ්න පත්‍රය (PDF) බලන්න
+              </a>
+            )}
           </div>
         )}
 
@@ -194,6 +207,21 @@ export default function StudentExamPage({ params }: PageProps) {
                 <p className="text-lg text-slate-600 font-bold mb-6">ලබාගත් ප්‍රතිශතය: <span className="text-blue-600">{((score / quiz.questions.length) * 100).toFixed(1)}%</span></p>
                 
                 <p className="text-sm font-bold text-slate-400 border-t pt-4">පහතින් ඔබගේ හරි/වැරදි පිළිතුරු පරීක්ෂා කර බලන්න 👇</p>
+                
+                {/* 🔴 අලුත් PDF බටන් එක (ප්‍රතිඵල පිටුවේ) */}
+                {quiz.pdfUrl && (
+                  <div className="mt-5 flex justify-center">
+                    <a 
+                      href={quiz.pdfUrl} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 px-6 py-2.5 rounded-xl font-bold text-sm transition-all shadow-sm"
+                    >
+                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 16l-5-5h3V4h4v7h3l-5 5zm9-2v6H3v-6H1v8h22v-8h-2z"/></svg>
+                      ප්‍රශ්න පත්‍රය (PDF) නැවත බලන්න
+                    </a>
+                  </div>
+                )}
               </div>
             )}
 
@@ -238,7 +266,7 @@ export default function StudentExamPage({ params }: PageProps) {
                         <button
                           key={oIdx} type="button" 
                           disabled={step === "results"}
-                          onClick={() => handleSelectOption(qIdx, oIdx)} // 🔴 මෙතන තමයි වරද හැදුවේ (qIdx)
+                          onClick={() => handleSelectOption(qIdx, oIdx)}
                           className={`w-full text-left p-3 md:p-4 rounded-xl border transition-all flex items-center gap-4 text-sm md:text-base ${optionStyle}`}
                         >
                           <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0 transition-colors ${indicatorStyle}`}>
