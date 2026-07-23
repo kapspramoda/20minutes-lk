@@ -31,8 +31,7 @@ export default function CoursePlayerPage({ params }: PageProps) {
   const [isMuted, setIsMuted] = useState(false);
   const [volumeLevel, setVolumeLevel] = useState(100);
 
-  // 🔴 අලුත්: Custom Player States & Refs
-  const iframeRef = useRef<HTMLIFrameElement>(null);
+  // 🔴 Custom Player States
   const ytPlayerRef = useRef<any>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -51,7 +50,7 @@ export default function CoursePlayerPage({ params }: PageProps) {
     if (document.documentElement.classList.contains("dark")) setIsDarkMode(true);
   }, []);
 
-  // Security Check (වෙනත් Device වලින් ලොග් වීම වැළැක්වීම)
+  // Security Check
   useEffect(() => {
     let interval: NodeJS.Timeout;
     const checkSession = async () => {
@@ -151,7 +150,7 @@ export default function CoursePlayerPage({ params }: PageProps) {
   }, [status, session, courseId, router]);
 
 
-  // 🔴 අලුත්: වඩාත්ම ආරක්ෂිත සහ නිවැරදි YouTube API සම්බන්ධතාවය
+  // 🔴 අලුත්: දෝෂ රහිත YouTube API ක්‍රියාවලිය
   const getYoutubeId = (url: string) => {
     if(!url) return null;
     const ytRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?|live)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i;
@@ -163,41 +162,56 @@ export default function CoursePlayerPage({ params }: PageProps) {
     const ytId = getYoutubeId(activeVideoUrl);
     if (!ytId) return;
 
-    // පරණ Player එකක් තියෙනවා නම් ඒක අයින් කරනවා (Memory Leak වළක්වන්න)
-    if (ytPlayerRef.current && typeof ytPlayerRef.current.destroy === 'function') {
-      try { ytPlayerRef.current.destroy(); } catch(e){}
-    }
-
     const initPlayer = () => {
-      if (!(window as any).YT || !(window as any).YT.Player || !iframeRef.current) {
-        setTimeout(initPlayer, 500); // API එක Load වෙනකම් තත්පර භාගයක් බලන් ඉන්නවා
+      // 1. ප්ලේයරය දැනටමත් සාදා ඇත්නම්, අලුත් වීඩියෝව එයටම Load කිරීම (මෙමඟින් වීඩියෝ මාරු වීමේ දෝෂය නැතිවේ)
+      if (ytPlayerRef.current && typeof ytPlayerRef.current.loadVideoById === 'function') {
+        ytPlayerRef.current.loadVideoById(ytId);
+        setIsPlaying(false);
+        setCurrentTime(0);
         return;
       }
-      
-      ytPlayerRef.current = new (window as any).YT.Player(iframeRef.current, {
-        events: {
-          onReady: (event: any) => {
-            setDuration(event.target.getDuration());
-            event.target.setVolume(volumeLevel);
-            if (isMuted) event.target.mute();
-            event.target.setPlaybackRate(playbackSpeed);
+
+      // 2. Container එක නොමැති නම් නවතින්න
+      if (!document.getElementById('yt-player-container')) return;
+
+      // 3. අලුතින්ම ප්ලේයරය සෑදීම
+      if ((window as any).YT && (window as any).YT.Player) {
+        ytPlayerRef.current = new (window as any).YT.Player('yt-player-container', {
+          videoId: ytId,
+          playerVars: {
+            controls: 0,
+            disablekb: 1,
+            modestbranding: 1,
+            rel: 0,
+            showinfo: 0,
+            fs: 0,
+            playsinline: 1,
+            iv_load_policy: 3
           },
-          onStateChange: (event: any) => {
-            if (event.data === (window as any).YT.PlayerState.PLAYING) {
-              setIsPlaying(true);
+          events: {
+            onReady: (event: any) => {
               setDuration(event.target.getDuration());
-            } else if (
-              event.data === (window as any).YT.PlayerState.PAUSED || 
-              event.data === (window as any).YT.PlayerState.ENDED
-            ) {
-              setIsPlaying(false);
+              event.target.setVolume(volumeLevel);
+              if (isMuted) event.target.mute();
+              event.target.setPlaybackRate(playbackSpeed);
+            },
+            onStateChange: (event: any) => {
+              if (event.data === (window as any).YT.PlayerState.PLAYING) {
+                setIsPlaying(true);
+                setDuration(event.target.getDuration());
+              } else if (
+                event.data === (window as any).YT.PlayerState.PAUSED || 
+                event.data === (window as any).YT.PlayerState.ENDED
+              ) {
+                setIsPlaying(false);
+              }
             }
           }
-        }
-      });
+        });
+      }
     };
 
-    if (!(window as any).YT) {
+    if (typeof window !== "undefined" && !(window as any).YT) {
       const tag = document.createElement('script');
       tag.src = "https://www.youtube.com/iframe_api";
       const firstScriptTag = document.getElementsByTagName('script')[0];
@@ -208,9 +222,9 @@ export default function CoursePlayerPage({ params }: PageProps) {
     } else {
       initPlayer();
     }
-  }, [activeVideoUrl]);
+  }, [activeVideoUrl]); // වීඩියෝව වෙනස් වන සෑම විටම ධාවනය වේ
 
-  // Timer එකෙන් Progress Bar එක දිවවීම
+  // Progress Bar
   useEffect(() => {
     let interval: any;
     if (isPlaying) {
@@ -224,7 +238,7 @@ export default function CoursePlayerPage({ params }: PageProps) {
   }, [isPlaying]);
 
 
-  // --- අලුත් Custom Functions ---
+  // --- Custom Controls ---
   const togglePlay = () => {
     if (ytPlayerRef.current && typeof ytPlayerRef.current.playVideo === 'function') {
       if (isPlaying) ytPlayerRef.current.pauseVideo();
@@ -423,55 +437,48 @@ export default function CoursePlayerPage({ params }: PageProps) {
           
           <div className="lg:col-span-2 space-y-4 md:space-y-6">
             
-            {/* 🔴 අලුත්: Custom Video Player & Controls */}
+            {/* 🔴 අලුත්: Custom Video Player */}
             <div className={isFullscreen ? "fixed inset-0 z-[99999] bg-black w-screen h-[100dvh] flex flex-col justify-center select-none" : "w-full flex flex-col relative rounded-xl md:rounded-2xl overflow-hidden shadow-lg select-none bg-black border border-slate-800"}>
               
-              {/* වීඩියෝව පෙන්වන කොටස (YouTube ලෝගෝ එක එබීමට නොහැකි කර ඇත) */}
               <div className="relative w-full flex-grow flex items-center justify-center bg-black aspect-video overflow-hidden group">
-                  {/* අලුත් IFrame එක - React හරහා කෙලින්ම Render කර ඇත */}
-                  {activeVideoUrl ? (
-                    <div className="w-full h-full absolute inset-0 overflow-hidden scale-[1.02]">
-                      <iframe 
-                        ref={iframeRef}
-                        id="yt-player-iframe"
-                        src={`https://www.youtube.com/embed/${getYoutubeId(activeVideoUrl)}?enablejsapi=1&controls=0&disablekb=1&modestbranding=1&rel=0&showinfo=0&fs=0&playsinline=1`}
-                        className="w-full h-full pointer-events-none"
-                        allow="autoplay; encrypted-media"
-                        title={activeVideoTitle}
-                      ></iframe>
+                  
+                  {/* YouTube Iframe Container - Scale 1.35 කින් විශාල කර ලෝගෝ සඟවා ඇත */}
+                  <div className="w-full h-full absolute inset-0 overflow-hidden scale-[1.35] md:scale-[1.3] pointer-events-none">
+                    {/* මෙම div එක තුළට YouTube Iframe එක ස්වයංක්‍රීයව ඇතුළු වේ */}
+                    <div id="yt-player-container" className="w-full h-full pointer-events-none"></div>
+                  </div>
+
+                  {!activeVideoUrl && (
+                    <div className="absolute inset-0 z-[50] flex items-center justify-center text-slate-500 font-bold bg-black">
+                      වීඩියෝවක් තෝරා නොමැත
                     </div>
-                  ) : (
-                    <div className="w-full h-[300px] flex items-center justify-center text-slate-500 font-bold bg-black">වීඩියෝවක් තෝරා නොමැත</div>
                   )}
                   
-                  {/* වීඩියෝව මත විනිවිද පෙනෙන ආවරණය (ක්ලික් කළ විට Play/Pause වේ) */}
-                  <div className="absolute inset-0 z-[10] cursor-pointer" onClick={togglePlay}>
+                  {/* 🔴 Click Blocker (සම්පූර්ණ ආරක්ෂාව) - වීඩියෝව මත ක්ලික් කිරීම වළක්වයි */}
+                  <div className="absolute inset-0 z-[60] cursor-pointer" onClick={togglePlay}>
                     {!isPlaying && activeVideoUrl && (
                         <div className="absolute inset-0 flex items-center justify-center bg-black/40 transition-all">
-                          <div className="w-16 h-16 bg-blue-600/90 rounded-full flex items-center justify-center text-white shadow-[0_0_20px_rgba(37,99,235,0.5)] backdrop-blur-md hover:scale-110 transition-transform">
-                              <svg className="w-8 h-8 ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                          <div className="w-16 h-16 md:w-20 md:h-20 bg-blue-600/90 rounded-full flex items-center justify-center text-white shadow-[0_0_20px_rgba(37,99,235,0.5)] backdrop-blur-md hover:scale-110 transition-transform">
+                              <svg className="w-8 h-8 md:w-10 md:h-10 ml-1 md:ml-2" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
                           </div>
                         </div>
                     )}
                   </div>
               </div>
 
-              {/* 🔴 අලුත්: Custom Control Bar (වීඩියෝව යට පාලක) */}
-              {/* z-[20] සහ relative දමා ඇති නිසා බොත්තම් දැන් නියමෙට ක්ලික් වේ! */}
-              <div className={`relative z-[20] p-3 md:p-4 flex flex-col gap-2 ${isFullscreen ? 'bg-slate-900/95 backdrop-blur-md pb-6 absolute bottom-0 left-0 w-full' : isDarkMode ? 'bg-slate-900 border-t border-slate-800' : 'bg-white border-t border-slate-200'}`}>
+              {/* 🔴 Control Bar - z-index ඉහළ දමා ඇත */}
+              <div className={`relative z-[70] p-3 md:p-4 flex flex-col gap-2 ${isFullscreen ? 'bg-slate-900/95 backdrop-blur-md pb-6 absolute bottom-0 left-0 w-full' : isDarkMode ? 'bg-slate-900 border-t border-slate-800' : 'bg-white border-t border-slate-200'}`}>
                 
-                {/* Progress (Seek) Bar */}
                 <div className="flex items-center gap-2 md:gap-3 w-full px-1 md:px-2">
                     <span className={`text-[10px] md:text-xs font-bold w-9 md:w-10 text-right ${isFullscreen ? 'text-slate-300' : textSecondary}`}>{formatTime(currentTime)}</span>
                     <input 
                       type="range" min="0" max={duration || 100} value={currentTime} onChange={handleSeek}
-                      className="flex-grow h-1.5 md:h-2 bg-slate-300 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-600 relative z-[30]"
+                      className="flex-grow h-1.5 md:h-2 bg-slate-300 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
                     />
                     <span className={`text-[10px] md:text-xs font-bold w-9 md:w-10 ${isFullscreen ? 'text-slate-300' : textSecondary}`}>{formatTime(duration)}</span>
                 </div>
 
-                {/* පාලක බොත්තම් (Buttons) */}
-                <div className="flex items-center justify-between px-1 md:px-2 mt-1 md:mt-2 relative z-[30]">
+                <div className="flex items-center justify-between px-1 md:px-2 mt-1 md:mt-2">
                     <div className="flex items-center gap-1.5 md:gap-3">
                         <button onClick={handleStop} className="p-1.5 md:p-2 rounded-full hover:bg-red-100 text-red-500 transition group" title="Stop">
                           <svg className="w-4 h-4 md:w-5 md:h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></svg>
@@ -490,14 +497,12 @@ export default function CoursePlayerPage({ params }: PageProps) {
                           <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M11.934 11.2a1 1 0 010 1.6l-5.334 4A1 1 0 015 16V8a1 1 0 011.6-.8l5.334 4zM19.934 11.2a1 1 0 010 1.6l-5.334 4A1 1 0 0113 16V8a1 1 0 011.6-.8l5.334 4z" /></svg>
                         </button>
                         
-                        {/* Speed එක වැඩි/අඩු කරන බොත්තම */}
                         <button onClick={changeSpeed} className={`ml-1 md:ml-2 px-2 py-1 md:px-3 md:py-1.5 rounded-lg text-[10px] md:text-xs font-bold transition ${isFullscreen ? 'bg-purple-900/50 text-purple-300 hover:bg-purple-800' : 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 hover:bg-purple-200'}`}>
                           {playbackSpeed}x Speed
                         </button>
                     </div>
                     
                     <div className="flex items-center gap-1 md:gap-2">
-                        {/* ශබ්දය (Volume) පාලනය */}
                         <button onClick={handleVolumeDown} className={`p-1.5 rounded-full transition ${isFullscreen ? 'text-white hover:bg-slate-700' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
                           <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M18 12H6" /></svg>
                         </button>
