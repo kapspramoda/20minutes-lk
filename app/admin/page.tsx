@@ -10,7 +10,6 @@ export default function AdminDashboard() {
   const router = useRouter();
   const [isDarkMode, setIsDarkMode] = useState(false);
   
-  // 🔴 අලුත්: passwords Tab එකතු කළා
   const [activeTab, setActiveTab] = useState<"approvals" | "courses" | "quizzes" | "students" | "passwords">("approvals");
   
   const [pendingApprovals, setPendingApprovals] = useState<any[]>([]);
@@ -21,12 +20,14 @@ export default function AdminDashboard() {
 
   const [approvedStudents, setApprovedStudents] = useState<any[]>([]);
   const [isLoadingStudents, setIsLoadingStudents] = useState(true);
+  
+  // 🔴 අලුත්: ෆිල්ටර් සහ සර්ච් කිරීම සඳහා State
   const [selectedFilterCourse, setSelectedFilterCourse] = useState<string>("ALL");
+  const [searchPhone, setSearchPhone] = useState<string>("");
 
   const [quizzes, setQuizzes] = useState<any[]>([]);
   const [isLoadingQuizzes, setIsLoadingQuizzes] = useState(true);
 
-  // 🔴 අලුත්: මුරපද ඉල්ලීම් ගබඩා කිරීමට
   const [passwordRequests, setPasswordRequests] = useState<any[]>([]);
 
   const [enlargedSlip, setEnlargedSlip] = useState<string | null>(null);
@@ -46,7 +47,7 @@ export default function AdminDashboard() {
     fetchCourses();
     fetchApprovedStudents();
     fetchQuizzes(); 
-    fetchPasswordRequests(); // අලුත්
+    fetchPasswordRequests();
   }, []);
 
   const toggleTheme = () => {
@@ -280,7 +281,6 @@ export default function AdminDashboard() {
     }
   };
 
-  // 🔴 අලුත්: මුරපද Approve කර WhatsApp එකට යැවීම
   const handleApprovePassword = async (req: any) => {
     const confirmApprove = window.confirm(`${req.phone} අංකයට අලුත් මුරපදය අනුමත කර WhatsApp පණිවිඩය යැවීමට අවශ්‍යද?`);
     if (!confirmApprove) return;
@@ -293,19 +293,12 @@ export default function AdminDashboard() {
       });
 
       if (res.ok) {
-        // ලිස්ට් එකෙන් අයින් කිරීම
         setPasswordRequests(prev => prev.filter(r => r._id !== req._id));
-
-        // WhatsApp අංකය හැදීම (077... වෙනුවට 9477... කිරීම)
         let formattedPhone = req.phone;
         if (formattedPhone.startsWith('0')) {
           formattedPhone = '94' + formattedPhone.substring(1);
         }
-
-        // WhatsApp මැසේජ් එක
         const msg = `ආයුබෝවන්, ඔබගේ 20minutes.lk ගිණුමේ මුරපදය සාර්ථකව වෙනස් කර ඇත.\n\n📱 දුරකථන අංකය: ${req.phone}\n🔑 නව මුරපදය: ${req.newPasswordPlain}\n\nකරුණාකර පහත සබැඳියෙන් ලොග් වන්න:\nhttps://www.20minutes.lk/`;
-        
-        // Auto Open WhatsApp
         window.open(`https://wa.me/${formattedPhone}?text=${encodeURIComponent(msg)}`, '_blank');
       } else {
         alert("මුරපදය යාවත්කාලීන කිරීම අසාර්ථකයි.");
@@ -315,9 +308,41 @@ export default function AdminDashboard() {
     }
   };
 
-  const filteredStudents = selectedFilterCourse === "ALL" 
-    ? (approvedStudents || []) 
-    : (approvedStudents || []).filter(s => s.courseTitle === selectedFilterCourse);
+  // 🔴 අලුත්: සිසුන් Filter සහ Search කිරීමේ Logic එක
+  const filteredStudents = (approvedStudents || []).filter(s => {
+    const matchCourse = selectedFilterCourse === "ALL" || s.courseTitle === selectedFilterCourse;
+    const matchPhone = searchPhone.trim() === "" || (s.userPhone && s.userPhone.includes(searchPhone.trim()));
+    return matchCourse && matchPhone;
+  });
+
+  // 🔴 අලුත්: Excel (CSV) Download කරන Function එක
+  const handleDownloadExcel = () => {
+    if (filteredStudents.length === 0) {
+      return alert("බාගත කිරීමට සිසුන්ගේ දත්ත නොමැත!");
+    }
+
+    // Excel වල සිංහල අකුරු නිවැරදිව පෙන්වීමට BOM (Byte Order Mark) එකතු කිරීම
+    let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
+    csvContent += "Phone Number,Course Title,Approved Date\n";
+
+    filteredStudents.forEach(student => {
+      const phone = student.userPhone || "N/A";
+      // කොමා (,) වලින් වෙන්වීම වැළැක්වීමට නම වටා කෝට්ස් ("") යොදමු
+      const courseTitle = student.courseTitle ? `"${student.courseTitle}"` : "N/A";
+      const date = formatDate(student.updatedAt);
+      
+      csvContent += `${phone},${courseTitle},${date}\n`;
+    });
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    // ෆයිල් එකේ නමට අදාළ Course එක සහ අද දිනය එක් කිරීම
+    link.setAttribute("download", `Students_${selectedFilterCourse === "ALL" ? "All_Courses" : selectedFilterCourse}_${new Date().toLocaleDateString('si-LK')}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const themeBg = isDarkMode ? "bg-slate-900 text-slate-100" : "bg-slate-50 text-slate-800";
   const headerBg = isDarkMode ? "bg-slate-900/80 border-slate-800" : "bg-white/80 border-slate-200";
@@ -372,7 +397,6 @@ export default function AdminDashboard() {
           <button onClick={() => setActiveTab("courses")} className={`px-5 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all ${activeTab === "courses" ? tabActive : tabInactive}`}>පාඨමාලා කළමනාකරණය</button>
           <button onClick={() => setActiveTab("quizzes")} className={`px-5 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all ${activeTab === "quizzes" ? tabActive : tabInactive}`}>විභාග කළමනාකරණය</button>
           <button onClick={() => setActiveTab("students")} className={`px-5 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all ${activeTab === "students" ? tabActive : tabInactive}`}>සිසුන්ගේ විස්තර</button>
-          {/* 🔴 අලුත්: මුරපද ඉල්ලීම් Tab එක */}
           <button onClick={() => setActiveTab("passwords")} className={`px-5 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all ${activeTab === "passwords" ? tabActive : tabInactive} flex items-center gap-2`}>
             මුරපද ඉල්ලීම් {passwordRequests.length > 0 && <span className="bg-red-500 text-white rounded-full px-2 py-0.5 text-xs">{passwordRequests.length}</span>}
           </button>
@@ -405,7 +429,7 @@ export default function AdminDashboard() {
                         }}
                       />
                       <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                         <span className="text-white text-sm font-bold flex items-center gap-2">විශාල කර බලන්න</span>
+                          <span className="text-white text-sm font-bold flex items-center gap-2">විශාල කර බලන්න</span>
                       </div>
                     </div>
                     <div className="p-5 flex flex-col flex-grow">
@@ -573,24 +597,51 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            <div className={`flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4 border-t pt-8 ${isDarkMode ? 'border-slate-800' : 'border-slate-200'}`}>
+            {/* 🔴 අලුත්: ෆිල්ටර්, සර්ච් සහ ඩවුන්ලෝඩ් කොටස */}
+            <div className={`flex flex-col mb-6 gap-4 border-t pt-8 ${isDarkMode ? 'border-slate-800' : 'border-slate-200'}`}>
               <div>
                 <h2 className={`text-xl font-bold ${textPrimary}`}>සිසුන් කළමනාකරණය</h2>
-                <p className={`text-sm ${textSecondary}`}>අනුමත වූ සිසුන්ගේ විස්තර සහ ඔවුන්ව පාඨමාලා වලින් ඉවත් කිරීම.</p>
+                <p className={`text-sm ${textSecondary}`}>අනුමත වූ සිසුන්ගේ විස්තර සෙවීම, ඉවත් කිරීම සහ Excel ලෙස ලබා ගැනීම.</p>
               </div>
-              <select value={selectedFilterCourse} onChange={(e) => setSelectedFilterCourse(e.target.value)} className={`p-3 rounded-xl border font-bold text-sm outline-none shadow-sm md:w-64 ${inputBg}`}>
-                <option value="ALL">සියලුම පාඨමාලා ({(approvedStudents || []).length})</option>
-                {(courses || []).map(c => (
-                  <option key={c._id} value={c.title}>{c.title}</option>
-                ))}
-              </select>
+              
+              <div className="flex flex-col md:flex-row gap-3 w-full items-center">
+                {/* පාඨමාලාව අනුව ෆිල්ටර් කිරීම */}
+                <select 
+                  value={selectedFilterCourse} 
+                  onChange={(e) => setSelectedFilterCourse(e.target.value)} 
+                  className={`p-3 rounded-xl border font-bold text-sm outline-none shadow-sm w-full md:w-auto flex-grow ${inputBg}`}
+                >
+                  <option value="ALL">සියලුම පාඨමාලා ({(approvedStudents || []).length})</option>
+                  {(courses || []).map(c => (
+                    <option key={c._id} value={c.title}>{c.title}</option>
+                  ))}
+                </select>
+
+                {/* දුරකථන අංකයෙන් සෙවීම */}
+                <input 
+                  type="text"
+                  placeholder="දුරකථන අංකය සොයන්න (උදා: 077...)"
+                  value={searchPhone}
+                  onChange={(e) => setSearchPhone(e.target.value)}
+                  className={`p-3 rounded-xl border font-bold text-sm outline-none shadow-sm w-full md:w-64 flex-shrink-0 ${inputBg}`}
+                />
+
+                {/* Excel Download බොත්තම */}
+                <button 
+                  onClick={handleDownloadExcel}
+                  className="flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 rounded-xl font-bold transition-all shadow-md w-full md:w-auto flex-shrink-0"
+                >
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                  Excel Download
+                </button>
+              </div>
             </div>
 
             {isLoadingStudents ? (
               <div className="text-center py-10 text-slate-500 font-bold animate-pulse">සිසුන්ගේ දත්ත ගෙනෙමින් පවතී...</div>
             ) : (filteredStudents || []).length === 0 ? (
               <div className={`p-10 rounded-3xl border text-center ${cardBg}`}>
-                <h3 className={`text-lg font-bold ${textPrimary}`}>මෙම පාඨමාලාව සඳහා තවමත් සිසුන් නොමැත.</h3>
+                <h3 className={`text-lg font-bold ${textPrimary}`}>අදාළ සෙවීම සඳහා සිසුන් නොමැත.</h3>
               </div>
             ) : (
               <div className={`rounded-2xl border overflow-hidden shadow-sm ${cardBg}`}>
@@ -623,7 +674,7 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* --- 5. අලුත්: Passwords Tab --- */}
+        {/* --- 5. Passwords Tab --- */}
         {activeTab === "passwords" && (
           <div className="animate-in fade-in duration-300">
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
