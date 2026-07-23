@@ -21,7 +21,7 @@ export default function AdminDashboard() {
   const [approvedStudents, setApprovedStudents] = useState<any[]>([]);
   const [isLoadingStudents, setIsLoadingStudents] = useState(true);
   
-  // 🔴 අලුත්: ෆිල්ටර් සහ සර්ච් කිරීම සඳහා State
+  // ෆිල්ටර් සහ සර්ච් කිරීම සඳහා State
   const [selectedFilterCourse, setSelectedFilterCourse] = useState<string>("ALL");
   const [searchPhone, setSearchPhone] = useState<string>("");
 
@@ -315,19 +315,21 @@ export default function AdminDashboard() {
     return matchCourse && matchPhone;
   });
 
-  // 🔴 අලුත්: Excel (CSV) Download කරන Function එක
+  // 🔴 අලුත්: සාමාන්‍ය අවස්ථාවේදී අන්තිම 50 පෙන්වීම (සර්ච් හෝ ෆිල්ටර් කළ විට සියල්ල පෙන්වීම)
+  const isDefaultView = searchPhone.trim() === "" && selectedFilterCourse === "ALL";
+  const displayedStudents = isDefaultView ? filteredStudents.slice(0, 50) : filteredStudents;
+
+  // Excel (CSV) Download කරන Function එක (සියලුම ළමයි ඩවුන්ලෝඩ් වේ)
   const handleDownloadExcel = () => {
     if (filteredStudents.length === 0) {
       return alert("බාගත කිරීමට සිසුන්ගේ දත්ත නොමැත!");
     }
 
-    // Excel වල සිංහල අකුරු නිවැරදිව පෙන්වීමට BOM (Byte Order Mark) එකතු කිරීම
     let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
     csvContent += "Phone Number,Course Title,Approved Date\n";
 
     filteredStudents.forEach(student => {
       const phone = student.userPhone || "N/A";
-      // කොමා (,) වලින් වෙන්වීම වැළැක්වීමට නම වටා කෝට්ස් ("") යොදමු
       const courseTitle = student.courseTitle ? `"${student.courseTitle}"` : "N/A";
       const date = formatDate(student.updatedAt);
       
@@ -337,7 +339,6 @@ export default function AdminDashboard() {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    // ෆයිල් එකේ නමට අදාළ Course එක සහ අද දිනය එක් කිරීම
     link.setAttribute("download", `Students_${selectedFilterCourse === "ALL" ? "All_Courses" : selectedFilterCourse}_${new Date().toLocaleDateString('si-LK')}.csv`);
     document.body.appendChild(link);
     link.click();
@@ -380,6 +381,7 @@ export default function AdminDashboard() {
           </div>
           <div className={`p-5 rounded-2xl border shadow-sm ${cardBg}`}>
             <h4 className={textSecondary}>මුළු සිසුන්</h4>
+            {/* මුළු සිසුන් ගණන මෙතනින් දිගටම පෙන්වයි */}
             <p className="text-3xl font-extrabold text-blue-500 mt-2">{(approvedStudents || []).length}</p>
           </div>
           <div className={`p-5 rounded-2xl border shadow-sm ${cardBg}`}>
@@ -597,7 +599,6 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            {/* 🔴 අලුත්: ෆිල්ටර්, සර්ච් සහ ඩවුන්ලෝඩ් කොටස */}
             <div className={`flex flex-col mb-6 gap-4 border-t pt-8 ${isDarkMode ? 'border-slate-800' : 'border-slate-200'}`}>
               <div>
                 <h2 className={`text-xl font-bold ${textPrimary}`}>සිසුන් කළමනාකරණය</h2>
@@ -605,7 +606,6 @@ export default function AdminDashboard() {
               </div>
               
               <div className="flex flex-col md:flex-row gap-3 w-full items-center">
-                {/* පාඨමාලාව අනුව ෆිල්ටර් කිරීම */}
                 <select 
                   value={selectedFilterCourse} 
                   onChange={(e) => setSelectedFilterCourse(e.target.value)} 
@@ -617,7 +617,6 @@ export default function AdminDashboard() {
                   ))}
                 </select>
 
-                {/* දුරකථන අංකයෙන් සෙවීම */}
                 <input 
                   type="text"
                   placeholder="දුරකථන අංකය සොයන්න (උදා: 077...)"
@@ -626,7 +625,6 @@ export default function AdminDashboard() {
                   className={`p-3 rounded-xl border font-bold text-sm outline-none shadow-sm w-full md:w-64 flex-shrink-0 ${inputBg}`}
                 />
 
-                {/* Excel Download බොත්තම */}
                 <button 
                   onClick={handleDownloadExcel}
                   className="flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 rounded-xl font-bold transition-all shadow-md w-full md:w-auto flex-shrink-0"
@@ -639,12 +637,17 @@ export default function AdminDashboard() {
 
             {isLoadingStudents ? (
               <div className="text-center py-10 text-slate-500 font-bold animate-pulse">සිසුන්ගේ දත්ත ගෙනෙමින් පවතී...</div>
-            ) : (filteredStudents || []).length === 0 ? (
+            ) : (displayedStudents || []).length === 0 ? (
               <div className={`p-10 rounded-3xl border text-center ${cardBg}`}>
                 <h3 className={`text-lg font-bold ${textPrimary}`}>අදාළ සෙවීම සඳහා සිසුන් නොමැත.</h3>
               </div>
             ) : (
               <div className={`rounded-2xl border overflow-hidden shadow-sm ${cardBg}`}>
+                {isDefaultView && (
+                  <div className={`p-3 text-xs font-bold text-center border-b ${isDarkMode ? 'bg-amber-900/30 text-amber-500 border-amber-900' : 'bg-amber-50 text-amber-600 border-amber-100'}`}>
+                    ⚠️ මෙහි පෙන්වන්නේ අවසන් වරට එක් වූ සිසුන් 50 දෙනා පමණි. පැරණි සිසුන් සෙවීම සඳහා ඉහත කොටුවේ අංකය ඇතුළත් කරන්න.
+                  </div>
+                )}
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-sm">
                     <thead className={`text-xs uppercase font-bold border-b ${isDarkMode ? 'bg-slate-800 text-slate-400 border-slate-700' : 'bg-slate-50 text-slate-500 border-slate-200'}`}>
@@ -656,7 +659,7 @@ export default function AdminDashboard() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-                      {(filteredStudents || []).map((student) => (
+                      {(displayedStudents || []).map((student) => (
                         <tr key={student._id} className={`transition-colors ${isDarkMode ? 'hover:bg-slate-700/50' : 'hover:bg-slate-50'}`}>
                           <td className={`px-6 py-4 font-bold ${textPrimary}`}>{student.userPhone || "N/A"}</td>
                           <td className={`px-6 py-4 font-bold text-blue-500`}>{student.courseTitle || "N/A"}</td>

@@ -12,11 +12,9 @@ export async function GET() {
   try {
     await connectDB();
     
-    // 🔴 වැදගත්ම වෙනස: updatedAt වෙනුවට _id භාවිතා කර ඇත!
-    // _id මගින් ස්වයංක්‍රීයව අලුත්ම සිසුන් මුලට ගෙන එන අතර Memory Crash වීම සම්පූර්ණයෙන්ම නවත්වයි.
+    // 🔴 වෙනස: .limit(500) ඉවත් කර ඇත. දැන් අනුමත වූ සියලුම සිසුන් ලබා ගනී.
     const students = await Enrollment.find({ status: "approved" })
                                      .sort({ _id: -1 }) 
-                                     .limit(500) // අලුත්ම සිසුන් 500ක් ලබා ගනී
                                      .lean(); 
     
     return NextResponse.json({ success: true, data: students }, { status: 200 });
