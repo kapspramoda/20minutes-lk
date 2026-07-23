@@ -31,7 +31,8 @@ export default function CoursePlayerPage({ params }: PageProps) {
   const [isMuted, setIsMuted] = useState(false);
   const [volumeLevel, setVolumeLevel] = useState(100);
 
-  // 🔴 අලුත්: Custom Player States
+  // 🔴 අලුත්: Custom Player States & Refs
+  const iframeRef = useRef<HTMLIFrameElement>(null);
   const ytPlayerRef = useRef<any>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -150,7 +151,7 @@ export default function CoursePlayerPage({ params }: PageProps) {
   }, [status, session, courseId, router]);
 
 
-  // 🔴 අලුත්: YouTube API හරහා Custom Video පාලනය
+  // 🔴 අලුත්: වඩාත්ම ආරක්ෂිත සහ නිවැරදි YouTube API සම්බන්ධතාවය
   const getYoutubeId = (url: string) => {
     if(!url) return null;
     const ytRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?|live)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i;
@@ -162,55 +163,48 @@ export default function CoursePlayerPage({ params }: PageProps) {
     const ytId = getYoutubeId(activeVideoUrl);
     if (!ytId) return;
 
+    // පරණ Player එකක් තියෙනවා නම් ඒක අයින් කරනවා (Memory Leak වළක්වන්න)
+    if (ytPlayerRef.current && typeof ytPlayerRef.current.destroy === 'function') {
+      try { ytPlayerRef.current.destroy(); } catch(e){}
+    }
+
     const initPlayer = () => {
-      if (ytPlayerRef.current) {
-        try {
-          ytPlayerRef.current.loadVideoById(ytId);
-          setIsPlaying(false);
-          setCurrentTime(0);
-        } catch(e) {}
-      } else if ((window as any).YT && (window as any).YT.Player) {
-        ytPlayerRef.current = new (window as any).YT.Player('yt-player-container', {
-          videoId: ytId,
-          playerVars: {
-            controls: 0, // මුල් පාලන බොත්තම් මකා දැමීම!
-            disablekb: 1,
-            modestbranding: 1,
-            rel: 0,
-            showinfo: 0,
-            fs: 0,
-            playsinline: 1,
+      if (!(window as any).YT || !(window as any).YT.Player || !iframeRef.current) {
+        setTimeout(initPlayer, 500); // API එක Load වෙනකම් තත්පර භාගයක් බලන් ඉන්නවා
+        return;
+      }
+      
+      ytPlayerRef.current = new (window as any).YT.Player(iframeRef.current, {
+        events: {
+          onReady: (event: any) => {
+            setDuration(event.target.getDuration());
+            event.target.setVolume(volumeLevel);
+            if (isMuted) event.target.mute();
+            event.target.setPlaybackRate(playbackSpeed);
           },
-          events: {
-            onReady: (event: any) => {
+          onStateChange: (event: any) => {
+            if (event.data === (window as any).YT.PlayerState.PLAYING) {
+              setIsPlaying(true);
               setDuration(event.target.getDuration());
-              event.target.setVolume(volumeLevel);
-              if (isMuted) event.target.mute();
-            },
-            onStateChange: (event: any) => {
-              if (event.data === (window as any).YT.PlayerState.PLAYING) {
-                setIsPlaying(true);
-                setDuration(event.target.getDuration());
-              } else if (
-                event.data === (window as any).YT.PlayerState.PAUSED || 
-                event.data === (window as any).YT.PlayerState.ENDED
-              ) {
-                setIsPlaying(false);
-              }
+            } else if (
+              event.data === (window as any).YT.PlayerState.PAUSED || 
+              event.data === (window as any).YT.PlayerState.ENDED
+            ) {
+              setIsPlaying(false);
             }
           }
-        });
-      }
+        }
+      });
     };
 
-    if (typeof window !== "undefined" && !(window as any).YT) {
+    if (!(window as any).YT) {
       const tag = document.createElement('script');
       tag.src = "https://www.youtube.com/iframe_api";
       const firstScriptTag = document.getElementsByTagName('script')[0];
       if (firstScriptTag?.parentNode) firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
       else document.head.appendChild(tag);
       
-      (window as any).onYouTubeIframeAPIReady = () => { initPlayer(); };
+      (window as any).onYouTubeIframeAPIReady = initPlayer;
     } else {
       initPlayer();
     }
@@ -221,7 +215,7 @@ export default function CoursePlayerPage({ params }: PageProps) {
     let interval: any;
     if (isPlaying) {
       interval = setInterval(() => {
-        if (ytPlayerRef.current && ytPlayerRef.current.getCurrentTime) {
+        if (ytPlayerRef.current && typeof ytPlayerRef.current.getCurrentTime === 'function') {
           setCurrentTime(ytPlayerRef.current.getCurrentTime());
         }
       }, 1000);
@@ -232,14 +226,14 @@ export default function CoursePlayerPage({ params }: PageProps) {
 
   // --- අලුත් Custom Functions ---
   const togglePlay = () => {
-    if (ytPlayerRef.current) {
+    if (ytPlayerRef.current && typeof ytPlayerRef.current.playVideo === 'function') {
       if (isPlaying) ytPlayerRef.current.pauseVideo();
       else ytPlayerRef.current.playVideo();
     }
   };
 
   const handleStop = () => {
-    if (ytPlayerRef.current) {
+    if (ytPlayerRef.current && typeof ytPlayerRef.current.stopVideo === 'function') {
       ytPlayerRef.current.stopVideo();
       setIsPlaying(false);
       setCurrentTime(0);
@@ -247,7 +241,7 @@ export default function CoursePlayerPage({ params }: PageProps) {
   };
 
   const handleSkip = (seconds: number) => {
-    if (ytPlayerRef.current) {
+    if (ytPlayerRef.current && typeof ytPlayerRef.current.seekTo === 'function') {
       const newTime = currentTime + seconds;
       ytPlayerRef.current.seekTo(newTime, true);
       setCurrentTime(newTime);
@@ -255,7 +249,7 @@ export default function CoursePlayerPage({ params }: PageProps) {
   };
 
   const changeSpeed = () => {
-    if (ytPlayerRef.current) {
+    if (ytPlayerRef.current && typeof ytPlayerRef.current.setPlaybackRate === 'function') {
       const newSpeed = playbackSpeed === 1 ? 1.25 : playbackSpeed === 1.25 ? 1.5 : playbackSpeed === 1.5 ? 2 : playbackSpeed === 2 ? 0.75 : 1;
       ytPlayerRef.current.setPlaybackRate(newSpeed);
       setPlaybackSpeed(newSpeed);
@@ -265,7 +259,9 @@ export default function CoursePlayerPage({ params }: PageProps) {
   const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
     const time = parseFloat(e.target.value);
     setCurrentTime(time);
-    if (ytPlayerRef.current) ytPlayerRef.current.seekTo(time, true);
+    if (ytPlayerRef.current && typeof ytPlayerRef.current.seekTo === 'function') {
+      ytPlayerRef.current.seekTo(time, true);
+    }
   };
 
   const formatTime = (seconds: number) => {
@@ -277,10 +273,10 @@ export default function CoursePlayerPage({ params }: PageProps) {
 
   const handleToggleMute = () => {
     if (isMuted) {
-      if(ytPlayerRef.current) ytPlayerRef.current.unMute();
+      if(ytPlayerRef.current && typeof ytPlayerRef.current.unMute === 'function') ytPlayerRef.current.unMute();
       setIsMuted(false);
     } else {
-      if(ytPlayerRef.current) ytPlayerRef.current.mute();
+      if(ytPlayerRef.current && typeof ytPlayerRef.current.mute === 'function') ytPlayerRef.current.mute();
       setIsMuted(true);
     }
   };
@@ -288,9 +284,9 @@ export default function CoursePlayerPage({ params }: PageProps) {
   const handleVolumeDown = () => {
     const newVol = Math.max(volumeLevel - 10, 0);
     setVolumeLevel(newVol);
-    if (ytPlayerRef.current) ytPlayerRef.current.setVolume(newVol);
+    if (ytPlayerRef.current && typeof ytPlayerRef.current.setVolume === 'function') ytPlayerRef.current.setVolume(newVol);
     if (newVol === 0) { 
-      if(ytPlayerRef.current) ytPlayerRef.current.mute();
+      if(ytPlayerRef.current && typeof ytPlayerRef.current.mute === 'function') ytPlayerRef.current.mute();
       setIsMuted(true); 
     }
   };
@@ -298,9 +294,9 @@ export default function CoursePlayerPage({ params }: PageProps) {
   const handleVolumeUp = () => {
     const newVol = Math.min(volumeLevel + 10, 100);
     setVolumeLevel(newVol);
-    if (ytPlayerRef.current) ytPlayerRef.current.setVolume(newVol);
+    if (ytPlayerRef.current && typeof ytPlayerRef.current.setVolume === 'function') ytPlayerRef.current.setVolume(newVol);
     if (isMuted) { 
-       if(ytPlayerRef.current) ytPlayerRef.current.unMute();
+       if(ytPlayerRef.current && typeof ytPlayerRef.current.unMute === 'function') ytPlayerRef.current.unMute();
        setIsMuted(false); 
     }
   };
@@ -432,14 +428,26 @@ export default function CoursePlayerPage({ params }: PageProps) {
               
               {/* වීඩියෝව පෙන්වන කොටස (YouTube ලෝගෝ එක එබීමට නොහැකි කර ඇත) */}
               <div className="relative w-full flex-grow flex items-center justify-center bg-black aspect-video overflow-hidden group">
-                  <div className="w-full h-full absolute inset-0 pointer-events-none overflow-hidden scale-[1.25] md:scale-[1.1]">
-                    <div id="yt-player-container" className="w-full h-full pointer-events-none"></div>
-                  </div>
+                  {/* අලුත් IFrame එක - React හරහා කෙලින්ම Render කර ඇත */}
+                  {activeVideoUrl ? (
+                    <div className="w-full h-full absolute inset-0 overflow-hidden scale-[1.02]">
+                      <iframe 
+                        ref={iframeRef}
+                        id="yt-player-iframe"
+                        src={`https://www.youtube.com/embed/${getYoutubeId(activeVideoUrl)}?enablejsapi=1&controls=0&disablekb=1&modestbranding=1&rel=0&showinfo=0&fs=0&playsinline=1`}
+                        className="w-full h-full pointer-events-none"
+                        allow="autoplay; encrypted-media"
+                        title={activeVideoTitle}
+                      ></iframe>
+                    </div>
+                  ) : (
+                    <div className="w-full h-[300px] flex items-center justify-center text-slate-500 font-bold bg-black">වීඩියෝවක් තෝරා නොමැත</div>
+                  )}
                   
                   {/* වීඩියෝව මත විනිවිද පෙනෙන ආවරණය (ක්ලික් කළ විට Play/Pause වේ) */}
-                  <div className="absolute inset-0 z-[1000] cursor-pointer" onClick={togglePlay}>
-                    {!isPlaying && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/30 transition-all">
+                  <div className="absolute inset-0 z-[10] cursor-pointer" onClick={togglePlay}>
+                    {!isPlaying && activeVideoUrl && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/40 transition-all">
                           <div className="w-16 h-16 bg-blue-600/90 rounded-full flex items-center justify-center text-white shadow-[0_0_20px_rgba(37,99,235,0.5)] backdrop-blur-md hover:scale-110 transition-transform">
                               <svg className="w-8 h-8 ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
                           </div>
@@ -449,20 +457,21 @@ export default function CoursePlayerPage({ params }: PageProps) {
               </div>
 
               {/* 🔴 අලුත්: Custom Control Bar (වීඩියෝව යට පාලක) */}
-              <div className={`p-3 md:p-4 z-[1001] flex flex-col gap-2 ${isFullscreen ? 'bg-slate-900/95 backdrop-blur-md pb-6 absolute bottom-0 left-0 w-full' : isDarkMode ? 'bg-slate-900 border-t border-slate-800' : 'bg-white border-t border-slate-200'}`}>
+              {/* z-[20] සහ relative දමා ඇති නිසා බොත්තම් දැන් නියමෙට ක්ලික් වේ! */}
+              <div className={`relative z-[20] p-3 md:p-4 flex flex-col gap-2 ${isFullscreen ? 'bg-slate-900/95 backdrop-blur-md pb-6 absolute bottom-0 left-0 w-full' : isDarkMode ? 'bg-slate-900 border-t border-slate-800' : 'bg-white border-t border-slate-200'}`}>
                 
                 {/* Progress (Seek) Bar */}
                 <div className="flex items-center gap-2 md:gap-3 w-full px-1 md:px-2">
                     <span className={`text-[10px] md:text-xs font-bold w-9 md:w-10 text-right ${isFullscreen ? 'text-slate-300' : textSecondary}`}>{formatTime(currentTime)}</span>
                     <input 
                       type="range" min="0" max={duration || 100} value={currentTime} onChange={handleSeek}
-                      className="flex-grow h-1.5 md:h-2 bg-slate-300 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                      className="flex-grow h-1.5 md:h-2 bg-slate-300 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-600 relative z-[30]"
                     />
                     <span className={`text-[10px] md:text-xs font-bold w-9 md:w-10 ${isFullscreen ? 'text-slate-300' : textSecondary}`}>{formatTime(duration)}</span>
                 </div>
 
                 {/* පාලක බොත්තම් (Buttons) */}
-                <div className="flex items-center justify-between px-1 md:px-2 mt-1 md:mt-2">
+                <div className="flex items-center justify-between px-1 md:px-2 mt-1 md:mt-2 relative z-[30]">
                     <div className="flex items-center gap-1.5 md:gap-3">
                         <button onClick={handleStop} className="p-1.5 md:p-2 rounded-full hover:bg-red-100 text-red-500 transition group" title="Stop">
                           <svg className="w-4 h-4 md:w-5 md:h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></svg>
