@@ -1,0 +1,24 @@
+name: Deploy 20minutes Site
+
+on:
+  push:
+    branches:
+      - main  # ඔයාගේ ප්‍රධාන Branch එක master නම්, මේක master කියලා වෙනස් කරන්න
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to DigitalOcean Droplet
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          password: ${{ secrets.PASSWORD }}
+          script: |
+            cd ~/20minutes-lms
+            git pull origin main
+            npm install
+            npm run build
+            pm2 restart 20minutes
