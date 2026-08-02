@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import mongoose from "mongoose";
-import Enrollment from "@/models/Enrollment";
+import Enrollment from "@/models/Enrollment"; // මේක දැන් අත්‍යවශ්‍ය නෑ, ඒත් තියෙන්න අරින්න
 
 let isConnected = false;
 
@@ -12,7 +12,6 @@ const connectDB = async () => {
 
   console.log("=> [API] Database එකට අලුතින් සම්බන්ධ වීමට උත්සාහ කරයි...");
   try {
-    // තත්පර 5ක් ඇතුළත Connect වුණේ නැත්නම් හිරවෙන්නේ නැතුව Error එක දෙන්න
     await mongoose.connect(process.env.MONGODB_URI as string, {
       serverSelectionTimeoutMS: 5000, 
     });
@@ -30,10 +29,15 @@ export async function GET() {
     await connectDB();
     
     console.log("=> [API] Database එකෙන් ළමයිව හොයමින් පවතී...");
-    const students = await Enrollment.find({ status: "approved" })
-                                     .sort({ _id: -1 }) 
-                                     .lean()
-                                     .maxTimeMS(5000); // තත්පර 5ක් ඇතුළත දත්ත ආවේ නැත්නම් නතර කරන්න
+    
+    // 🔴 වෙනස: Mongoose Model එක මඟහැර කෙලින්ම Database එකෙන් දත්ත ගැනීම (කිසිම හිරවීමක් නොවේ)
+    const db = mongoose.connection.db;
+    if (!db) throw new Error("Database connection හඳුනාගත නොහැක!");
+
+    const students = await db.collection('enrollments')
+                             .find({ status: "approved" })
+                             .sort({ _id: -1 })
+                             .toArray();
     
     console.log(`=> [API] සාර්ථකයි! ළමයි ${students.length} කගේ දත්ත ලබා ගත්තා.`);
     return NextResponse.json({ success: true, data: students }, { status: 200 });
