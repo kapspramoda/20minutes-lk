@@ -31,9 +31,18 @@ export async function GET() {
     
     console.log("=> [API] Database එකෙන් ළමයිව හොයමින් පවතී (Native)...");
     
-    // enrollments కలෙක්ෂන් එකෙන් දත්ත ගැනීම (Timeout එකක් සමඟ)
+    // 🔴 වෙනස: දත්ත වල බර අඩු කිරීමට .project() එකතු කර ඇත
+    // enrollments කලෙක්ෂන් එකෙන් දත්ත ගැනීම (Timeout එකක් සමඟ)
     const students = await db.collection("enrollments")
                              .find({ status: "approved" })
+                             .project({ 
+                                // Admin Panel එකේ පෙන්වන්න අත්‍යවශ්‍ය දේවල් විතරක් 1 කියලා දෙන්න
+                                name: 1, 
+                                email: 1, 
+                                phone: 1, 
+                                courseId: 1,
+                                createdAt: 1 
+                             })
                              .sort({ _id: -1 })
                              .maxTimeMS(4000)
                              .toArray();
