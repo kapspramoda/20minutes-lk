@@ -23,6 +23,8 @@ export default function EditQuizPage({ params }: PageProps) {
   const [quizData, setQuizData] = useState({
     courseId: "",
     title: "",
+    timeLimit: "", // 🔴 අලුතින් එකතු කළා
+    pdfUrl: "",    // 🔴 අලුතින් එකතු කළා
     questions: [
       { questionText: "", options: ["", "", "", ""], correctOptionIndex: 0 }
     ]
@@ -49,6 +51,8 @@ export default function EditQuizPage({ params }: PageProps) {
           setQuizData({
             courseId: fetchedQuiz.data.courseId,
             title: fetchedQuiz.data.title,
+            timeLimit: fetchedQuiz.data.timeLimit || "", // 🔴 Database එකෙන් එන කාලය
+            pdfUrl: fetchedQuiz.data.pdfUrl || "",       // 🔴 Database එකෙන් එන PDF ලින්ක් එක
             questions: fetchedQuiz.data.questions
           });
         } else {
@@ -106,6 +110,7 @@ export default function EditQuizPage({ params }: PageProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!quizData.courseId) return alert("කරුණාකර අදාළ පාඨමාලාව තෝරන්න.");
+    if (!quizData.timeLimit) return alert("කරුණාකර ප්‍රශ්න පත්‍රයට අදාළ කාල සීමාව ඇතුළත් කරන්න."); // 🔴 අලුත් Validation එක
     
     setIsLoading(true);
     setMessage({ type: "", text: "" });
@@ -117,6 +122,8 @@ export default function EditQuizPage({ params }: PageProps) {
         body: JSON.stringify({
           title: quizData.title,
           courseId: quizData.courseId,
+          timeLimit: Number(quizData.timeLimit), // 🔴 Number එකක් විදිහට යවනවා
+          pdfUrl: quizData.pdfUrl,               // 🔴 PDF ලින්ක් එක යවනවා
           questions: quizData.questions
         }),
       });
@@ -182,8 +189,10 @@ export default function EditQuizPage({ params }: PageProps) {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-8">
+            
+            {/* 🔴 වෙනස: md:grid-cols-3 කරලා තීරු 3ක් හැදුවා */}
             <div className={`p-6 rounded-xl border ${isDarkMode ? 'bg-slate-900/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-4">
                 <div>
                   <label className="block text-sm font-bold mb-2">අදාළ පාඨමාලාව *</label>
                   <select required value={quizData.courseId} onChange={(e) => setQuizData({...quizData, courseId: e.target.value})} className={`w-full p-3 rounded-xl border outline-none font-bold ${inputBg}`}>
@@ -197,6 +206,32 @@ export default function EditQuizPage({ params }: PageProps) {
                   <label className="block text-sm font-bold mb-2">ප්‍රශ්න පත්‍රයේ නම (Title) *</label>
                   <input type="text" required value={quizData.title} onChange={(e) => setQuizData({...quizData, title: e.target.value})} className={`w-full p-3 rounded-xl border outline-none ${inputBg}`} />
                 </div>
+                {/* 🔴 අලුත්: කාල සීමාව ඇතුළත් කරන කොටුව */}
+                <div>
+                  <label className="block text-sm font-bold mb-2">කාල සීමාව (විනාඩි) *</label>
+                  <input 
+                    type="number" 
+                    required 
+                    min="1"
+                    value={quizData.timeLimit} 
+                    onChange={(e) => setQuizData({...quizData, timeLimit: e.target.value})} 
+                    className={`w-full p-3 rounded-xl border outline-none ${inputBg}`} 
+                  />
+                </div>
+              </div>
+
+              {/* 🔴 අලුත්: PDF ලින්ක් එක දාන කොටස */}
+              <div className="mt-6 border-t border-slate-200 dark:border-slate-700 pt-6">
+                <label className="block text-sm font-bold mb-2">
+                  ප්‍රශ්න පත්‍රයේ PDF ලින්ක් එක <span className="text-slate-400 font-normal text-xs ml-2">(අත්‍යවශ්‍ය නැත)</span>
+                </label>
+                <input 
+                  type="url" 
+                  value={quizData.pdfUrl} 
+                  onChange={(e) => setQuizData({...quizData, pdfUrl: e.target.value})} 
+                  className={`w-full p-3 rounded-xl border outline-none ${inputBg}`} 
+                  placeholder="උදා: https://drive.google.com/file/d/..." 
+                />
               </div>
             </div>
 
