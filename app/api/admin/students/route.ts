@@ -2,9 +2,23 @@ import { NextResponse } from "next/server";
 import mongoose from "mongoose";
 import Enrollment from "@/models/Enrollment";
 
+// 🔴 වෙනස: Database එකට සම්බන්ධ වෙලාද කියලා හරියටම මතක තියාගන්න ක්‍රමය
+let isConnected = false;
+
 const connectDB = async () => {
-  if (mongoose.connection.readyState >= 1) return;
-  await mongoose.connect(process.env.MONGODB_URI as string);
+  if (isConnected) return;
+
+  if (mongoose.connection.readyState === 1) {
+    isConnected = true;
+    return;
+  }
+
+  try {
+    await mongoose.connect(process.env.MONGODB_URI as string);
+    isConnected = true;
+  } catch (error) {
+    console.error("MongoDB Connection Error:", error);
+  }
 };
 
 // 1. අනුමත වූ (Approved) සියලුම සිසුන්ගේ විස්තර ලබා ගැනීම
@@ -12,7 +26,6 @@ export async function GET() {
   try {
     await connectDB();
     
-    // 🔴 වෙනස: .limit(500) ඉවත් කර ඇත. දැන් අනුමත වූ සියලුම සිසුන් ලබා ගනී.
     const students = await Enrollment.find({ status: "approved" })
                                      .sort({ _id: -1 }) 
                                      .lean(); 

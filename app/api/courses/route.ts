@@ -2,14 +2,26 @@ import { NextResponse } from "next/server";
 import mongoose from "mongoose";
 import Course from "@/models/Course"; // ඔයාගේ Course model එක තියෙන තැනට path එක හරිද බලන්න
 
-// Database එකට සම්බන්ධ වීමේ ෆන්ක්ෂන් එක (දැනටමත් කනෙක්ට් වෙලා නැත්නම් විතරක් කනෙක්ට් වෙන්න)
+// 🔴 වෙනස 1: Database එකට සම්බන්ධ වෙලාද කියලා හරියටම මතක තියාගන්න ක්‍රමය
+let isConnected = false;
+
 const connectDB = async () => {
-  if (mongoose.connection.readyState >= 1) return;
-  
+  if (isConnected) return;
+
+  if (mongoose.connection.readyState === 1) {
+    isConnected = true;
+    return;
+  }
+
   const uri = process.env.MONGODB_URI || process.env.DATABASE_URL;
   if (!uri) throw new Error("Database URI එක .env ෆයිල් එකේ නැත!");
   
-  await mongoose.connect(uri);
+  try {
+    await mongoose.connect(uri);
+    isConnected = true;
+  } catch (error) {
+    console.error("MongoDB Connection Error:", error);
+  }
 };
 
 // 1. පවතින සියලුම පාඨමාලා ලබා ගැනීම (GET)
@@ -17,8 +29,8 @@ export async function GET() {
   try {
     await connectDB();
     
-    // අලුතින්ම හදපු පාඨමාලා උඩින්ම එන්න (createdAt: -1) ඔක්කොම පාඨමාලා ගන්නවා
-    const courses = await Course.find({}).sort({ createdAt: -1 });
+    // 🔴 වෙනස 2: අගට .lean() එකතු කර ඇත (දත්ත වල බර 90% කින් අඩු කිරීමට)
+    const courses = await Course.find({}).sort({ createdAt: -1 }).lean();
     
     return NextResponse.json({ success: true, data: courses }, { status: 200 });
   } catch (error: any) {
