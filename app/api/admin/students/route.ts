@@ -10,7 +10,7 @@ async function connectToDatabase() {
   
   console.log("=> [API] MongoDB Native Client හරහා සම්බන්ධ වෙමින්...");
   const client = new MongoClient(process.env.MONGODB_URI as string, {
-    serverSelectionTimeoutMS: 4000, // තත්පර 4කට වඩා ඉන්නේ නෑ
+    serverSelectionTimeoutMS: 4000, 
     connectTimeoutMS: 4000,
   });
 
@@ -26,23 +26,20 @@ export async function GET() {
   try {
     const client = await connectToDatabase();
     
-    // URI එකෙන් Database නම තෝරාගැනීම (හෝ ඩිෆෝල්ට් නම)
+    // URI එකෙන් Database නම තෝරාගැනීම (test)
     const db = client.db(); 
     
     console.log("=> [API] Database එකෙන් ළමයිව හොයමින් පවතී (Native)...");
     
-    // 🔴 වෙනස: දත්ත වල බර අඩු කිරීමට .project() එකතු කර ඇත
-    // enrollments කලෙක්ෂන් එකෙන් දත්ත ගැනීම (Timeout එකක් සමඟ)
+    // 🔴 වෙනස: slipImage එක සම්පූර්ණයෙන්ම අතහැර අත්‍යවශ්‍ය දත්ත පමණක් ලබා ගැනීම
     const students = await db.collection("enrollments")
-                             .find({ status: "approved" })
+                             .find({ status: "approved" }) 
                              .project({ 
-                                // Admin Panel එකේ පෙන්වන්න අත්‍යවශ්‍ය දේවල් විතරක් 1 කියලා දෙන්න
-                                name: 1, 
-                                email: 1, 
-                                phone: 1, 
-                                courseId: 1,
+                                userPhone: 1, 
+                                courseTitle: 1, 
+                                status: 1, 
                                 createdAt: 1 
-                             })
+                             }) // slipImage එක මෙතන නැති නිසා Memory එක පිරෙන්නේ නෑ!
                              .sort({ _id: -1 })
                              .maxTimeMS(4000)
                              .toArray();
