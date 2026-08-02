@@ -1,49 +1,51 @@
 import { NextResponse } from "next/server";
-import mongoose from "mongoose";
-import Enrollment from "@/models/Enrollment"; 
+import { MongoClient } from "mongodb";
 
-let isConnected = false;
+let cachedClient: MongoClient | null = null;
 
-const connectDB = async () => {
-  // readyState 1 කියන්නේ හරියටම Connect වෙලා කියන එකයි
-  if (isConnected && mongoose.connection.readyState === 1) {
-    console.log("=> [API] පවතින Database Connection එක භාවිතා කරයි...");
-    return;
+async function connectToDatabase() {
+  if (cachedClient) {
+    return cachedClient;
   }
+  
+  console.log("=> [API] MongoDB Native Client හරහා සම්බන්ධ වෙමින්...");
+  const client = new MongoClient(process.env.MONGODB_URI as string, {
+    serverSelectionTimeoutMS: 4000, // තත්පර 4කට වඩා ඉන්නේ නෑ
+    connectTimeoutMS: 4000,
+  });
 
-  console.log("=> [API] Database එකට අලුතින් සම්බන්ධ වීමට උත්සාහ කරයි...");
-  try {
-    await mongoose.connect(process.env.MONGODB_URI as string, {
-      serverSelectionTimeoutMS: 5000, 
-      socketTimeoutMS: 10000, // තත්පර 10කට වඩා බලන් ඉන්නේ නෑ
-      bufferCommands: false, // 🔴 හිරවෙලා (Hang වෙලා) ඉන්න එක සම්පූර්ණයෙන්ම නවත්වනවා
-    });
-    isConnected = true;
-    console.log("=> [API] Database එක සාර්ථකව සම්බන්ධ විය!");
-  } catch (error) {
-    console.error("=> [API] Database Connection Error:", error);
-    throw error;
-  }
-};
+  await client.connect();
+  cachedClient = client;
+  console.log("=> [API] MongoDB Native Client සාර්ථකව සම්බන්ධ විය!");
+  return client;
+}
 
 export async function GET() {
   console.log("=> [API] ළමයිගේ දත්ත ඉල්ලීම ආරම්භ විය...");
+  
   try {
-    await connectDB();
+    const client = await connectToDatabase();
     
-    console.log("=> [API] Database එකෙන් ළමයිව හොයමින් පවතී...");
+    // URI එකෙන් Database නම තෝරාගැනීම (හෝ ඩිෆෝල්ට් නම)
+    const db = client.db(); 
     
-    // Mongoose හරහා දත්ත ඇදීම (උපරිම තත්පර 5යි දෙන්නේ)
-    const students = await Enrollment.find({ status: "approved" })
-                                     .sort({ _id: -1 })
-                                     .lean()
-                                     .maxTimeMS(5000); 
+    console.log("=> [API] Database එකෙන් ළමයිව හොයමින් පවතී (Native)...");
     
+    // enrollments కలෙක්ෂන් එකෙන් දත්ත ගැනීම (Timeout එකක් සමඟ)
+    const students = await db.collection("enrollments")
+                             .find({ status: "approved" })
+                             .sort({ _id: -1 })
+                             .maxTimeMS(4000)
+                             .toArray();
+
     console.log(`=> [API] සාර්ථකයි! ළමයි ${students.length} කගේ දත්ත ලබා ගත්තා.`);
     return NextResponse.json({ success: true, data: students }, { status: 200 });
+
   } catch (error: any) {
-    // දැන් හිරවෙන්නේ නෑ, මෙතනින් කෙලින්ම රතු පාටින් Error එක ලොග් එකට වැටෙනවා
-    console.error("=> [API] GET Error 🔴:", error.message || error);
-    return NextResponse.json({ success: false, error: error.message || "Database Timeout" }, { status: 500 });
+    console.error("=> [API] 🔴 Error:", error.message || error);
+    return NextResponse.json({ 
+      success: false, 
+      error: error.message || "Database connection timeout" 
+    }, { status: 500 });
   }
 }
