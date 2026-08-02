@@ -9,6 +9,10 @@ const QuestionSchema = new Schema({
 const QuizSchema = new Schema({
   courseId: { type: String, required: true }, // කුමන පාඨමාලාවට අදාළද කියා හඳුනා ගැනීමට
   title: { type: String, required: true }, // Paper එකේ නම
+  
+  // 🔴 මේක තමයි අලුතින්ම එකතු කළ කාල සීමාව (විනාඩි වලින්)
+  timeLimit: { type: Number, required: true }, 
+  
   pdfUrl: { type: String, default: "" },
   questions: [QuestionSchema],
   isVisible: { type: Boolean, default: true } // Hide/Show කිරීමට

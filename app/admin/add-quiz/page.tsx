@@ -14,11 +14,12 @@ export default function AddQuizPage() {
 
   const [courses, setCourses] = useState<any[]>([]);
 
-  // 🔴 Quiz දත්ත ව්‍යුහයට pdfUrl එකතු කළා
+  // 🔴 Quiz දත්ත ව්‍යුහයට timeLimit එකතු කළා
   const [quizData, setQuizData] = useState({
     courseId: "",
     title: "",
-    pdfUrl: "", // 🔴 අලුත්
+    timeLimit: "", // 🔴 අලුත්: කාල සීමාව (විනාඩි වලින්)
+    pdfUrl: "",
     questions: [
       { questionText: "", options: ["", "", "", ""], correctOptionIndex: 0 }
     ]
@@ -78,15 +79,22 @@ export default function AddQuizPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!quizData.courseId) return alert("කරුණාකර අදාළ පාඨමාලාව තෝරන්න.");
+    if (!quizData.timeLimit) return alert("කරුණාකර ප්‍රශ්න පත්‍රයට අදාළ කාල සීමාව ඇතුළත් කරන්න."); // 🔴 අලුත් Validation එකක්
     
     setIsLoading(true);
     setMessage({ type: "", text: "" });
+
+    // timeLimit එක Number එකක් විදිහට යවන්න හදාගන්නවා
+    const payload = {
+      ...quizData,
+      timeLimit: Number(quizData.timeLimit)
+    };
 
     try {
       const response = await fetch("/api/admin/quizzes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(quizData),
+        body: JSON.stringify(payload),
       });
 
       const data = await response.json();
@@ -150,7 +158,8 @@ export default function AddQuizPage() {
             
             {/* 1. මූලික විස්තර */}
             <div className={`p-6 rounded-xl border ${isDarkMode ? 'bg-slate-900/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
+              {/* 🔴 වෙනස: මෙතන md:grid-cols-3 කරලා තීරු 3ක් හැදුවා */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-4">
                 <div>
                   <label className="block text-sm font-bold mb-2">අදාළ පාඨමාලාව තෝරන්න *</label>
                   <select required value={quizData.courseId} onChange={(e) => setQuizData({...quizData, courseId: e.target.value})} className={`w-full p-3 rounded-xl border outline-none font-bold ${inputBg}`}>
@@ -164,9 +173,22 @@ export default function AddQuizPage() {
                   <label className="block text-sm font-bold mb-2">ප්‍රශ්න පත්‍රයේ නම (Title) *</label>
                   <input type="text" required value={quizData.title} onChange={(e) => setQuizData({...quizData, title: e.target.value})} className={`w-full p-3 rounded-xl border outline-none ${inputBg}`} placeholder="උදා: 1 වන ඒකකය ඇගයීම" />
                 </div>
+                {/* 🔴 අලුත්: කාල සීමාව ඇතුළත් කරන කොටුව */}
+                <div>
+                  <label className="block text-sm font-bold mb-2">කාල සීමාව (විනාඩි) *</label>
+                  <input 
+                    type="number" 
+                    required 
+                    min="1"
+                    value={quizData.timeLimit} 
+                    onChange={(e) => setQuizData({...quizData, timeLimit: e.target.value})} 
+                    className={`w-full p-3 rounded-xl border outline-none ${inputBg}`} 
+                    placeholder="උදා: 30" 
+                  />
+                </div>
               </div>
 
-              {/* 🔴 අලුත්: PDF ලින්ක් එක දාන කොටස */}
+              {/* PDF ලින්ක් එක දාන කොටස */}
               <div className="mt-6 border-t border-slate-200 dark:border-slate-700 pt-6">
                 <label className="block text-sm font-bold mb-2">
                   ප්‍රශ්න පත්‍රයේ PDF ලින්ක් එක <span className="text-slate-400 font-normal text-xs ml-2">(අත්‍යවශ්‍ය නැත)</span>

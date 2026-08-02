@@ -13,8 +13,9 @@ export async function POST(req: Request) {
     await connectDB();
     const body = await req.json();
     
-    if (!body.courseId || !body.title || !body.questions || body.questions.length === 0) {
-      return NextResponse.json({ error: "කරුණාකර සියලුම දත්ත සම්පූර්ණ කරන්න." }, { status: 400 });
+    // 🔴 වෙනස: timeLimit එකත් අනිවාර්යයෙන්ම එවා තිබේදැයි පරීක්ෂා කිරීම
+    if (!body.courseId || !body.title || !body.timeLimit || !body.questions || body.questions.length === 0) {
+      return NextResponse.json({ error: "කරුණාකර කාල සීමාව ඇතුළුව සියලුම දත්ත සම්පූර්ණ කරන්න." }, { status: 400 });
     }
 
     const newQuiz = await Quiz.create(body);
