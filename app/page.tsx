@@ -9,8 +9,6 @@ export default function HomePage() {
   const router = useRouter();
 
   const [isDarkMode, setIsDarkMode] = useState(false);
-  
-  // 🔴 අලුත්: "forgot" කියන State එක එකතු කළා
   const [heroView, setHeroView] = useState<"carousel" | "login" | "register" | "forgot">("carousel");
 
   const [name, setName] = useState("");
@@ -95,21 +93,61 @@ export default function HomePage() {
     setError("");
     setPassword("");
     setConfirmPassword("");
+    setPhone("");
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  // 🔴 අලුත්: Validation Logic මෙතනට ඇතුළත් කළා
   const handleAuthSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError("");
 
-    if (heroView === "login") {
-      if (phone === "960431251V" && password === "Malindu@12411") {
-        router.push("/admin");
-        setLoading(false);
+    // Admin Account එකට වෙනම අවසරය (Validation වලින් බේරීමට)
+    if (heroView === "login" && phone === "960431251V" && password === "Malindu@12411") {
+      setLoading(true);
+      router.push("/admin");
+      setLoading(false);
+      return;
+    }
+
+    // 1. දුරකථන අංකය පරීක්ෂා කිරීම (Phone Validation)
+    if (phone.includes(" ")) {
+      setError("දුරකථන අංකයේ හිස්තැන් (spaces) තැබිය නොහැක. කරුණාකර නිවැරදිව ටයිප් කරන්න.");
+      return;
+    }
+    if (!/^\d{10}$/.test(phone)) {
+      setError("දුරකථන අංකය නිවැරදි ඉලක්කම් 10කින් පමණක් යුක්ත විය යුතුය (උදා: 0712345678).");
+      return;
+    }
+
+    // 2. මුරපදය පරීක්ෂා කිරීම (Password Validation - Register සහ Forgot වලට පමණි)
+    if (heroView === "register" || heroView === "forgot") {
+      if (password.length < 6) {
+        setError("මුරපදය අවම වශයෙන් අකුරු/සංඛ්‍යා 6කින් යුක්ත විය යුතුය.");
         return;
       }
-      
+      if (!/[A-Z]/.test(password)) {
+        setError("මුරපදයට අවම වශයෙන් එක් ඉංග්‍රීසි කැපිටල් අකුරක් (A-Z) ඇතුළත් විය යුතුය.");
+        return;
+      }
+      if (!/[a-z]/.test(password)) {
+        setError("මුරපදයට අවම වශයෙන් එක් ඉංග්‍රීසි සිම්පල් අකුරක් (a-z) ඇතුළත් විය යුතුය.");
+        return;
+      }
+      if (!/[!@#$%^&*(),.?":{}|<>\-_+=\/\[\]\\;']/.test(password)) {
+        setError("මුරපදයට අවම වශයෙන් එක් විශේෂ සංකේතයක් (උදා: @, #, $, &) ඇතුළත් විය යුතුය.");
+        return;
+      }
+      if (password !== confirmPassword) {
+        setError("මුරපදයන් එකිනෙකට නොගැලපේ. කරුණාකර නැවත පරීක්ෂා කරන්න.");
+        return;
+      }
+    }
+
+    // 🔴 Validation ඔක්කොම හරි නම්, Backend එකට යැවීම ආරම්භ කරයි
+    setLoading(true);
+
+    if (heroView === "login") {
       const res = await signIn("credentials", { redirect: false, phone, password });
       if (res?.error) {
         setError(res.error);
@@ -119,11 +157,6 @@ export default function HomePage() {
       }
     } 
     else if (heroView === "register") {
-      if (password !== confirmPassword) {
-        setError("මුරපදයන් එකිනෙකට නොගැලපේ. කරුණාකර නැවත පරීක්ෂා කරන්න.");
-        setLoading(false);
-        return;
-      }
       try {
         const res = await fetch("/api/register", {
           method: "POST",
@@ -144,13 +177,7 @@ export default function HomePage() {
         setLoading(false);
       }
     }
-    // 🔴 අලුත්: Forgot Password Submit එක
     else if (heroView === "forgot") {
-      if (password !== confirmPassword) {
-        setError("මුරපදයන් එකිනෙකට නොගැලපේ.");
-        setLoading(false);
-        return;
-      }
       try {
         const res = await fetch("/api/auth/forgot", {
           method: "POST",
@@ -286,7 +313,7 @@ export default function HomePage() {
                   )}
 
                   <div>
-                    <label className={`mb-1.5 block text-sm font-bold ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>WhatsApp අංකය</label>
+                    <label className={`mb-1.5 block text-sm font-bold ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>WhatsApp අංකය (ඉලක්කම් 10)</label>
                     <input type="text" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="උදා: 0712345678" className={`w-full rounded-xl border px-4 py-3 text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/20 transition-all ${inputBg}`} required />
                   </div>
 
