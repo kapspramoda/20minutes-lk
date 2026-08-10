@@ -33,6 +33,7 @@ export default function CoursePlayerPage({ params }: PageProps) {
 
   // 🔴 Custom Player States
   const ytPlayerRef = useRef<any>(null);
+  const isFetched = useRef(false); // 🔴 අලුත්: දත්ත එක් වරක් පමණක් ගැනීමට පාවිච්චි කරන ලොක් එක
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -97,6 +98,10 @@ export default function CoursePlayerPage({ params }: PageProps) {
 
     const verifyAccessAndFetchCourse = async () => {
       if (status !== "authenticated" || !courseId) return;
+      
+      // 🔴 අලුත් වෙනස: දත්ත දැනටමත් අරගෙන නම් ආයෙත් ගන්න එපා (පහළට යද්දී මුලට Reset වීම නවත්වයි)
+      if (isFetched.current) return; 
+      isFetched.current = true; // ලොක් එක දැම්මා!
 
       try {
         const userPhone = (session?.user as any)?.phone || session?.user?.name || session?.user?.email;
@@ -163,7 +168,7 @@ export default function CoursePlayerPage({ params }: PageProps) {
     if (!ytId) return;
 
     const initPlayer = () => {
-      // 1. ප්ලේයරය දැනටමත් සාදා ඇත්නම්, අලුත් වීඩියෝව එයටම Load කිරීම (මෙමඟින් වීඩියෝ මාරු වීමේ දෝෂය නැතිවේ)
+      // 1. ප්ලේයරය දැනටමත් සාදා ඇත්නම්, අලුත් වීඩියෝව එයටම Load කිරීම 
       if (ytPlayerRef.current && typeof ytPlayerRef.current.loadVideoById === 'function') {
         ytPlayerRef.current.loadVideoById(ytId);
         setIsPlaying(false);
@@ -222,7 +227,7 @@ export default function CoursePlayerPage({ params }: PageProps) {
     } else {
       initPlayer();
     }
-  }, [activeVideoUrl]); // වීඩියෝව වෙනස් වන සෑම විටම ධාවනය වේ
+  }, [activeVideoUrl]); 
 
   // Progress Bar
   useEffect(() => {
@@ -437,14 +442,12 @@ export default function CoursePlayerPage({ params }: PageProps) {
           
           <div className="lg:col-span-2 space-y-4 md:space-y-6">
             
-            {/* 🔴 අලුත්: Custom Video Player */}
+            {/* Custom Video Player */}
             <div className={isFullscreen ? "fixed inset-0 z-[99999] bg-black w-screen h-[100dvh] flex flex-col justify-center select-none" : "w-full flex flex-col relative rounded-xl md:rounded-2xl overflow-hidden shadow-lg select-none bg-black border border-slate-800"}>
               
               <div className="relative w-full flex-grow flex items-center justify-center bg-black aspect-video overflow-hidden group">
                   
-                  {/* YouTube Iframe Container - Scale 1.35 කින් විශාල කර ලෝගෝ සඟවා ඇත */}
                   <div className="w-full h-full absolute inset-0 overflow-hidden scale-[1.35] md:scale-[1.3] pointer-events-none">
-                    {/* මෙම div එක තුළට YouTube Iframe එක ස්වයංක්‍රීයව ඇතුළු වේ */}
                     <div id="yt-player-container" className="w-full h-full pointer-events-none"></div>
                   </div>
 
@@ -454,7 +457,6 @@ export default function CoursePlayerPage({ params }: PageProps) {
                     </div>
                   )}
                   
-                  {/* 🔴 Click Blocker (සම්පූර්ණ ආරක්ෂාව) - වීඩියෝව මත ක්ලික් කිරීම වළක්වයි */}
                   <div className="absolute inset-0 z-[60] cursor-pointer" onClick={togglePlay}>
                     {!isPlaying && activeVideoUrl && (
                         <div className="absolute inset-0 flex items-center justify-center bg-black/40 transition-all">
@@ -466,7 +468,6 @@ export default function CoursePlayerPage({ params }: PageProps) {
                   </div>
               </div>
 
-              {/* 🔴 Control Bar - z-index ඉහළ දමා ඇත */}
               <div className={`relative z-[70] p-3 md:p-4 flex flex-col gap-2 ${isFullscreen ? 'bg-slate-900/95 backdrop-blur-md pb-6 absolute bottom-0 left-0 w-full' : isDarkMode ? 'bg-slate-900 border-t border-slate-800' : 'bg-white border-t border-slate-200'}`}>
                 
                 <div className="flex items-center gap-2 md:gap-3 w-full px-1 md:px-2">
