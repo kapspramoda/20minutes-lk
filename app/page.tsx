@@ -24,6 +24,7 @@ export default function HomePage() {
   const [isLoadingCourses, setIsLoadingCourses] = useState(true);
 
   const resultsData = [
+    { id: 6, img: "/results3.jpeg", name: "විශිෂ්ට ප්‍රතිඵල", rank: "ඖෂධවේදී" },
     { id: 1, img: "/RESULTS.jpeg", name: "විශිෂ්ට ප්‍රතිඵල", rank: "ප්‍රාථමික අධ්‍යාපන" },
     { id: 2, img: "/2425.png", name: "විශිෂ්ට ප්‍රතිඵල", rank: "නීතීවේදී" },
     { id: 3, img: "/PrExam.png", name: "විශිෂ්ට ප්‍රතිඵල", rank: "ප්‍රාථමික අධ්‍යාපන" },
