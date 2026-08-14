@@ -31,13 +31,17 @@ export default function CoursePlayerPage({ params }: PageProps) {
   const [isMuted, setIsMuted] = useState(false);
   const [volumeLevel, setVolumeLevel] = useState(100);
 
-  // 🔴 Custom Player States
+  // Custom Player States
   const ytPlayerRef = useRef<any>(null);
-  const isFetched = useRef(false); // 🔴 අලුත්: දත්ත එක් වරක් පමණක් ගැනීමට පාවිච්චි කරන ලොක් එක
+  const isFetched = useRef(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
+  
+  // 🔴 Quality Menu States අලුතින් එකතු කළා
+  const [showQualityMenu, setShowQualityMenu] = useState(false);
+  const [currentQuality, setCurrentQuality] = useState("auto");
 
   useEffect(() => {
     const resolveParams = async () => {
@@ -99,9 +103,8 @@ export default function CoursePlayerPage({ params }: PageProps) {
     const verifyAccessAndFetchCourse = async () => {
       if (status !== "authenticated" || !courseId) return;
       
-      // 🔴 අලුත් වෙනස: දත්ත දැනටමත් අරගෙන නම් ආයෙත් ගන්න එපා (පහළට යද්දී මුලට Reset වීම නවත්වයි)
       if (isFetched.current) return; 
-      isFetched.current = true; // ලොක් එක දැම්මා!
+      isFetched.current = true; 
 
       try {
         const userPhone = (session?.user as any)?.phone || session?.user?.name || session?.user?.email;
@@ -155,7 +158,6 @@ export default function CoursePlayerPage({ params }: PageProps) {
   }, [status, session, courseId, router]);
 
 
-  // 🔴 අලුත්: දෝෂ රහිත YouTube API ක්‍රියාවලිය
   const getYoutubeId = (url: string) => {
     if(!url) return null;
     const ytRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?|live)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i;
@@ -168,7 +170,6 @@ export default function CoursePlayerPage({ params }: PageProps) {
     if (!ytId) return;
 
     const initPlayer = () => {
-      // 1. ප්ලේයරය දැනටමත් සාදා ඇත්නම්, අලුත් වීඩියෝව එයටම Load කිරීම 
       if (ytPlayerRef.current && typeof ytPlayerRef.current.loadVideoById === 'function') {
         ytPlayerRef.current.loadVideoById(ytId);
         setIsPlaying(false);
@@ -176,10 +177,8 @@ export default function CoursePlayerPage({ params }: PageProps) {
         return;
       }
 
-      // 2. Container එක නොමැති නම් නවතින්න
       if (!document.getElementById('yt-player-container')) return;
 
-      // 3. අලුතින්ම ප්ලේයරය සෑදීම
       if ((window as any).YT && (window as any).YT.Player) {
         ytPlayerRef.current = new (window as any).YT.Player('yt-player-container', {
           videoId: ytId,
@@ -229,7 +228,6 @@ export default function CoursePlayerPage({ params }: PageProps) {
     }
   }, [activeVideoUrl]); 
 
-  // Progress Bar
   useEffect(() => {
     let interval: any;
     if (isPlaying) {
@@ -273,6 +271,15 @@ export default function CoursePlayerPage({ params }: PageProps) {
       ytPlayerRef.current.setPlaybackRate(newSpeed);
       setPlaybackSpeed(newSpeed);
     }
+  };
+
+  // 🔴 Quality වෙනස් කිරීමේ Function එක
+  const changeQuality = (qualityLevel: string) => {
+    if (ytPlayerRef.current && typeof ytPlayerRef.current.setPlaybackQuality === 'function') {
+      ytPlayerRef.current.setPlaybackQuality(qualityLevel);
+      setCurrentQuality(qualityLevel);
+    }
+    setShowQualityMenu(false);
   };
 
   const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -379,7 +386,7 @@ export default function CoursePlayerPage({ params }: PageProps) {
   const activeSubject = course.subjects?.find((s: any) => (s.subjectId || s._id) === activeSubjectId);
 
   return (
-    <div className={`modern-font min-h-screen transition-colors duration-300 ${themeBg}`}>
+    <div className={`modern-font min-h-screen transition-colors duration-300 ${themeBg}`} onClick={() => showQualityMenu && setShowQualityMenu(false)}>
       <header className={`sticky top-0 z-50 w-full border-b backdrop-blur-md ${headerBg}`}>
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 md:px-6 md:py-4">
           <div className="flex items-center gap-2 md:gap-3">
@@ -498,9 +505,36 @@ export default function CoursePlayerPage({ params }: PageProps) {
                           <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M11.934 11.2a1 1 0 010 1.6l-5.334 4A1 1 0 015 16V8a1 1 0 011.6-.8l5.334 4zM19.934 11.2a1 1 0 010 1.6l-5.334 4A1 1 0 0113 16V8a1 1 0 011.6-.8l5.334 4z" /></svg>
                         </button>
                         
+                        {/* Speed Button */}
                         <button onClick={changeSpeed} className={`ml-1 md:ml-2 px-2 py-1 md:px-3 md:py-1.5 rounded-lg text-[10px] md:text-xs font-bold transition ${isFullscreen ? 'bg-purple-900/50 text-purple-300 hover:bg-purple-800' : 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 hover:bg-purple-200'}`}>
                           {playbackSpeed}x Speed
                         </button>
+
+                        {/* 🔴 අලුත්: Quality Settings Button & Menu */}
+                        <div className="relative">
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); setShowQualityMenu(!showQualityMenu); }} 
+                            className={`p-1.5 md:p-2 rounded-full transition ${isFullscreen ? 'text-white hover:bg-slate-700' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+                            title="Video Quality"
+                          >
+                            <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                          </button>
+                          
+                          {/* Popup Menu */}
+                          {showQualityMenu && (
+                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 bg-slate-900/95 backdrop-blur-md text-white rounded-xl p-2 shadow-2xl border border-slate-700 flex flex-col gap-1 w-24 md:w-28 z-[100] animate-in fade-in slide-in-from-bottom-2">
+                              <button onClick={() => changeQuality('hd1080')} className={`text-xs md:text-sm py-1.5 px-2 rounded-lg font-bold transition hover:bg-slate-700 text-left ${currentQuality === 'hd1080' ? 'text-blue-400' : ''}`}>1080p HD</button>
+                              <button onClick={() => changeQuality('hd720')} className={`text-xs md:text-sm py-1.5 px-2 rounded-lg font-bold transition hover:bg-slate-700 text-left ${currentQuality === 'hd720' ? 'text-blue-400' : ''}`}>720p HD</button>
+                              <button onClick={() => changeQuality('large')} className={`text-xs md:text-sm py-1.5 px-2 rounded-lg font-bold transition hover:bg-slate-700 text-left ${currentQuality === 'large' ? 'text-blue-400' : ''}`}>480p</button>
+                              <button onClick={() => changeQuality('medium')} className={`text-xs md:text-sm py-1.5 px-2 rounded-lg font-bold transition hover:bg-slate-700 text-left ${currentQuality === 'medium' ? 'text-blue-400' : ''}`}>360p</button>
+                              <button onClick={() => changeQuality('auto')} className={`text-xs md:text-sm py-1.5 px-2 rounded-lg font-bold transition hover:bg-slate-700 text-left ${currentQuality === 'auto' ? 'text-blue-400' : ''}`}>Auto</button>
+                            </div>
+                          )}
+                        </div>
+
                     </div>
                     
                     <div className="flex items-center gap-1 md:gap-2">
