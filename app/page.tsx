@@ -20,13 +20,11 @@ export default function HomePage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // 🔴 අලුත්: Click කළ පින්තූරය මතක තබා ගන්නා State එක
   const [selectedResultImage, setSelectedResultImage] = useState<string | null>(null);
 
   const [apiCourses, setApiCourses] = useState<any[]>([]);
   const [isLoadingCourses, setIsLoadingCourses] = useState(true);
 
-  // ප්‍රතිඵල ලැයිස්තුව (උඩින්ම තියෙන එක මුලින්ම පෙන්වයි)
   const resultsData = [
     { id: 6, img: "/results3.jpeg", name: "විශිෂ්ට ප්‍රතිඵල", rank: "ඖෂධවේදී" },
     { id: 1, img: "/RESULTS.jpeg", name: "විශිෂ්ට ප්‍රතිඵල", rank: "ප්‍රාථමික අධ්‍යාපන" },
@@ -113,16 +111,18 @@ export default function HomePage() {
       return;
     }
 
+    // හැමෝටම අදාළයි: දුරකථන අංකයේ හිස්තැන් තියෙනවද කියලා බලනවා
     if (phone.includes(" ")) {
       setError("දුරකථන අංකයේ හිස්තැන් (spaces) තැබිය නොහැක. කරුණාකර නිවැරදිව ටයිප් කරන්න.");
       return;
     }
-    if (!/^\d{10}$/.test(phone)) {
-      setError("දුරකථන අංකය නිවැරදි ඉලක්කම් 10කින් පමණක් යුක්ත විය යුතුය (උදා: 0712345678).");
-      return;
-    }
 
+    // 🔴 වෙනස: අලුතින් රෙජිස්ටර් වෙද්දී සහ පාස්වර්ඩ් මාරු කරද්දී විතරක් ඉලක්කම් 10ක් තියෙනවද කියලා බලනවා
     if (heroView === "register" || heroView === "forgot") {
+      if (!/^\d{10}$/.test(phone)) {
+        setError("දුරකථන අංකය නිවැරදි ඉලක්කම් 10කින් පමණක් යුක්ත විය යුතුය (උදා: 0712345678).");
+        return;
+      }
       if (password.length < 6) {
         setError("මුරපදය අවම වශයෙන් අකුරු/සංඛ්‍යා 6කින් යුක්ත විය යුතුය.");
         return;
@@ -150,7 +150,8 @@ export default function HomePage() {
     if (heroView === "login") {
       const res = await signIn("credentials", { redirect: false, phone, password });
       if (res?.error) {
-        setError(res.error);
+        // 🔴 වෙනස: ලොග් වෙද්දී වැරදුණොත් පැහැදිලිව දෝෂය පෙන්වයි
+        setError("දුරකථන අංකය හෝ මුරපදය වැරදියි. කරුණාකර නැවත පරීක්ෂා කරන්න.");
         setLoading(false);
       } else {
         router.push("/dashboard");
@@ -313,7 +314,9 @@ export default function HomePage() {
                   )}
 
                   <div>
-                    <label className={`mb-1.5 block text-sm font-bold ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>WhatsApp අංකය (ඉලක්කම් 10)</label>
+                    <label className={`mb-1.5 block text-sm font-bold ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>
+                      {heroView === "login" ? "WhatsApp අංකය" : "WhatsApp අංකය (ඉලක්කම් 10)"}
+                    </label>
                     <input type="text" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="උදා: 0712345678" className={`w-full rounded-xl border px-4 py-3 text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/20 transition-all ${inputBg}`} required />
                   </div>
 
@@ -468,7 +471,6 @@ export default function HomePage() {
                 {resultsData.map((item) => (
                   <div 
                     key={item.id} 
-                    // 🔴 පින්තූරය Click කළාම State එකට එකතු කරයි
                     onClick={() => setSelectedResultImage(item.img)} 
                     className={`flex-none w-[75%] sm:w-[50%] snap-center overflow-hidden rounded-2xl shadow-sm transition-transform duration-300 hover:-translate-y-1.5 hover:shadow-xl md:w-auto border flex flex-col cursor-pointer ${cardBg}`}
                   >
@@ -597,17 +599,15 @@ export default function HomePage() {
           </div>
         </footer>
 
-        {/* 🔴 අලුත්: Image Modal (පින්තූරය ලොකුවට පෙන්වන කවුළුව) */}
         {selectedResultImage && (
           <div 
             className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm transition-opacity"
-            onClick={() => setSelectedResultImage(null)} // කළු පසුබිම එබුවම වැහෙනවා
+            onClick={() => setSelectedResultImage(null)} 
           >
             <div 
               className="relative max-w-4xl w-full flex justify-center items-center"
-              onClick={(e) => e.stopPropagation()} // පින්තූරය උඩ එබුවම වැහෙන්නේ නෑ
+              onClick={(e) => e.stopPropagation()} 
             >
-              {/* X Button */}
               <button 
                 onClick={() => setSelectedResultImage(null)}
                 className="absolute -top-12 right-0 md:-right-12 rounded-full bg-slate-800 p-2 text-white hover:bg-red-500 transition-colors shadow-lg"
@@ -616,7 +616,6 @@ export default function HomePage() {
                 <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
               
-              {/* ලොකු පින්තූරය */}
               <img 
                 src={selectedResultImage} 
                 alt="Enlarged Result" 
@@ -630,3 +629,4 @@ export default function HomePage() {
     </>
   );
 }
+
