@@ -220,11 +220,12 @@ export default function AdminDashboard() {
     } catch (error) { alert("තාක්ෂණික දෝෂයක් මතු විය."); }
   };
 
+  // 🔴 වෙනස: API Endpoint එක "/api/admin/enrollments" ලෙස වෙනස් කළා!
   const handleRemoveStudent = async (enrollmentId: string, studentPhone: string) => {
     const confirmDelete = window.confirm(`${studentPhone} දුරකථන අංකය හිමි සිසුවාව මෙම පාඨමාලාවෙන් ඉවත් කිරීමට අවශ්‍ය බව ඔබට විශ්වාසද?`);
     if (!confirmDelete) return;
     try {
-      const res = await fetch(`/api/admin/students?id=${enrollmentId}`, { method: "DELETE" });
+      const res = await fetch(`/api/admin/enrollments?id=${enrollmentId}`, { method: "DELETE" });
       if (res.ok) {
         setApprovedStudents((approvedStudents || []).filter(s => s._id !== enrollmentId));
         alert("සිසුවා සාර්ථකව ඉවත් කරන ලදී.");
@@ -308,18 +309,15 @@ export default function AdminDashboard() {
     }
   };
 
-  // 🔴 අලුත්: සිසුන් Filter සහ Search කිරීමේ Logic එක
   const filteredStudents = (approvedStudents || []).filter(s => {
     const matchCourse = selectedFilterCourse === "ALL" || s.courseTitle === selectedFilterCourse;
     const matchPhone = searchPhone.trim() === "" || (s.userPhone && s.userPhone.includes(searchPhone.trim()));
     return matchCourse && matchPhone;
   });
 
-  // 🔴 අලුත්: සාමාන්‍ය අවස්ථාවේදී අන්තිම 50 පෙන්වීම (සර්ච් හෝ ෆිල්ටර් කළ විට සියල්ල පෙන්වීම)
   const isDefaultView = searchPhone.trim() === "" && selectedFilterCourse === "ALL";
   const displayedStudents = isDefaultView ? filteredStudents.slice(0, 50) : filteredStudents;
 
-  // Excel (CSV) Download කරන Function එක (සියලුම ළමයි ඩවුන්ලෝඩ් වේ)
   const handleDownloadExcel = () => {
     if (filteredStudents.length === 0) {
       return alert("බාගත කිරීමට සිසුන්ගේ දත්ත නොමැත!");
@@ -381,7 +379,6 @@ export default function AdminDashboard() {
           </div>
           <div className={`p-5 rounded-2xl border shadow-sm ${cardBg}`}>
             <h4 className={textSecondary}>මුළු සිසුන්</h4>
-            {/* මුළු සිසුන් ගණන මෙතනින් දිගටම පෙන්වයි */}
             <p className="text-3xl font-extrabold text-blue-500 mt-2">{(approvedStudents || []).length}</p>
           </div>
           <div className={`p-5 rounded-2xl border shadow-sm ${cardBg}`}>

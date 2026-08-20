@@ -28,3 +28,28 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ message: "යාවත්කාලීන කිරීමේදී දෝෂයක් මතු විය." }, { status: 500 });
   }
 }
+
+export async function DELETE(req: Request) {
+  try {
+    await connectToDatabase();
+    
+    // URL එකෙන් id එක ගන්නවා (උදා: /api/admin/enrollments?id=123)
+    const url = new URL(req.url);
+    const id = url.searchParams.get("id");
+
+    if (!id) {
+      return NextResponse.json({ message: "මකා දැමීමට අදාළ ID එකක් ලබා දී නොමැත." }, { status: 400 });
+    }
+
+    // Database එකෙන් අදාළ වාර්තාව මකා දැමීම
+    const deletedRecord = await Enrollment.findByIdAndDelete(id);
+
+    if (!deletedRecord) {
+      return NextResponse.json({ message: "මකා දැමීමට අදාළ දත්ත සොයාගත නොහැක." }, { status: 404 });
+    }
+
+    return NextResponse.json({ message: "සාර්ථකව මකා දමන ලදී!" }, { status: 200 });
+  } catch (error) {
+    return NextResponse.json({ message: "මකා දැමීමේදී දෝෂයක් මතු විය." }, { status: 500 });
+  }
+}
