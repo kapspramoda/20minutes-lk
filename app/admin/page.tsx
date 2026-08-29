@@ -41,6 +41,12 @@ export default function AdminDashboard() {
   const [notiText, setNotiText] = useState("");
   const [isSavingNoti, setIsSavingNoti] = useState(false);
 
+  // 🔴 අලුත්: Auto Publish (Schedule) කිරීම සඳහා State
+  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
+  const [selectedCourseForSchedule, setSelectedCourseForSchedule] = useState<any>(null);
+  const [scheduleDate, setScheduleDate] = useState("");
+  const [isSavingSchedule, setIsSavingSchedule] = useState(false);
+
   useEffect(() => {
     if (document.documentElement.classList.contains("dark")) setIsDarkMode(true);
     fetchPendingEnrollments();
@@ -194,6 +200,30 @@ export default function AdminDashboard() {
     }
   };
 
+  // 🔴 අලුත්: Schedule (Auto Publish) දත්ත Save කිරීමේ Function එක
+  const handleSaveSchedule = async () => {
+    if (!selectedCourseForSchedule) return;
+    setIsSavingSchedule(true);
+    try {
+      const res = await fetch(`/api/courses/${selectedCourseForSchedule._id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ publishDate: scheduleDate }),
+      });
+      if (res.ok) {
+        setCourses((courses || []).map(c => c._id === selectedCourseForSchedule._id ? { ...c, publishDate: scheduleDate } : c));
+        alert("දිනය සහ වේලාව සාර්ථකව සේව් කරන ලදී! අදාළ වෙලාව පැමිණි පසු එය සිසුන්ට දිස්වනු ඇත.");
+        setIsScheduleModalOpen(false);
+      } else {
+        alert("සමාවෙන්න, දෝෂයක් මතු විය.");
+      }
+    } catch (error) {
+      alert("තාක්ෂණික දෝෂයක්.");
+    } finally {
+      setIsSavingSchedule(false);
+    }
+  };
+
   const toggleQuizVisibility = async (quizId: string, currentVisibility: boolean) => {
     try {
       const res = await fetch(`/api/admin/quizzes/${quizId}`, {
@@ -220,7 +250,6 @@ export default function AdminDashboard() {
     } catch (error) { alert("තාක්ෂණික දෝෂයක් මතු විය."); }
   };
 
-  // 🔴 වෙනස: API Endpoint එක "/api/admin/enrollments" ලෙස වෙනස් කළා!
   const handleRemoveStudent = async (enrollmentId: string, studentPhone: string) => {
     const confirmDelete = window.confirm(`${studentPhone} දුරකථන අංකය හිමි සිසුවාව මෙම පාඨමාලාවෙන් ඉවත් කිරීමට අවශ්‍ය බව ඔබට විශ්වාසද?`);
     if (!confirmDelete) return;
@@ -474,6 +503,13 @@ export default function AdminDashboard() {
                       <div>
                         <h3 className={`text-lg font-bold ${textPrimary} pr-4`}>{course.title}</h3>
                         <p className="text-sm font-bold text-blue-500 mt-1">{course.price}</p>
+                        {/* 🔴 අලුත්: Schedule කර ඇති දිනය පෙන්වීම */}
+                        {course.publishDate && new Date(course.publishDate) > new Date() && (
+                          <p className="text-xs font-bold text-indigo-500 mt-1.5 flex items-center gap-1">
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            {new Date(course.publishDate).toLocaleString('si-LK')} ට දර්ශනය වේ
+                          </p>
+                        )}
                       </div>
                       <span className={`px-3 py-1 rounded-full text-[10px] font-bold border flex-shrink-0 ${course.isVisible ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-500 border-slate-200'}`}>
                         {course.isVisible ? 'ACTIVE' : 'HIDDEN'}
@@ -481,6 +517,10 @@ export default function AdminDashboard() {
                     </div>
                     
                     <div className="flex flex-wrap gap-2 mt-auto pt-4 border-t border-slate-200 dark:border-slate-700">
+                      {/* 🔴 අලුත්: Schedule (Auto Publish) Button */}
+                      <button onClick={() => { setSelectedCourseForSchedule(course); setScheduleDate(course.publishDate || ""); setIsScheduleModalOpen(true); }} className="flex-none flex items-center justify-center gap-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white px-4 py-2.5 rounded-xl text-sm font-bold transition-all border border-indigo-200">
+                        ⏰ Schedule
+                      </button>
                       <button onClick={() => { setSelectedCourseForNoti(course); setNotiText(course.notification || ""); setIsNotiModalOpen(true); }} className="flex-none flex items-center justify-center gap-2 bg-purple-50 text-purple-600 hover:bg-purple-600 hover:text-white px-4 py-2.5 rounded-xl text-sm font-bold transition-all border border-purple-200">
                         🔔 Notice
                       </button>
@@ -719,6 +759,37 @@ export default function AdminDashboard() {
           </div>
         )}
       </main>
+
+      {/* 🔴 අලුත්: Schedule (Auto Publish) Modal */}
+      {isScheduleModalOpen && selectedCourseForSchedule && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className={`w-full max-w-lg p-6 rounded-3xl shadow-2xl border ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className={`text-xl font-bold flex items-center gap-2 ${textPrimary}`}>
+                <span className="text-2xl">⏰</span> Auto Publish වේලාව
+              </h3>
+              <button onClick={() => setIsScheduleModalOpen(false)} className="text-slate-400 hover:text-red-500 transition-colors">
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <p className={`text-sm mb-4 ${textSecondary}`}>
+              <span className="font-bold text-blue-500">{selectedCourseForSchedule.title}</span> පාඨමාලාව ස්වයංක්‍රීයව සිසුන්ට දර්ශනය විය යුතු දිනය සහ වේලාව තෝරන්න. (මකා දැමීමට අවශ්‍ය නම් හිස්ව තබා සේව් කරන්න).
+            </p>
+            <input
+              type="datetime-local"
+              className={`w-full p-4 rounded-xl border text-sm outline-none focus:ring-2 focus:ring-indigo-500 shadow-inner mb-4 ${inputBg}`}
+              value={scheduleDate}
+              onChange={(e) => setScheduleDate(e.target.value)}
+            />
+            <div className="flex justify-end gap-3 mt-6">
+              <button onClick={() => setIsScheduleModalOpen(false)} className={`px-5 py-2.5 rounded-xl text-sm font-bold border transition-colors ${isDarkMode ? 'hover:bg-slate-700 border-slate-600' : 'hover:bg-slate-100 border-slate-300'}`}>අවලංගු කරන්න</button>
+              <button onClick={handleSaveSchedule} disabled={isSavingSchedule} className="px-5 py-2.5 rounded-xl text-sm font-bold bg-indigo-600 text-white hover:bg-indigo-700 transition-all shadow-md disabled:opacity-70 flex items-center gap-2">
+                {isSavingSchedule ? "යාවත්කාලීන වෙමින්..." : "සේව් කරන්න (Save)"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Notification Modal */}
       {isNotiModalOpen && selectedCourseForNoti && (

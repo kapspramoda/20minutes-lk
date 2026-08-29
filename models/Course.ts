@@ -5,6 +5,8 @@ const LessonSchema = new Schema({
   title: { type: String, required: true },
   videoEmbed: { type: String, required: true },
   pdfUrl: { type: String },
+  isVisible: { type: Boolean, default: true },
+  publishDate: { type: Date, default: null }
 });
 
 const SubjectSchema = new Schema({

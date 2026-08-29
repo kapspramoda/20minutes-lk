@@ -13,6 +13,9 @@ type Lesson = {
   title: string;
   videoEmbed: string;
   pdfUrl: string;
+  // 🔴 අලුත්: Video එක Hide/Show කරන්න සහ Schedule කරන්න
+  isVisible?: boolean; 
+  publishDate?: string;
 };
 
 type Subject = {
@@ -87,11 +90,22 @@ export default function EditCoursePage({ params }: PageProps) {
 
         if (res.ok) {
           const fetchedCourse = data.data;
-          // පරණ පන්ති වලට Bank Accounts නැත්නම් හිස් Array එකක් දමන්න
+          
+          // පරණ දත්ත වල isVisible නැත්නම් ඒක True කරනවා
+          const subjectsWithDefaults = fetchedCourse.subjects.map((sub: any) => ({
+            ...sub,
+            lessons: sub.lessons.map((les: any) => ({
+              ...les,
+              isVisible: les.isVisible !== undefined ? les.isVisible : true,
+              publishDate: les.publishDate || ""
+            }))
+          }));
+
           setCourseData({
             ...fetchedCourse,
             price: fetchedCourse.price || "",
             coverImage: fetchedCourse.coverImage || "",
+            subjects: subjectsWithDefaults,
             bankAccounts: fetchedCourse.bankAccounts && fetchedCourse.bankAccounts.length > 0 
               ? fetchedCourse.bankAccounts 
               : [{ bankName: "BOC", branch: "", accNumber: "", accName: "20minutes.lk" }]
@@ -158,13 +172,22 @@ export default function EditCoursePage({ params }: PageProps) {
 
   const addLesson = (subjectIndex: number) => {
     const updatedSubjects = [...courseData.subjects];
-    updatedSubjects[subjectIndex].lessons.push({ lessonId: "les_" + Date.now(), title: "", videoEmbed: "", pdfUrl: "" });
+    // 🔴 අලුත්: අලුත් Lesson එකක් දාද්දී isVisible එක True කරලා යවනවා
+    updatedSubjects[subjectIndex].lessons.push({ lessonId: "les_" + Date.now(), title: "", videoEmbed: "", pdfUrl: "", isVisible: true, publishDate: "" });
     setCourseData({ ...courseData, subjects: updatedSubjects });
   };
 
   const removeLesson = (subjectIndex: number, lessonIndexToRemove: number) => {
     const updatedSubjects = [...courseData.subjects];
     updatedSubjects[subjectIndex].lessons = updatedSubjects[subjectIndex].lessons.filter((_, index) => index !== lessonIndexToRemove);
+    setCourseData({ ...courseData, subjects: updatedSubjects });
+  };
+
+  // 🔴 අලුත්: Lesson එක Hide/Show කරන Function එක
+  const toggleLessonVisibility = (subjectIndex: number, lessonIndex: number) => {
+    const updatedSubjects = [...courseData.subjects];
+    const currentVis = updatedSubjects[subjectIndex].lessons[lessonIndex].isVisible;
+    updatedSubjects[subjectIndex].lessons[lessonIndex].isVisible = !currentVis;
     setCourseData({ ...courseData, subjects: updatedSubjects });
   };
 
@@ -327,27 +350,66 @@ export default function EditCoursePage({ params }: PageProps) {
                   <div className={`p-4 rounded-xl border ${isDarkMode ? 'bg-slate-900/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
                     <h3 className="text-sm font-bold mb-4 border-b pb-2">පාඩම් ලැයිස්තුව</h3>
                     {subject.lessons.map((lesson, lIndex) => (
-                      <div key={lesson.lessonId || lesson._id} className={`grid grid-cols-1 md:grid-cols-12 gap-3 mb-4 p-3 rounded-lg border relative pr-10 ${isDarkMode ? 'bg-slate-800 border-slate-600' : 'bg-white'}`}>
-                        <button type="button" onClick={() => removeLesson(sIndex, lIndex)} className="absolute top-1/2 -translate-y-1/2 right-2 text-red-400 hover:text-red-600 p-1 bg-red-50 hover:bg-red-100 rounded-md transition"><svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
+                      <div key={lesson.lessonId || lesson._id} className={`grid grid-cols-1 md:grid-cols-12 gap-3 mb-4 p-4 rounded-lg border relative ${isDarkMode ? 'bg-slate-800 border-slate-600' : 'bg-white'}`}>
+                        
+                        {/* Delete Button */}
+                        <button type="button" onClick={() => removeLesson(sIndex, lIndex)} className="absolute -top-2 -right-2 text-red-400 hover:text-white p-1 bg-red-50 hover:bg-red-500 border border-red-100 rounded-full transition shadow-sm z-10"><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
+                        
                         <div className="md:col-span-4">
                           <label className="block text-[10px] font-bold mb-1">පාඩමේ මාතෘකාව *</label>
-                          <input type="text" required value={lesson.title} onChange={(e) => { const updated = [...courseData.subjects]; updated[sIndex].lessons[lIndex].title = e.target.value; setCourseData({...courseData, subjects: updated}); }} className={`w-full p-2 rounded-lg border text-sm ${inputBg}`} />
+                          <input type="text" required value={lesson.title} onChange={(e) => { const updated = [...courseData.subjects]; updated[sIndex].lessons[lIndex].title = e.target.value; setCourseData({...courseData, subjects: updated}); }} className={`w-full p-2.5 rounded-lg border text-sm ${inputBg}`} />
                         </div>
                         <div className="md:col-span-4">
                           <label className="block text-[10px] font-bold mb-1">YouTube Embed Link *</label>
-                          <input type="url" required value={lesson.videoEmbed} onChange={(e) => { const updated = [...courseData.subjects]; updated[sIndex].lessons[lIndex].videoEmbed = e.target.value; setCourseData({...courseData, subjects: updated}); }} className={`w-full p-2 rounded-lg border text-sm ${inputBg}`} />
+                          <input type="url" required value={lesson.videoEmbed} onChange={(e) => { const updated = [...courseData.subjects]; updated[sIndex].lessons[lIndex].videoEmbed = e.target.value; setCourseData({...courseData, subjects: updated}); }} className={`w-full p-2.5 rounded-lg border text-sm ${inputBg}`} />
                         </div>
                         <div className="md:col-span-4">
                           <label className="block text-[10px] font-bold mb-1">Tute (PDF) Link</label>
-                          <input type="url" value={lesson.pdfUrl} onChange={(e) => { const updated = [...courseData.subjects]; updated[sIndex].lessons[lIndex].pdfUrl = e.target.value; setCourseData({...courseData, subjects: updated}); }} className={`w-full p-2 rounded-lg border text-sm ${inputBg}`} />
+                          <input type="url" value={lesson.pdfUrl} onChange={(e) => { const updated = [...courseData.subjects]; updated[sIndex].lessons[lIndex].pdfUrl = e.target.value; setCourseData({...courseData, subjects: updated}); }} className={`w-full p-2.5 rounded-lg border text-sm ${inputBg}`} />
                         </div>
+
+                        {/* 🔴 අලුත්: Settings පේළිය (Hide/Show සහ Schedule) */}
+                        <div className="md:col-span-12 flex flex-col md:flex-row gap-4 items-center justify-between border-t pt-3 mt-1 dark:border-slate-700">
+                          
+                          {/* Hide/Show Toggle */}
+                          <div className="flex items-center gap-3">
+                            <span className="text-[11px] font-bold text-slate-500">Video Status:</span>
+                            <button 
+                              type="button" 
+                              onClick={() => toggleLessonVisibility(sIndex, lIndex)}
+                              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${lesson.isVisible ? 'bg-emerald-500' : 'bg-slate-400'}`}
+                            >
+                              <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${lesson.isVisible ? 'translate-x-6' : 'translate-x-1'}`} />
+                            </button>
+                            <span className={`text-xs font-bold ${lesson.isVisible ? 'text-emerald-500' : 'text-slate-500'}`}>
+                              {lesson.isVisible ? "👀 සිසුන්ට පෙනේ" : "🚫 සඟවා ඇත (Hidden)"}
+                            </span>
+                          </div>
+
+                          {/* Schedule / Auto-Publish */}
+                          <div className="flex items-center gap-2 w-full md:w-auto">
+                            <span className="text-[11px] font-bold text-slate-500">⏰ Auto-Publish:</span>
+                            <input 
+                              type="datetime-local" 
+                              value={lesson.publishDate || ""} 
+                              onChange={(e) => { const updated = [...courseData.subjects]; updated[sIndex].lessons[lIndex].publishDate = e.target.value; setCourseData({...courseData, subjects: updated}); }} 
+                              className={`p-1.5 rounded-md border text-xs outline-none ${inputBg} flex-grow md:w-48`} 
+                            />
+                            {lesson.publishDate && (
+                              <button type="button" onClick={() => { const updated = [...courseData.subjects]; updated[sIndex].lessons[lIndex].publishDate = ""; setCourseData({...courseData, subjects: updated}); }} className="text-red-500 hover:bg-red-50 p-1.5 rounded-md transition" title="Clear Schedule">
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
                       </div>
                     ))}
-                    <button type="button" onClick={() => addLesson(sIndex)} className="mt-2 text-xs md:text-sm bg-blue-100 text-blue-700 px-4 py-2 rounded-lg font-bold hover:bg-blue-200 transition">+ අලුත් පාඩමක්</button>
+                    <button type="button" onClick={() => addLesson(sIndex)} className="mt-2 w-full md:w-auto text-xs md:text-sm bg-blue-100 text-blue-700 px-4 py-3 rounded-lg font-bold hover:bg-blue-200 transition">+ අලුත් පාඩමක් (Video) එකතු කරන්න</button>
                   </div>
                 </div>
               ))}
-              <button type="button" onClick={addSubject} className={`w-full py-3 border-2 border-dashed font-bold rounded-xl transition-colors ${isDarkMode ? 'border-slate-600 text-slate-400 hover:border-blue-500 hover:text-blue-400' : 'border-slate-300 text-slate-500 hover:border-blue-400 hover:text-blue-500'}`}>+ අලුත් විෂයයක් එකතු කරන්න</button>
+              <button type="button" onClick={addSubject} className={`w-full py-4 border-2 border-dashed font-bold rounded-xl transition-colors ${isDarkMode ? 'border-slate-600 text-slate-400 hover:border-blue-500 hover:text-blue-400' : 'border-slate-300 text-slate-500 hover:border-blue-400 hover:text-blue-500'}`}>+ අලුත් විෂයයක් (Subject) එකතු කරන්න</button>
             </div>
 
             <button type="submit" disabled={isLoading} className="w-full bg-blue-600 text-white font-bold text-lg py-4 rounded-xl hover:bg-blue-700 transition shadow-lg disabled:bg-slate-400 flex justify-center items-center gap-2">

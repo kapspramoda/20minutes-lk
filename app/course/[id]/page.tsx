@@ -39,7 +39,7 @@ export default function CoursePlayerPage({ params }: PageProps) {
   const [duration, setDuration] = useState(0);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   
-  // 🔴 Quality Menu States අලුතින් එකතු කළා
+  // Quality Menu States
   const [showQualityMenu, setShowQualityMenu] = useState(false);
   const [currentQuality, setCurrentQuality] = useState("auto");
 
@@ -93,7 +93,7 @@ export default function CoursePlayerPage({ params }: PageProps) {
     };
   }, [status, session]);
 
-  // Database දත්ත ගෙන ඒම
+  // Database දත්ත ගෙන ඒම සහ ෆිල්ටර් කිරීම
   useEffect(() => {
     if (status === "unauthenticated") {
       router.push("/dashboard");
@@ -122,7 +122,26 @@ export default function CoursePlayerPage({ params }: PageProps) {
         const courseDataRes = await courseRes.json();
 
         if (courseDataRes.success) {
-          const fetchedCourse = courseDataRes.data;
+          let fetchedCourse = courseDataRes.data;
+
+          // 🔴 අලුත් නීතිය: Hide කරපු සහ වෙලාව ඇවිත් නැති වීඩියෝ ළමයින්ගෙන් සැඟවීම
+          const currentTimeObj = new Date();
+          if (fetchedCourse.subjects) {
+            fetchedCourse.subjects = fetchedCourse.subjects.map((sub: any) => {
+              return {
+                ...sub,
+                lessons: sub.lessons.filter((les: any) => {
+                  // 1. Hide කරලා (isVisible: false) නම් පෙන්නන්න එපා
+                  if (les.isVisible === false) return false; 
+                  // 2. Schedule කරපු වෙලාව තාම ඇවිත් නැත්නම් පෙන්නන්න එපා
+                  if (les.publishDate && new Date(les.publishDate) > currentTimeObj) return false; 
+                  // අනිත් ඔක්කොම පෙන්නන්න
+                  return true;
+                })
+              };
+            });
+          }
+
           setCourse(fetchedCourse);
           setHasAccess(true);
 
@@ -273,7 +292,6 @@ export default function CoursePlayerPage({ params }: PageProps) {
     }
   };
 
-  // 🔴 Quality වෙනස් කිරීමේ Function එක
   const changeQuality = (qualityLevel: string) => {
     if (ytPlayerRef.current && typeof ytPlayerRef.current.setPlaybackQuality === 'function') {
       ytPlayerRef.current.setPlaybackQuality(qualityLevel);
@@ -505,12 +523,11 @@ export default function CoursePlayerPage({ params }: PageProps) {
                           <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M11.934 11.2a1 1 0 010 1.6l-5.334 4A1 1 0 015 16V8a1 1 0 011.6-.8l5.334 4zM19.934 11.2a1 1 0 010 1.6l-5.334 4A1 1 0 0113 16V8a1 1 0 011.6-.8l5.334 4z" /></svg>
                         </button>
                         
-                        {/* Speed Button */}
                         <button onClick={changeSpeed} className={`ml-1 md:ml-2 px-2 py-1 md:px-3 md:py-1.5 rounded-lg text-[10px] md:text-xs font-bold transition ${isFullscreen ? 'bg-purple-900/50 text-purple-300 hover:bg-purple-800' : 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 hover:bg-purple-200'}`}>
                           {playbackSpeed}x Speed
                         </button>
 
-                        {/* 🔴 අලුත්: Quality Settings Button & Menu */}
+                        {/* Quality Settings Button & Menu */}
                         <div className="relative">
                           <button 
                             onClick={(e) => { e.stopPropagation(); setShowQualityMenu(!showQualityMenu); }} 
