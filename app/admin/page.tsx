@@ -41,7 +41,7 @@ export default function AdminDashboard() {
   const [notiText, setNotiText] = useState("");
   const [isSavingNoti, setIsSavingNoti] = useState(false);
 
-  // 🔴 අලුත්: Auto Publish (Schedule) කිරීම සඳහා State
+  // Auto Publish (Schedule) කිරීම සඳහා State
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
   const [selectedCourseForSchedule, setSelectedCourseForSchedule] = useState<any>(null);
   const [scheduleDate, setScheduleDate] = useState("");
@@ -200,7 +200,6 @@ export default function AdminDashboard() {
     }
   };
 
-  // 🔴 අලුත්: Schedule (Auto Publish) දත්ත Save කිරීමේ Function එක
   const handleSaveSchedule = async () => {
     if (!selectedCourseForSchedule) return;
     setIsSavingSchedule(true);
@@ -332,6 +331,24 @@ export default function AdminDashboard() {
         window.open(`https://wa.me/${formattedPhone}?text=${encodeURIComponent(msg)}`, '_blank');
       } else {
         alert("මුරපදය යාවත්කාලීන කිරීම අසාර්ථකයි.");
+      }
+    } catch (error) {
+      alert("තාක්ෂණික දෝෂයකි.");
+    }
+  };
+
+  // 🔴 අලුත්: මුරපද ඉල්ලීම ප්‍රතික්ෂේප (Reject) කිරීම
+  const handleRejectPassword = async (id: string, phone: string) => {
+    const confirmReject = window.confirm(`${phone} දුරකථන අංකයේ මුරපද ඉල්ලීම ප්‍රතික්ෂේප කිරීමට අවශ්‍යද?`);
+    if (!confirmReject) return;
+
+    try {
+      const res = await fetch(`/api/admin/passwords?id=${id}`, { method: "DELETE" });
+      if (res.ok) {
+        setPasswordRequests(prev => prev.filter(r => r._id !== id));
+        alert("මුරපද ඉල්ලීම ප්‍රතික්ෂේප කරන ලදී.");
+      } else {
+        alert("ප්‍රතික්ෂේප කිරීම අසාර්ථකයි.");
       }
     } catch (error) {
       alert("තාක්ෂණික දෝෂයකි.");
@@ -503,7 +520,6 @@ export default function AdminDashboard() {
                       <div>
                         <h3 className={`text-lg font-bold ${textPrimary} pr-4`}>{course.title}</h3>
                         <p className="text-sm font-bold text-blue-500 mt-1">{course.price}</p>
-                        {/* 🔴 අලුත්: Schedule කර ඇති දිනය පෙන්වීම */}
                         {course.publishDate && new Date(course.publishDate) > new Date() && (
                           <p className="text-xs font-bold text-indigo-500 mt-1.5 flex items-center gap-1">
                             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
@@ -517,7 +533,6 @@ export default function AdminDashboard() {
                     </div>
                     
                     <div className="flex flex-wrap gap-2 mt-auto pt-4 border-t border-slate-200 dark:border-slate-700">
-                      {/* 🔴 අලුත්: Schedule (Auto Publish) Button */}
                       <button onClick={() => { setSelectedCourseForSchedule(course); setScheduleDate(course.publishDate || ""); setIsScheduleModalOpen(true); }} className="flex-none flex items-center justify-center gap-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white px-4 py-2.5 rounded-xl text-sm font-bold transition-all border border-indigo-200">
                         ⏰ Schedule
                       </button>
@@ -748,10 +763,18 @@ export default function AdminDashboard() {
                       <p className={`text-xs font-bold text-slate-500 mb-1`}>ඉල්ලුම් කළ නව මුරපදය:</p>
                       <p className="text-base font-bold text-blue-500 tracking-wide">{req.newPasswordPlain}</p>
                     </div>
-                    <button onClick={() => handleApprovePassword(req)} className="mt-auto w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-all shadow-md flex items-center justify-center gap-2">
-                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12.031 0C5.385 0 0 5.383 0 12.032c0 2.128.552 4.195 1.6 6.012L.15 24l6.105-1.597A11.964 11.964 0 0012.031 24c6.643 0 12.032-5.385 12.032-12.032C24.063 5.383 18.674 0 12.031 0zm7.143 17.15c-.302.854-1.745 1.622-2.42 1.706-.527.067-1.196.126-3.414-.795-2.65-1.1-4.329-3.82-4.46-3.993-.134-.176-1.066-1.423-1.066-2.715 0-1.291.674-1.93 9.17-2.18.232-.174.526-.298.777-.074.251.222.79 1.107.962 1.328.172.222.155.397-.094.646-.248.248-.567.58-.826.855-.276.294-.567.616-.251 1.157.316.541 1.405 2.321 3.003 3.766 2.062 1.865 3.864 2.457 4.417 2.712.553.254.877.206 1.206-.178.328-.383 1.41-1.642 1.79-2.204.381-.564.76-.469 1.258-.293.498.177 3.153 1.488 3.693 1.754.541.266.903.398 1.036.621.132.222.132 1.288-.17 2.143z" /></svg>
-                      Approve & WhatsApp
-                    </button>
+                    
+                    {/* 🔴 අලුත්: Approve සහ Reject බොත්තම් දෙකක් */}
+                    <div className="mt-auto grid grid-cols-2 gap-3">
+                      <button onClick={() => handleApprovePassword(req)} className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs md:text-sm font-bold py-3 rounded-xl transition-all shadow-md flex items-center justify-center gap-1.5">
+                        <svg className="w-4 h-4 md:w-5 md:h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12.031 0C5.385 0 0 5.383 0 12.032c0 2.128.552 4.195 1.6 6.012L.15 24l6.105-1.597A11.964 11.964 0 0012.031 24c6.643 0 12.032-5.385 12.032-12.032C24.063 5.383 18.674 0 12.031 0zm7.143 17.15c-.302.854-1.745 1.622-2.42 1.706-.527.067-1.196.126-3.414-.795-2.65-1.1-4.329-3.82-4.46-3.993-.134-.176-1.066-1.423-1.066-2.715 0-1.291.674-1.93 9.17-2.18.232-.174.526-.298.777-.074.251.222.79 1.107.962 1.328.172.222.155.397-.094.646-.248.248-.567.58-.826.855-.276.294-.567.616-.251 1.157.316.541 1.405 2.321 3.003 3.766 2.062 1.865 3.864 2.457 4.417 2.712.553.254.877.206 1.206-.178.328-.383 1.41-1.642 1.79-2.204.381-.564.76-.469 1.258-.293.498.177 3.153 1.488 3.693 1.754.541.266.903.398 1.036.621.132.222.132 1.288-.17 2.143z" /></svg>
+                        Approve
+                      </button>
+                      <button onClick={() => handleRejectPassword(req._id, req.phone)} className="w-full bg-red-50 text-red-600 hover:bg-red-600 hover:text-white border border-red-200 text-xs md:text-sm font-bold py-3 rounded-xl transition-all shadow-sm flex items-center justify-center gap-1.5">
+                        <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                        Reject
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -760,7 +783,7 @@ export default function AdminDashboard() {
         )}
       </main>
 
-      {/* 🔴 අලුත්: Schedule (Auto Publish) Modal */}
+      {/* Schedule (Auto Publish) Modal */}
       {isScheduleModalOpen && selectedCourseForSchedule && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className={`w-full max-w-lg p-6 rounded-3xl shadow-2xl border ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>

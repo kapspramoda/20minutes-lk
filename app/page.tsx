@@ -25,7 +25,9 @@ export default function HomePage() {
   const [apiCourses, setApiCourses] = useState<any[]>([]);
   const [isLoadingCourses, setIsLoadingCourses] = useState(true);
 
+  // 🔴 අලුත්: results5.jpeg (ග්‍රාම නිලධාරී) එකතු කළා
   const resultsData = [
+    { id: 7, img: "/results5.jpeg", name: "විශිෂ්ට ප්‍රතිඵල", rank: "ග්‍රාම නිලධාරී" },
     { id: 6, img: "/results3.jpeg", name: "විශිෂ්ට ප්‍රතිඵල", rank: "ඖෂධවේදී" },
     { id: 1, img: "/RESULTS.jpeg", name: "විශිෂ්ට ප්‍රතිඵල", rank: "ප්‍රාථමික අධ්‍යාපන" },
     { id: 2, img: "/2425.png", name: "විශිෂ්ට ප්‍රතිඵල", rank: "නීතීවේදී" },
@@ -111,13 +113,11 @@ export default function HomePage() {
       return;
     }
 
-    // හැමෝටම අදාළයි: දුරකථන අංකයේ හිස්තැන් තියෙනවද කියලා බලනවා
     if (phone.includes(" ")) {
       setError("දුරකථන අංකයේ හිස්තැන් (spaces) තැබිය නොහැක. කරුණාකර නිවැරදිව ටයිප් කරන්න.");
       return;
     }
 
-    // 🔴 වෙනස: අලුතින් රෙජිස්ටර් වෙද්දී සහ පාස්වර්ඩ් මාරු කරද්දී විතරක් ඉලක්කම් 10ක් තියෙනවද කියලා බලනවා
     if (heroView === "register" || heroView === "forgot") {
       if (!/^\d{10}$/.test(phone)) {
         setError("දුරකථන අංකය නිවැරදි ඉලක්කම් 10කින් පමණක් යුක්ත විය යුතුය (උදා: 0712345678).");
@@ -150,7 +150,6 @@ export default function HomePage() {
     if (heroView === "login") {
       const res = await signIn("credentials", { redirect: false, phone, password });
       if (res?.error) {
-        // 🔴 වෙනස: ලොග් වෙද්දී වැරදුණොත් පැහැදිලිව දෝෂය පෙන්වයි
         setError("දුරකථන අංකය හෝ මුරපදය වැරදියි. කරුණාකර නැවත පරීක්ෂා කරන්න.");
         setLoading(false);
       } else {
@@ -225,20 +224,22 @@ export default function HomePage() {
       <div className={`modern-font flex min-h-screen flex-col transition-colors duration-300 ${themeBg}`}>
         
         <header className={`sticky top-0 z-50 w-full border-b backdrop-blur-md transition-all duration-300 ${headerBg}`}>
-          <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 md:px-6 md:py-4">
-            <button onClick={() => changeViewAndScrollTop("carousel")} className="flex items-center gap-2 md:gap-3 focus:outline-none">
+          {/* 🔴 වෙනස: කුඩා තිර වලදී flex-wrap දාලා බටන් යටවෙන එක නැවැත්තුවා */}
+          <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between px-4 py-3 md:px-6 md:py-4 gap-y-2">
+            <button onClick={() => changeViewAndScrollTop("carousel")} className="flex items-center gap-2 md:gap-3 focus:outline-none relative z-[60]">
               <img src="/logo.png" alt="20minutes.lk Logo" className="h-7 w-auto sm:h-8 md:h-10 rounded-xl shadow-sm opacity-95" />
               <span className={`logo-font text-lg md:text-2xl font-semibold truncate ${logoTextColor}`}>20minutes.lk</span>
             </button>
 
-            <div className="flex items-center space-x-3 md:space-x-5 flex-shrink-0">
+            <div className="flex items-center space-x-2 sm:space-x-3 md:space-x-5 flex-shrink-0 relative z-[60]">
               <button onClick={() => setIsDarkMode(!isDarkMode)} className={`rounded-full p-2 transition-colors focus:outline-none ${isDarkMode ? 'bg-slate-800 text-yellow-400 hover:bg-slate-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
-                {isDarkMode ? <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" /></svg> : <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>}
+                {isDarkMode ? <svg className="h-4 w-4 sm:h-5 sm:w-5" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" /></svg> : <svg className="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>}
               </button>
-              <button onClick={() => changeViewAndScrollTop("login")} className={`rounded-full border-2 px-3 py-1.5 text-xs font-bold transition-all md:px-5 md:py-2 md:text-sm focus:outline-none ${btnOutline}`}>
+              {/* 🔴 වෙනස: බටන් Click වෙන්න වෙනම z-index දුන්නා */}
+              <button onClick={() => changeViewAndScrollTop("login")} className={`relative z-[60] cursor-pointer rounded-full border-2 px-3 py-1.5 text-[11px] sm:text-xs font-bold transition-all md:px-5 md:py-2 md:text-sm focus:outline-none ${btnOutline}`}>
                 ලොග් වන්න
               </button>
-              <button onClick={() => changeViewAndScrollTop("register")} className="rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 px-3 py-1.5 text-xs font-bold text-white shadow-md hover:shadow-lg hover:from-blue-700 hover:to-indigo-700 transition-all md:px-5 md:py-2 md:text-sm focus:outline-none">
+              <button onClick={() => changeViewAndScrollTop("register")} className="relative z-[60] cursor-pointer rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 px-3 py-1.5 text-[11px] sm:text-xs font-bold text-white shadow-md hover:shadow-lg hover:from-blue-700 hover:to-indigo-700 transition-all md:px-5 md:py-2 md:text-sm focus:outline-none">
                 ලියාපදිංචි වන්න
               </button>
             </div>
@@ -252,17 +253,17 @@ export default function HomePage() {
               <div className="flex h-full transition-transform duration-700 ease-in-out" style={{ transform: `translateX(-${currentSlide * 100}%)` }}>
                 {slides.map((slide) => (
                   <div key={slide.id} className="relative flex h-full w-full flex-shrink-0 items-center justify-center px-6 text-center text-white">
-                    <img src={slide.image} alt={slide.title} className="absolute inset-0 h-full w-full object-cover z-0" />
-                    <div className={`absolute inset-0 z-0 transition-colors duration-300 ${isDarkMode ? 'bg-slate-950/80' : 'bg-slate-900/65'}`}></div>
+                    <img src={slide.image} alt={slide.title} className="absolute inset-0 h-full w-full object-cover z-0 pointer-events-none" />
+                    <div className={`absolute inset-0 z-0 transition-colors duration-300 pointer-events-none ${isDarkMode ? 'bg-slate-950/80' : 'bg-slate-900/65'}`}></div>
                     
                     <div className="relative z-10 max-w-3xl">
-                      <h1 className="mb-4 text-3xl font-bold leading-tight tracking-tight md:text-5xl lg:text-6xl drop-shadow-lg">
+                      <h1 className="mb-4 text-3xl font-bold leading-tight tracking-tight md:text-5xl lg:text-6xl drop-shadow-lg pointer-events-none">
                         {slide.title}
                       </h1>
-                      <p className="mb-8 text-sm text-slate-200 md:text-xl drop-shadow-md">
+                      <p className="mb-8 text-sm text-slate-200 md:text-xl drop-shadow-md pointer-events-none">
                         {slide.subtitle}
                       </p>
-                      <button onClick={() => slide.id === 2 ? window.location.href="#results" : changeViewAndScrollTop("register")} className="inline-block rounded-full bg-emerald-500 px-8 py-3 text-sm font-bold text-white shadow-lg transition-all hover:bg-emerald-600 hover:shadow-xl hover:-translate-y-1 md:px-10 md:py-4 md:text-lg focus:outline-none">
+                      <button onClick={() => slide.id === 2 ? window.location.href="#results" : changeViewAndScrollTop("register")} className="inline-block rounded-full bg-emerald-500 px-8 py-3 text-sm font-bold text-white shadow-lg transition-all hover:bg-emerald-600 hover:shadow-xl hover:-translate-y-1 md:px-10 md:py-4 md:text-lg focus:outline-none cursor-pointer">
                         {slide.btnText}
                       </button>
                     </div>
@@ -270,16 +271,16 @@ export default function HomePage() {
                 ))}
               </div>
 
-              <button onClick={prevSlide} className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-white/20 p-2 text-white backdrop-blur-md hover:bg-white/40 focus:outline-none md:left-6 md:p-3 transition-all z-20">
+              <button onClick={prevSlide} className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-white/20 p-2 text-white backdrop-blur-md hover:bg-white/40 focus:outline-none md:left-6 md:p-3 transition-all z-20 cursor-pointer">
                 <svg className="h-5 w-5 md:h-6 md:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
               </button>
-              <button onClick={nextSlide} className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-white/20 p-2 text-white backdrop-blur-md hover:bg-white/40 focus:outline-none md:right-6 md:p-3 transition-all z-20">
+              <button onClick={nextSlide} className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-white/20 p-2 text-white backdrop-blur-md hover:bg-white/40 focus:outline-none md:right-6 md:p-3 transition-all z-20 cursor-pointer">
                 <svg className="h-5 w-5 md:h-6 md:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
               </button>
 
               <div className="absolute bottom-6 left-1/2 flex -translate-x-1/2 space-x-3 z-20">
                 {slides.map((_, idx) => (
-                  <button key={idx} onClick={() => setCurrentSlide(idx)} className={`h-2.5 rounded-full transition-all duration-300 ${currentSlide === idx ? "w-8 bg-white" : "w-2.5 bg-white/40 hover:bg-white/70"}`} />
+                  <button key={idx} onClick={() => setCurrentSlide(idx)} className={`h-2.5 rounded-full transition-all duration-300 cursor-pointer ${currentSlide === idx ? "w-8 bg-white" : "w-2.5 bg-white/40 hover:bg-white/70"}`} />
                 ))}
               </div>
             </section>
@@ -594,8 +595,18 @@ export default function HomePage() {
 
           </div>
           
-          <div className={`mx-auto mt-10 max-w-7xl border-t pt-6 text-center text-xs md:mt-16 md:pt-8 md:text-sm ${isDarkMode ? 'border-slate-800 text-slate-600' : 'border-slate-800 text-slate-500'}`}>
-            &copy; {new Date().getFullYear()} 20minutes.lk. All rights reserved.
+          {/* 🔴 අලුත්: Designed and Developed by esip.lk */}
+          <div className={`mx-auto mt-10 max-w-7xl border-t pt-6 pb-2 text-center flex flex-col md:flex-row justify-center items-center gap-2 text-xs md:mt-16 md:pt-8 md:text-sm ${isDarkMode ? 'border-slate-800 text-slate-600' : 'border-slate-800 text-slate-500'}`}>
+            <span>&copy; {new Date().getFullYear()} 20minutes.lk. All rights reserved.</span>
+            <span className="hidden md:inline">|</span>
+            <a 
+              href="https://esip.lk" 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className={`font-bold transition-colors ${isDarkMode ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-blue-600'}`}
+            >
+              Designed and developed by esip.lk
+            </a>
           </div>
         </footer>
 
@@ -629,4 +640,3 @@ export default function HomePage() {
     </>
   );
 }
-
