@@ -13,7 +13,8 @@ type Lesson = {
   title: string;
   videoEmbed: string;
   pdfUrl: string;
-  // 🔴 අලුත්: Video එක Hide/Show කරන්න සහ Schedule කරන්න
+  // 🔴 අලුත්: Zoom Recording, Hide/Show සහ Schedule
+  zoomRecordLink?: string; 
   isVisible?: boolean; 
   publishDate?: string;
 };
@@ -68,7 +69,6 @@ export default function EditCoursePage({ params }: PageProps) {
     else document.documentElement.classList.remove("dark");
   };
 
-  // පෝරමයේ මූලික දත්ත ව්‍යුහය
   const [courseData, setCourseData] = useState<CourseDataType>({
     title: "",
     coverImage: "",
@@ -78,7 +78,6 @@ export default function EditCoursePage({ params }: PageProps) {
     subjects: []
   });
 
-  // 1. පේජ් එක ලෝඩ් වෙද්දී Database එකෙන් පරණ දත්ත ගෙන ඒම
   useEffect(() => {
     const fetchCourseData = async () => {
       try {
@@ -91,13 +90,13 @@ export default function EditCoursePage({ params }: PageProps) {
         if (res.ok) {
           const fetchedCourse = data.data;
           
-          // පරණ දත්ත වල isVisible නැත්නම් ඒක True කරනවා
           const subjectsWithDefaults = fetchedCourse.subjects.map((sub: any) => ({
             ...sub,
             lessons: sub.lessons.map((les: any) => ({
               ...les,
               isVisible: les.isVisible !== undefined ? les.isVisible : true,
-              publishDate: les.publishDate || ""
+              publishDate: les.publishDate || "",
+              zoomRecordLink: les.zoomRecordLink || ""
             }))
           }));
 
@@ -123,7 +122,6 @@ export default function EditCoursePage({ params }: PageProps) {
     fetchCourseData();
   }, [params]);
 
-  // --- Image Upload & Convert ---
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -142,7 +140,6 @@ export default function EditCoursePage({ params }: PageProps) {
     }
   };
 
-  // --- Bank Account Functions ---
   const addBankAccount = () => {
     setCourseData({
       ...courseData,
@@ -155,7 +152,6 @@ export default function EditCoursePage({ params }: PageProps) {
     setCourseData({ ...courseData, bankAccounts: updated });
   };
 
-  // --- Subject & Lesson Functions ---
   const addSubject = () => {
     setCourseData({
       ...courseData,
@@ -172,8 +168,7 @@ export default function EditCoursePage({ params }: PageProps) {
 
   const addLesson = (subjectIndex: number) => {
     const updatedSubjects = [...courseData.subjects];
-    // 🔴 අලුත්: අලුත් Lesson එකක් දාද්දී isVisible එක True කරලා යවනවා
-    updatedSubjects[subjectIndex].lessons.push({ lessonId: "les_" + Date.now(), title: "", videoEmbed: "", pdfUrl: "", isVisible: true, publishDate: "" });
+    updatedSubjects[subjectIndex].lessons.push({ lessonId: "les_" + Date.now(), title: "", videoEmbed: "", pdfUrl: "", zoomRecordLink: "", isVisible: true, publishDate: "" });
     setCourseData({ ...courseData, subjects: updatedSubjects });
   };
 
@@ -183,7 +178,6 @@ export default function EditCoursePage({ params }: PageProps) {
     setCourseData({ ...courseData, subjects: updatedSubjects });
   };
 
-  // 🔴 අලුත්: Lesson එක Hide/Show කරන Function එක
   const toggleLessonVisibility = (subjectIndex: number, lessonIndex: number) => {
     const updatedSubjects = [...courseData.subjects];
     const currentVis = updatedSubjects[subjectIndex].lessons[lessonIndex].isVisible;
@@ -191,7 +185,6 @@ export default function EditCoursePage({ params }: PageProps) {
     setCourseData({ ...courseData, subjects: updatedSubjects });
   };
 
-  // --- Submit Update (PUT) ---
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -219,7 +212,6 @@ export default function EditCoursePage({ params }: PageProps) {
     }
   };
 
-  // Theme Classes
   const themeBg = isDarkMode ? "bg-slate-900 text-slate-100" : "bg-slate-50 text-slate-800";
   const headerBg = isDarkMode ? "bg-slate-900/80 border-slate-800" : "bg-white/80 border-slate-200";
   const cardBg = isDarkMode ? "bg-slate-800 border-slate-700" : "bg-white border-slate-200";
@@ -231,8 +223,6 @@ export default function EditCoursePage({ params }: PageProps) {
 
   return (
     <div className={`modern-font min-h-screen transition-colors duration-300 ${themeBg}`}>
-      
-      {/* --- Admin Header --- */}
       <header className={`sticky top-0 z-50 w-full border-b backdrop-blur-md transition-all duration-300 ${headerBg}`}>
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 md:px-6 md:py-4">
           <div className="flex items-center gap-2 md:gap-3">
@@ -241,7 +231,7 @@ export default function EditCoursePage({ params }: PageProps) {
           </div>
           <div className="flex items-center space-x-3 md:space-x-5">
             <button onClick={toggleTheme} className={`rounded-full p-2 transition-colors focus:outline-none ${isDarkMode ? 'bg-slate-800 text-yellow-400' : 'bg-slate-100 text-slate-600'}`}>
-              {isDarkMode ? <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" /></svg> : <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>}
+              {isDarkMode ? '🌞' : '🌙'}
             </button>
             <button onClick={() => signOut({ callbackUrl: "/" })} className="rounded-full bg-red-500/10 border border-red-500/50 px-4 py-1.5 text-xs md:text-sm font-semibold text-red-500 transition hover:bg-red-500 hover:text-white">
               ඉවත් වන්න
@@ -252,7 +242,6 @@ export default function EditCoursePage({ params }: PageProps) {
 
       <main className="max-w-5xl mx-auto p-4 md:p-8 mt-4">
         <div className={`rounded-2xl shadow-sm border p-6 md:p-8 ${cardBg}`}>
-          
           <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-4 mb-6">
             <h1 className="text-xl md:text-2xl font-bold">පාඨමාලාව වෙනස් කිරීම (Edit)</h1>
             <Link href="/admin" className={`text-sm font-bold px-4 py-2 rounded-lg transition-colors ${isDarkMode ? 'bg-slate-700 hover:bg-slate-600' : 'bg-slate-100 hover:bg-slate-200'}`}>
@@ -267,11 +256,8 @@ export default function EditCoursePage({ params }: PageProps) {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-8">
-            
-            {/* 1. ප්‍රධාන විස්තර */}
             <div className={`p-6 rounded-xl border ${isDarkMode ? 'bg-slate-900/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
               <h2 className="text-lg font-bold mb-4">1. ප්‍රධාන විස්තර</h2>
-              
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
                 <div>
                   <label className="block text-sm font-bold mb-2">පාඨමාලාවේ නම *</label>
@@ -279,21 +265,20 @@ export default function EditCoursePage({ params }: PageProps) {
                 </div>
                 <div>
                   <label className="block text-sm font-bold mb-2">පාඨමාලාවේ ගාස්තුව (Price) *</label>
-                  <input type="text" required value={courseData.price} onChange={(e) => setCourseData({...courseData, price: e.target.value})} className={`w-full p-3 rounded-xl border focus:ring-2 focus:ring-blue-500 outline-none ${inputBg}`} placeholder="උදා: රු. 2500" />
+                  <input type="text" required value={courseData.price} onChange={(e) => setCourseData({...courseData, price: e.target.value})} className={`w-full p-3 rounded-xl border focus:ring-2 focus:ring-blue-500 outline-none ${inputBg}`} />
                 </div>
                 <div className="md:col-span-2">
                   <label className="block text-sm font-bold mb-2">WhatsApp Group Link</label>
                   <input type="url" value={courseData.whatsappLink} onChange={(e) => setCourseData({...courseData, whatsappLink: e.target.value})} className={`w-full p-3 rounded-xl border focus:ring-2 focus:ring-blue-500 outline-none ${inputBg}`} />
                 </div>
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-bold mb-2">Cover Image එක (අලුත් එකක් දමන්නේ නම් පමණක් තෝරන්න)</label>
+                  <label className="block text-sm font-bold mb-2">Cover Image</label>
                   <input type="file" accept="image/*" onChange={handleImageUpload} className={`block w-full text-sm file:mr-4 file:rounded-full file:border-0 file:px-4 file:py-2 file:text-xs file:font-bold ${inputBg} file:bg-blue-50 file:text-blue-600 hover:file:bg-blue-100`} />
                   {courseData.coverImage && <img src={courseData.coverImage} alt="Cover Preview" className="mt-4 h-32 w-auto object-cover rounded-xl border" />}
                 </div>
               </div>
             </div>
 
-            {/* 2. බැංකු ගිණුම් විස්තර */}
             <div className={`p-6 rounded-xl border ${isDarkMode ? 'bg-slate-900/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
               <h2 className="text-lg font-bold mb-4">2. ගෙවීම් කළ යුතු බැංකු ගිණුම්</h2>
               {courseData.bankAccounts.map((bank, index) => (
@@ -322,16 +307,13 @@ export default function EditCoursePage({ params }: PageProps) {
               <button type="button" onClick={addBankAccount} className="mt-2 text-sm bg-emerald-100 text-emerald-700 px-4 py-2 rounded-lg font-bold hover:bg-emerald-200 transition">+ තව බැංකු ගිණුමක්</button>
             </div>
 
-            {/* 3. විෂයයන් සහ පාඩම් */}
             <div>
               <h2 className="text-lg font-bold mb-4">3. විෂයයන් සහ පාඩම්</h2>
               {courseData.subjects.map((subject, sIndex) => (
                 <div key={subject.subjectId || subject._id} className={`p-6 rounded-xl mb-6 shadow-sm border relative ${isDarkMode ? 'bg-blue-950/20 border-blue-900/50' : 'bg-white border-blue-100'}`}>
-                  
                   <button type="button" onClick={() => removeSubject(sIndex)} className="absolute -top-3 -right-3 bg-red-100 text-red-600 p-2 rounded-full hover:bg-red-600 hover:text-white transition shadow-sm border border-red-200" title="විෂය මකන්න">
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
                   </button>
-                  
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                     <div className="md:col-span-3">
                       <label className="block text-sm font-bold mb-2">විෂයයේ නම *</label>
@@ -351,27 +333,26 @@ export default function EditCoursePage({ params }: PageProps) {
                     <h3 className="text-sm font-bold mb-4 border-b pb-2">පාඩම් ලැයිස්තුව</h3>
                     {subject.lessons.map((lesson, lIndex) => (
                       <div key={lesson.lessonId || lesson._id} className={`grid grid-cols-1 md:grid-cols-12 gap-3 mb-4 p-4 rounded-lg border relative ${isDarkMode ? 'bg-slate-800 border-slate-600' : 'bg-white'}`}>
-                        
-                        {/* Delete Button */}
                         <button type="button" onClick={() => removeLesson(sIndex, lIndex)} className="absolute -top-2 -right-2 text-red-400 hover:text-white p-1 bg-red-50 hover:bg-red-500 border border-red-100 rounded-full transition shadow-sm z-10"><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
                         
-                        <div className="md:col-span-4">
+                        <div className="md:col-span-6">
                           <label className="block text-[10px] font-bold mb-1">පාඩමේ මාතෘකාව *</label>
                           <input type="text" required value={lesson.title} onChange={(e) => { const updated = [...courseData.subjects]; updated[sIndex].lessons[lIndex].title = e.target.value; setCourseData({...courseData, subjects: updated}); }} className={`w-full p-2.5 rounded-lg border text-sm ${inputBg}`} />
                         </div>
-                        <div className="md:col-span-4">
-                          <label className="block text-[10px] font-bold mb-1">YouTube Embed Link *</label>
-                          <input type="url" required value={lesson.videoEmbed} onChange={(e) => { const updated = [...courseData.subjects]; updated[sIndex].lessons[lIndex].videoEmbed = e.target.value; setCourseData({...courseData, subjects: updated}); }} className={`w-full p-2.5 rounded-lg border text-sm ${inputBg}`} />
+                        <div className="md:col-span-6">
+                          <label className="block text-[10px] font-bold mb-1">YouTube Embed Link (අත්‍යවශ්‍ය නැත)</label>
+                          <input type="url" value={lesson.videoEmbed} onChange={(e) => { const updated = [...courseData.subjects]; updated[sIndex].lessons[lIndex].videoEmbed = e.target.value; setCourseData({...courseData, subjects: updated}); }} className={`w-full p-2.5 rounded-lg border text-sm ${inputBg}`} />
                         </div>
-                        <div className="md:col-span-4">
-                          <label className="block text-[10px] font-bold mb-1">Tute (PDF) Link</label>
+                        <div className="md:col-span-6">
+                          <label className="block text-[10px] font-bold mb-1">Zoom Recording Link (අත්‍යවශ්‍ය නැත)</label>
+                          <input type="url" value={lesson.zoomRecordLink || ""} onChange={(e) => { const updated = [...courseData.subjects]; updated[sIndex].lessons[lIndex].zoomRecordLink = e.target.value; setCourseData({...courseData, subjects: updated}); }} className={`w-full p-2.5 rounded-lg border text-sm ${inputBg}`} />
+                        </div>
+                        <div className="md:col-span-6">
+                          <label className="block text-[10px] font-bold mb-1">Tute (PDF) Link (අත්‍යවශ්‍ය නැත)</label>
                           <input type="url" value={lesson.pdfUrl} onChange={(e) => { const updated = [...courseData.subjects]; updated[sIndex].lessons[lIndex].pdfUrl = e.target.value; setCourseData({...courseData, subjects: updated}); }} className={`w-full p-2.5 rounded-lg border text-sm ${inputBg}`} />
                         </div>
 
-                        {/* 🔴 අලුත්: Settings පේළිය (Hide/Show සහ Schedule) */}
                         <div className="md:col-span-12 flex flex-col md:flex-row gap-4 items-center justify-between border-t pt-3 mt-1 dark:border-slate-700">
-                          
-                          {/* Hide/Show Toggle */}
                           <div className="flex items-center gap-3">
                             <span className="text-[11px] font-bold text-slate-500">Video Status:</span>
                             <button 
@@ -386,7 +367,6 @@ export default function EditCoursePage({ params }: PageProps) {
                             </span>
                           </div>
 
-                          {/* Schedule / Auto-Publish */}
                           <div className="flex items-center gap-2 w-full md:w-auto">
                             <span className="text-[11px] font-bold text-slate-500">⏰ Auto-Publish:</span>
                             <input 
@@ -405,7 +385,7 @@ export default function EditCoursePage({ params }: PageProps) {
 
                       </div>
                     ))}
-                    <button type="button" onClick={() => addLesson(sIndex)} className="mt-2 w-full md:w-auto text-xs md:text-sm bg-blue-100 text-blue-700 px-4 py-3 rounded-lg font-bold hover:bg-blue-200 transition">+ අලුත් පාඩමක් (Video) එකතු කරන්න</button>
+                    <button type="button" onClick={() => addLesson(sIndex)} className="mt-2 w-full md:w-auto text-xs md:text-sm bg-blue-100 text-blue-700 px-4 py-3 rounded-lg font-bold hover:bg-blue-200 transition">+ අලුත් පාඩමක් (Video/Link) එකතු කරන්න</button>
                   </div>
                 </div>
               ))}

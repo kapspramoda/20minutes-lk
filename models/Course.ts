@@ -6,7 +6,8 @@ const LessonSchema = new Schema({
   videoEmbed: { type: String, required: true },
   pdfUrl: { type: String },
   isVisible: { type: Boolean, default: true },
-  publishDate: { type: Date, default: null }
+  publishDate: { type: Date, default: null },
+  zoomRecordLink: { type: String, default: "" }
 });
 
 const SubjectSchema = new Schema({

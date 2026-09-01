@@ -26,12 +26,12 @@ export default function CoursePlayerPage({ params }: PageProps) {
   const [activeVideoUrl, setActiveVideoUrl] = useState<string>("");
   const [activeVideoTitle, setActiveVideoTitle] = useState<string>("");
   const [activePdfUrl, setActivePdfUrl] = useState<string>("");
+  const [activeZoomLink, setActiveZoomLink] = useState<string>(""); // 🔴 අලුත්: Zoom ලින්ක් එක තියාගන්න
 
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [volumeLevel, setVolumeLevel] = useState(100);
 
-  // Custom Player States
   const ytPlayerRef = useRef<any>(null);
   const isFetched = useRef(false);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -39,7 +39,6 @@ export default function CoursePlayerPage({ params }: PageProps) {
   const [duration, setDuration] = useState(0);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   
-  // Quality Menu States
   const [showQualityMenu, setShowQualityMenu] = useState(false);
   const [currentQuality, setCurrentQuality] = useState("auto");
 
@@ -55,7 +54,6 @@ export default function CoursePlayerPage({ params }: PageProps) {
     if (document.documentElement.classList.contains("dark")) setIsDarkMode(true);
   }, []);
 
-  // Security Check
   useEffect(() => {
     let interval: NodeJS.Timeout;
     const checkSession = async () => {
@@ -93,7 +91,6 @@ export default function CoursePlayerPage({ params }: PageProps) {
     };
   }, [status, session]);
 
-  // Database දත්ත ගෙන ඒම සහ ෆිල්ටර් කිරීම
   useEffect(() => {
     if (status === "unauthenticated") {
       router.push("/dashboard");
@@ -124,18 +121,14 @@ export default function CoursePlayerPage({ params }: PageProps) {
         if (courseDataRes.success) {
           let fetchedCourse = courseDataRes.data;
 
-          // 🔴 අලුත් නීතිය: Hide කරපු සහ වෙලාව ඇවිත් නැති වීඩියෝ ළමයින්ගෙන් සැඟවීම
           const currentTimeObj = new Date();
           if (fetchedCourse.subjects) {
             fetchedCourse.subjects = fetchedCourse.subjects.map((sub: any) => {
               return {
                 ...sub,
                 lessons: sub.lessons.filter((les: any) => {
-                  // 1. Hide කරලා (isVisible: false) නම් පෙන්නන්න එපා
                   if (les.isVisible === false) return false; 
-                  // 2. Schedule කරපු වෙලාව තාම ඇවිත් නැත්නම් පෙන්නන්න එපා
                   if (les.publishDate && new Date(les.publishDate) > currentTimeObj) return false; 
-                  // අනිත් ඔක්කොම පෙන්නන්න
                   return true;
                 })
               };
@@ -152,6 +145,7 @@ export default function CoursePlayerPage({ params }: PageProps) {
               setActiveVideoUrl(firstSub.lessons[0].videoEmbed || "");
               setActiveVideoTitle(firstSub.lessons[0].title || "");
               setActivePdfUrl(firstSub.lessons[0].pdfUrl || "");
+              setActiveZoomLink(firstSub.lessons[0].zoomRecordLink || ""); // 🔴 අලුත්
             }
           }
         } else {
@@ -260,7 +254,6 @@ export default function CoursePlayerPage({ params }: PageProps) {
   }, [isPlaying]);
 
 
-  // --- Custom Controls ---
   const togglePlay = () => {
     if (ytPlayerRef.current && typeof ytPlayerRef.current.playVideo === 'function') {
       if (isPlaying) ytPlayerRef.current.pauseVideo();
@@ -352,8 +345,9 @@ export default function CoursePlayerPage({ params }: PageProps) {
       setActiveVideoUrl(selectedSub.lessons[0].videoEmbed || "");
       setActiveVideoTitle(selectedSub.lessons[0].title || "");
       setActivePdfUrl(selectedSub.lessons[0].pdfUrl || "");
+      setActiveZoomLink(selectedSub.lessons[0].zoomRecordLink || ""); // 🔴 අලුත්
     } else {
-      setActiveVideoUrl(""); setActiveVideoTitle(""); setActivePdfUrl("");
+      setActiveVideoUrl(""); setActiveVideoTitle(""); setActivePdfUrl(""); setActiveZoomLink("");
     }
   };
 
@@ -373,7 +367,6 @@ export default function CoursePlayerPage({ params }: PageProps) {
     }
   };
 
-  // Styles
   const themeBg = isDarkMode ? "bg-slate-900 text-slate-100" : "bg-slate-50 text-slate-800";
   const headerBg = isDarkMode ? "bg-slate-900/80 border-slate-800" : "bg-white/80 border-slate-200";
   const cardBg = isDarkMode ? "bg-slate-800 border-slate-700" : "bg-white border-slate-200";
@@ -476,9 +469,12 @@ export default function CoursePlayerPage({ params }: PageProps) {
                     <div id="yt-player-container" className="w-full h-full pointer-events-none"></div>
                   </div>
 
+                  {/* 🔴 අලුත්: YouTube එකක් නැත්නම් පෙන්වන පණිවිඩය */}
                   {!activeVideoUrl && (
-                    <div className="absolute inset-0 z-[50] flex items-center justify-center text-slate-500 font-bold bg-black">
-                      වීඩියෝවක් තෝරා නොමැත
+                    <div className="absolute inset-0 z-[50] flex flex-col items-center justify-center text-slate-400 font-bold bg-slate-900 border border-slate-800 p-6 text-center">
+                      <svg className="w-12 h-12 md:w-16 md:h-16 mb-4 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                      <p className="text-sm md:text-base">මෙම පාඩම සඳහා YouTube වීඩියෝවක් අන්තර්ගත කර නොමැත.</p>
+                      {activeZoomLink && <p className="text-xs md:text-sm text-blue-400 mt-2 font-normal">පහත ඇති "Zoom Recording" බොත්තම ක්ලික් කර නැරඹිය හැක.</p>}
                     </div>
                   )}
                   
@@ -527,7 +523,6 @@ export default function CoursePlayerPage({ params }: PageProps) {
                           {playbackSpeed}x Speed
                         </button>
 
-                        {/* Quality Settings Button & Menu */}
                         <div className="relative">
                           <button 
                             onClick={(e) => { e.stopPropagation(); setShowQualityMenu(!showQualityMenu); }} 
@@ -540,7 +535,6 @@ export default function CoursePlayerPage({ params }: PageProps) {
                             </svg>
                           </button>
                           
-                          {/* Popup Menu */}
                           {showQualityMenu && (
                             <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 bg-slate-900/95 backdrop-blur-md text-white rounded-xl p-2 shadow-2xl border border-slate-700 flex flex-col gap-1 w-24 md:w-28 z-[100] animate-in fade-in slide-in-from-bottom-2">
                               <button onClick={() => changeQuality('hd1080')} className={`text-xs md:text-sm py-1.5 px-2 rounded-lg font-bold transition hover:bg-slate-700 text-left ${currentQuality === 'hd1080' ? 'text-blue-400' : ''}`}>1080p HD</button>
@@ -584,20 +578,32 @@ export default function CoursePlayerPage({ params }: PageProps) {
             {/* Now Playing & PDF Tute Box */}
             {!isFullscreen && (
               <div className={`p-4 md:p-5 rounded-xl md:rounded-2xl border shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 ${cardBg}`}>
-                <div className="truncate">
+                <div className="truncate flex-grow">
                   <span className="text-[10px] md:text-xs font-bold uppercase tracking-wider text-blue-500">දැන් ධාවනය වේ (Now Playing)</span>
                   <h3 className={`text-sm md:text-lg font-bold mt-0.5 truncate ${textPrimary}`}>{activeVideoTitle || "පාඩමක් තෝරන්න"}</h3>
                 </div>
                 
-                {activePdfUrl && activePdfUrl.trim() !== "" && (
-                  <a 
-                    href={activePdfUrl} target="_blank" rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-2 rounded-xl bg-red-600 hover:bg-red-700 text-white px-4 py-2.5 md:px-5 md:py-3 text-xs md:text-sm font-bold transition-all shadow-sm flex-shrink-0"
-                  >
-                    <svg className="w-4 h-4 md:w-5 md:h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 16l-5-5h3V4h4v7h3l-5 5zm9-2v6H3v-6H1v8h22v-8h-2z"/></svg>
-                    Tute එක (PDF)
-                  </a>
-                )}
+                {/* 🔴 අලුත්: බොත්තම් දෙකම එක ළඟ පෙන්වන කොටස */}
+                <div className="flex flex-wrap items-center gap-3">
+                  {activeZoomLink && activeZoomLink.trim() !== "" && (
+                    <a 
+                      href={activeZoomLink} target="_blank" rel="noopener noreferrer"
+                      className="flex items-center justify-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 md:px-5 md:py-3 text-xs md:text-sm font-bold transition-all shadow-sm flex-shrink-0"
+                    >
+                      <svg className="w-4 h-4 md:w-5 md:h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M17.064 7.604a1.442 1.442 0 00-1.428.169l-2.915 1.943v-2.3a1.944 1.944 0 00-1.943-1.943H2.943A1.944 1.944 0 001 7.417v9.166A1.944 1.944 0 002.943 18.53h7.835a1.944 1.944 0 001.943-1.943v-2.3l2.915 1.943a1.44 1.44 0 002.264-1.196V9.166a1.44 1.44 0 00-1.836-1.162z" /></svg>
+                      Zoom Recording
+                    </a>
+                  )}
+                  {activePdfUrl && activePdfUrl.trim() !== "" && (
+                    <a 
+                      href={activePdfUrl} target="_blank" rel="noopener noreferrer"
+                      className="flex items-center justify-center gap-2 rounded-xl bg-red-600 hover:bg-red-700 text-white px-4 py-2.5 md:px-5 md:py-3 text-xs md:text-sm font-bold transition-all shadow-sm flex-shrink-0"
+                    >
+                      <svg className="w-4 h-4 md:w-5 md:h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 16l-5-5h3V4h4v7h3l-5 5zm9-2v6H3v-6H1v8h22v-8h-2z"/></svg>
+                      Tute එක (PDF)
+                    </a>
+                  )}
+                </div>
               </div>
             )}
 
@@ -650,7 +656,7 @@ export default function CoursePlayerPage({ params }: PageProps) {
             <div className="space-y-2 md:space-y-2.5 mb-6">
               {activeSubject?.lessons?.length > 0 ? (
                 activeSubject.lessons.map((lesson: any, index: number) => {
-                  const isActive = activeVideoUrl === lesson.videoEmbed;
+                  const isActive = activeVideoTitle === lesson.title; // 🔴 වෙනස: Video url නැති නිසා title එකෙන් check කරනවා
                   return (
                     <div 
                       key={lesson.lessonId || lesson._id}
@@ -658,6 +664,7 @@ export default function CoursePlayerPage({ params }: PageProps) {
                         setActiveVideoUrl(lesson.videoEmbed || "");
                         setActiveVideoTitle(lesson.title || "");
                         setActivePdfUrl(lesson.pdfUrl || "");
+                        setActiveZoomLink(lesson.zoomRecordLink || ""); // 🔴 අලුත්
                       }}
                       className={`flex items-start gap-2.5 md:gap-3 p-2.5 md:p-3 rounded-lg md:rounded-xl border cursor-pointer transition-all hover:scale-[1.01] ${isActive ? playlistActiveBg : "bg-slate-50/50 dark:bg-slate-900/40 border-slate-100 dark:border-slate-800 hover:bg-slate-100/50 dark:hover:bg-slate-800"}`}
                     >
