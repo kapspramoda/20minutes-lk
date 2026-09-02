@@ -17,6 +17,22 @@ const handler = NextAuth({
           throw new Error("කරුණාකර දුරකථන අංකය සහ මුරපදය ලබා දෙන්න.");
         }
 
+        // 🔴 අලුත් කොටස: Admin ද යන්න .env හරහා පරීක්ෂා කිරීම
+        if (
+          credentials.phone === process.env.ADMIN_PHONE && 
+          credentials.password === process.env.ADMIN_PASSWORD
+        ) {
+          const adminSessionId = "admin-session-" + Date.now().toString();
+          return {
+            id: "admin-id",
+            name: "Admin",
+            phone: credentials.phone,
+            role: "admin",
+            sessionId: adminSessionId,
+          };
+        }
+
+        // Admin නොවේ නම්, සාමාන්‍ය ළමයින්ගේ Database පරීක්ෂාව
         await connectToDatabase();
         const user = await User.findOne({ phone: credentials.phone });
 
@@ -31,7 +47,7 @@ const handler = NextAuth({
           throw new Error("ඔබ ඇතුළත් කළ මුරපදය වැරදියි.");
         }
 
-        // 🔴 අලුත් කොටස: Login එක සාර්ථක වූ විට අලුත් Session ID එකක් සෑදීම
+        // Login එක සාර්ථක වූ විට අලුත් Session ID එකක් සෑදීම
         const newSessionId = Date.now().toString() + Math.random().toString(36).substring(2);
         
         // එම අලුත් Session ID එක Database හි User ගේ ගිණුමට සේව් කිරීම (Update කිරීම)
@@ -43,7 +59,7 @@ const handler = NextAuth({
           name: user.name,
           phone: user.phone,
           role: user.role,
-          sessionId: newSessionId, // 🔴 Session ID එකත් මෙතැනින් යවයි
+          sessionId: newSessionId, 
         };
       }
     })
@@ -54,7 +70,7 @@ const handler = NextAuth({
         token.id = user.id;
         token.phone = (user as any).phone;
         token.role = (user as any).role;
-        token.sessionId = (user as any).sessionId; // 🔴 අලුත් Session ID එක Token එකට දැමීම
+        token.sessionId = (user as any).sessionId; 
       }
       return token;
     },
@@ -63,14 +79,13 @@ const handler = NextAuth({
         (session.user as any).id = token.id;
         (session.user as any).phone = token.phone;
         (session.user as any).role = token.role;
-        (session.user as any).sessionId = token.sessionId; // 🔴 අලුත් Session ID එක Session එකට දැමීම
+        (session.user as any).sessionId = token.sessionId; 
       }
       return session;
     }
   },
   session: { strategy: "jwt" },
   pages: { signIn: "/" },
-  // රහස්‍ය කේතයක් (මෙය .env ෆයිල් එකෙන් ලබා ගනී)
   secret: process.env.NEXTAUTH_SECRET || "20minuteslk_super_secret_key_2026",
 });
 

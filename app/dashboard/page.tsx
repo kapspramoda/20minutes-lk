@@ -92,7 +92,8 @@ export default function DashboardPage() {
       const userPhone = (session?.user as any)?.phone || session?.user?.name || session?.user?.email;
       if (!userPhone) return;
       try {
-        const res = await fetch(`/api/student/quizzes/results?phone=${userPhone}`);
+        // 🔴 වෙනස: cache: "no-store" එකතු කළා
+        const res = await fetch(`/api/student/quizzes/results?phone=${userPhone}`, { cache: "no-store" });
         const data = await res.json();
         if (res.ok) setQuizResults(data.data);
       } catch (error) { console.error(error); }
@@ -103,13 +104,17 @@ export default function DashboardPage() {
   useEffect(() => {
     const fetchMyCourses = async () => {
       const userPhone = (session?.user as any)?.phone || session?.user?.name || session?.user?.email;
-      if (!userPhone) return;
+      if (!userPhone) {
+        setIsLoadingCourses(false);
+        return;
+      }
       try {
-        const res = await fetch(`/api/student/courses?phone=${userPhone}`);
+        // 🔴 වෙනස: cache: "no-store" එකතු කළා
+        const res = await fetch(`/api/student/courses?phone=${userPhone}`, { cache: "no-store" });
         const data = await res.json();
         if (res.ok) {
-          setMyCourses(data.approvedCourses);
-          setPendingCourses(data.pendingCourses);
+          setMyCourses(data.approvedCourses || []);
+          setPendingCourses(data.pendingCourses || []);
         }
       } catch (error) { console.error(error); } 
       finally { setIsLoadingCourses(false); }
@@ -120,9 +125,10 @@ export default function DashboardPage() {
   useEffect(() => {
     const fetchAvailableCourses = async () => {
       try {
-        const res = await fetch("/api/courses");
+        // 🔴 වෙනස: cache: "no-store" එකතු කළා
+        const res = await fetch("/api/courses", { cache: "no-store" });
         const data = await res.json();
-        if (res.ok) setAvailableCourses(data.data.filter((c: any) => c.isVisible === true));
+        if (res.ok) setAvailableCourses(data.data.filter((c: any) => c.isVisible === true) || []);
       } catch (error) { console.error(error); } 
       finally { setIsLoadingAvailable(false); }
     };
@@ -150,7 +156,6 @@ export default function DashboardPage() {
   const handleSubmitSlip = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // 🔴 පින්තූරය තෝරාගෙන නැත්නම් Validation එක
     if (!slipFile) {
       alert("කරුණාකර Bank Slip එක ඇතුළත් කරන්න.");
       return;
@@ -163,11 +168,10 @@ export default function DashboardPage() {
     try {
       let fileToUpload: File | Blob = slipFile;
       
-      // 🔴 වෙනස් කළ කොටස: Vercel සීමාවට ගැලපෙන්න පින්තූරය තදින් Compress කිරීම (150KB පමණ)
       if (slipFile.type.startsWith("image/")) {
         fileToUpload = await imageCompression(slipFile, { 
-          maxSizeMB: 0.15, // උපරිම 150KB
-          maxWidthOrHeight: 800, // විභේදනය අඩු කිරීම
+          maxSizeMB: 0.15, 
+          maxWidthOrHeight: 800, 
           useWebWorker: true 
         });
       }

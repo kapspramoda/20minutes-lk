@@ -106,13 +106,6 @@ export default function HomePage() {
     e.preventDefault();
     setError("");
 
-    if (heroView === "login" && phone === "960431251V" && password === "Malindu@12411") {
-      setLoading(true);
-      router.push("/admin");
-      setLoading(false);
-      return;
-    }
-
     if (phone.includes(" ")) {
       setError("දුරකථන අංකයේ හිස්තැන් (spaces) තැබිය නොහැක. කරුණාකර නිවැරදිව ටයිප් කරන්න.");
       return;
@@ -148,12 +141,18 @@ export default function HomePage() {
     setLoading(true);
 
     if (heroView === "login") {
+      // 🔴 වෙනස: මෙතනින් Admin ගේ පාස්වර්ඩ් එක චෙක් කරන එක අයින් කරලා තියෙන්නේ. ඒක NextAuth එකෙන් බලාගන්නවා.
       const res = await signIn("credentials", { redirect: false, phone, password });
       if (res?.error) {
         setError("දුරකථන අංකය හෝ මුරපදය වැරදියි. කරුණාකර නැවත පරීක්ෂා කරන්න.");
         setLoading(false);
       } else {
-        router.push("/dashboard");
+        // 🔴 වෙනස: ලොග් වුණාට පස්සේ Admin නම් /admin එකට, නැත්නම් /dashboard එකට යවනවා
+        if (phone === "960431251V" || phone.toLowerCase() === "admin") {
+          router.push("/admin");
+        } else {
+          router.push("/dashboard");
+        }
       }
     } 
     else if (heroView === "register") {
@@ -203,7 +202,7 @@ export default function HomePage() {
   const themeBg = isDarkMode ? "bg-slate-900 text-slate-100" : "bg-slate-50 text-slate-800";
   const headerBg = isDarkMode ? "bg-slate-900/80 border-slate-800" : "bg-white/80 border-slate-200";
   const logoTextColor = isDarkMode ? "text-white" : "text-slate-900";
-  const btnOutline = isDarkMode ? "border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white" : "border-slate-200 text-slate-700 hover:border-blue-500 hover:text-blue-600 hover:bg-blue-50";
+  const btnOutline = isDarkMode ? "border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white" : "border-slate-200 text-slate-700 hover:border-blue-50 hover:text-blue-600 hover:bg-blue-50";
   const sectionTitleColor = isDarkMode ? "text-white" : "text-slate-900";
   const sectionDescColor = isDarkMode ? "text-slate-400" : "text-slate-500";
   const cardBg = isDarkMode ? "bg-slate-800 border-slate-700" : "bg-white border-slate-100";
@@ -224,7 +223,6 @@ export default function HomePage() {
       <div className={`modern-font flex min-h-screen flex-col transition-colors duration-300 ${themeBg}`}>
         
         <header className={`sticky top-0 z-50 w-full border-b backdrop-blur-md transition-all duration-300 ${headerBg}`}>
-          {/* 🔴 වෙනස: කුඩා තිර වලදී flex-wrap දාලා බටන් යටවෙන එක නැවැත්තුවා */}
           <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between px-4 py-3 md:px-6 md:py-4 gap-y-2">
             <button onClick={() => changeViewAndScrollTop("carousel")} className="flex items-center gap-2 md:gap-3 focus:outline-none relative z-[60]">
               <img src="/logo.png" alt="20minutes.lk Logo" className="h-7 w-auto sm:h-8 md:h-10 rounded-xl shadow-sm opacity-95" />
@@ -235,7 +233,6 @@ export default function HomePage() {
               <button onClick={() => setIsDarkMode(!isDarkMode)} className={`rounded-full p-2 transition-colors focus:outline-none ${isDarkMode ? 'bg-slate-800 text-yellow-400 hover:bg-slate-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
                 {isDarkMode ? <svg className="h-4 w-4 sm:h-5 sm:w-5" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" /></svg> : <svg className="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>}
               </button>
-              {/* 🔴 වෙනස: බටන් Click වෙන්න වෙනම z-index දුන්නා */}
               <button onClick={() => changeViewAndScrollTop("login")} className={`relative z-[60] cursor-pointer rounded-full border-2 px-3 py-1.5 text-[11px] sm:text-xs font-bold transition-all md:px-5 md:py-2 md:text-sm focus:outline-none ${btnOutline}`}>
                 ලොග් වන්න
               </button>
