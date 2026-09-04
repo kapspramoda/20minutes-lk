@@ -337,7 +337,6 @@ export default function AdminDashboard() {
     }
   };
 
-  // 🔴 අලුත්: මුරපද ඉල්ලීම ප්‍රතික්ෂේප (Reject) කිරීම
   const handleRejectPassword = async (id: string, phone: string) => {
     const confirmReject = window.confirm(`${phone} දුරකථන අංකයේ මුරපද ඉල්ලීම ප්‍රතික්ෂේප කිරීමට අවශ්‍යද?`);
     if (!confirmReject) return;
@@ -461,18 +460,27 @@ export default function AdminDashboard() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {(pendingApprovals || []).map((req) => (
                   <div key={req._id} className={`flex flex-col overflow-hidden rounded-2xl border shadow-sm transition-all ${cardBg}`}>
+                    {/* 🔴 වෙනස: PDF ද කියලා Check කරලා ඊට ගැලපෙන විදිහට පෙන්වීම */}
                     <div 
                       className="h-48 overflow-hidden bg-slate-200 dark:bg-slate-700 relative group cursor-pointer flex items-center justify-center" 
                       onClick={() => setEnlargedSlip(req.slipImage)}
                     >
-                      <img 
-                        src={req.slipImage && req.slipImage.length > 30 ? req.slipImage : "https://placehold.co/600x400/e2e8f0/64748b?text=Image+Not+Found"} 
-                        alt="Bank Slip" 
-                        className="w-full h-full object-cover hover:scale-110 transition-transform duration-500" 
-                        onError={(e) => { 
-                          e.currentTarget.src = "https://placehold.co/600x400/e2e8f0/64748b?text=Image+Load+Error"; 
-                        }}
-                      />
+                      {req.slipImage && req.slipImage.startsWith('data:application/pdf') ? (
+                        <div className="flex flex-col items-center justify-center w-full h-full text-slate-500 hover:scale-110 transition-transform duration-500">
+                          <svg className="w-16 h-16 mb-2 text-red-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 16l-5-5h3V4h4v7h3l-5 5zm9-2v6H3v-6H1v8h22v-8h-2z"/></svg>
+                          <span className="font-bold text-sm">PDF රිසිට්පත</span>
+                        </div>
+                      ) : (
+                        <img 
+                          src={req.slipImage && req.slipImage.length > 30 ? req.slipImage : "https://placehold.co/600x400/e2e8f0/64748b?text=Image+Not+Found"} 
+                          alt="Bank Slip" 
+                          className="w-full h-full object-cover hover:scale-110 transition-transform duration-500" 
+                          onError={(e) => { 
+                            e.currentTarget.src = "https://placehold.co/600x400/e2e8f0/64748b?text=Image+Load+Error"; 
+                          }}
+                        />
+                      )}
+                      
                       <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
                           <span className="text-white text-sm font-bold flex items-center gap-2">විශාල කර බලන්න</span>
                       </div>
@@ -764,7 +772,6 @@ export default function AdminDashboard() {
                       <p className="text-base font-bold text-blue-500 tracking-wide">{req.newPasswordPlain}</p>
                     </div>
                     
-                    {/* 🔴 අලුත්: Approve සහ Reject බොත්තම් දෙකක් */}
                     <div className="mt-auto grid grid-cols-2 gap-3">
                       <button onClick={() => handleApprovePassword(req)} className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs md:text-sm font-bold py-3 rounded-xl transition-all shadow-md flex items-center justify-center gap-1.5">
                         <svg className="w-4 h-4 md:w-5 md:h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12.031 0C5.385 0 0 5.383 0 12.032c0 2.128.552 4.195 1.6 6.012L.15 24l6.105-1.597A11.964 11.964 0 0012.031 24c6.643 0 12.032-5.385 12.032-12.032C24.063 5.383 18.674 0 12.031 0zm7.143 17.15c-.302.854-1.745 1.622-2.42 1.706-.527.067-1.196.126-3.414-.795-2.65-1.1-4.329-3.82-4.46-3.993-.134-.176-1.066-1.423-1.066-2.715 0-1.291.674-1.93 9.17-2.18.232-.174.526-.298.777-.074.251.222.79 1.107.962 1.328.172.222.155.397-.094.646-.248.248-.567.58-.826.855-.276.294-.567.616-.251 1.157.316.541 1.405 2.321 3.003 3.766 2.062 1.865 3.864 2.457 4.417 2.712.553.254.877.206 1.206-.178.328-.383 1.41-1.642 1.79-2.204.381-.564.76-.469 1.258-.293.498.177 3.153 1.488 3.693 1.754.541.266.903.398 1.036.621.132.222.132 1.288-.17 2.143z" /></svg>
@@ -845,22 +852,32 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* Slip Modal with Fallback Error Image */}
+      {/* 🔴 වෙනස: PDF රිසිට් පත්‍ර සඳහා iframe එක සහ පින්තූර සඳහා img එක පෙන්වීම */}
       {enlargedSlip && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in duration-200" onClick={() => setEnlargedSlip(null)}>
           <div className="relative w-full max-w-4xl h-[85vh] flex items-center justify-center">
             <button onClick={(e) => { e.stopPropagation(); setEnlargedSlip(null); }} className="absolute -top-12 right-0 md:-right-12 text-white/70 hover:text-red-500 bg-white/10 hover:bg-white/20 rounded-full p-2 transition-all">
               <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
-            <img 
-              src={enlargedSlip && enlargedSlip.length > 30 ? enlargedSlip : "https://placehold.co/600x400/e2e8f0/64748b?text=Image+Not+Found"} 
-              alt="Enlarged Bank Slip" 
-              className="max-w-full max-h-full object-contain rounded-xl shadow-2xl" 
-              onClick={(e) => e.stopPropagation()} 
-              onError={(e) => { 
-                e.currentTarget.src = "https://placehold.co/600x400/e2e8f0/64748b?text=Image+Load+Error"; 
-              }}
-            />
+            
+            {enlargedSlip.startsWith('data:application/pdf') ? (
+              <iframe 
+                src={enlargedSlip} 
+                className="w-full h-full rounded-xl shadow-2xl bg-white" 
+                onClick={(e) => e.stopPropagation()} 
+                title="PDF Slip"
+              />
+            ) : (
+              <img 
+                src={enlargedSlip} 
+                alt="Enlarged Bank Slip" 
+                className="max-w-full max-h-full object-contain rounded-xl shadow-2xl" 
+                onClick={(e) => e.stopPropagation()} 
+                onError={(e) => { 
+                  e.currentTarget.src = "https://placehold.co/600x400/e2e8f0/64748b?text=Image+Load+Error"; 
+                }}
+              />
+            )}
           </div>
         </div>
       )}
