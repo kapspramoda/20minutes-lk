@@ -68,45 +68,50 @@ export default function AdminDashboard() {
     return isNaN(d.getTime()) ? "N/A" : d.toLocaleDateString('si-LK');
   };
 
+  // 🔴 වෙනස: cache: "no-store" එකතු කළා
   const fetchPendingEnrollments = async () => {
     try {
-      const res = await fetch("/api/admin/enrollments");
+      const res = await fetch("/api/admin/enrollments", { cache: "no-store" });
       const data = await res.json();
       if (res.ok) setPendingApprovals(data.enrollments || []);
     } catch (error) { console.error(error); } 
     finally { setIsLoadingApprovals(false); }
   };
 
+  // 🔴 වෙනස: cache: "no-store" එකතු කළා
   const fetchCourses = async () => {
     try {
-      const res = await fetch("/api/courses");
+      const res = await fetch("/api/courses", { cache: "no-store" });
       const data = await res.json();
       if (res.ok) setCourses(data.data || []);
     } catch (error) { console.error(error); }
     finally { setIsLoadingCourses(false); }
   };
 
+  // 🔴 වෙනස: cache: "no-store" එකතු කළා
   const fetchApprovedStudents = async () => {
     try {
-      const res = await fetch("/api/admin/students");
+      const res = await fetch("/api/admin/students", { cache: "no-store" });
       const data = await res.json();
       if (res.ok) setApprovedStudents(data.data || []);
     } catch (error) { console.error(error); }
     finally { setIsLoadingStudents(false); }
   };
 
+  // 🔴 වෙනස: cache: "no-store" එකතු කළා
   const fetchQuizzes = async () => {
     try {
-      const res = await fetch("/api/admin/quizzes");
+      const res = await fetch("/api/admin/quizzes", { cache: "no-store" });
       const data = await res.json();
       if (res.ok) setQuizzes(data.data || []);
     } catch (error) { console.error(error); }
     finally { setIsLoadingQuizzes(false); }
   };
 
+  // 🔴 වෙනස: cache: "no-store" එකතු කළා
   const fetchPasswordRequests = async () => {
     try {
-      const res = await fetch("/api/admin/passwords");
+      const res = await fetch("/api/admin/passwords", { cache: "no-store" });
       const data = await res.json();
       if (res.ok) setPasswordRequests(data.data || []);
     } catch (error) { console.error(error); }
@@ -460,7 +465,6 @@ export default function AdminDashboard() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {(pendingApprovals || []).map((req) => (
                   <div key={req._id} className={`flex flex-col overflow-hidden rounded-2xl border shadow-sm transition-all ${cardBg}`}>
-                    {/* 🔴 වෙනස: PDF ද කියලා Check කරලා ඊට ගැලපෙන විදිහට පෙන්වීම */}
                     <div 
                       className="h-48 overflow-hidden bg-slate-200 dark:bg-slate-700 relative group cursor-pointer flex items-center justify-center" 
                       onClick={() => setEnlargedSlip(req.slipImage)}
@@ -852,7 +856,7 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* 🔴 වෙනස: PDF රිසිට් පත්‍ර සඳහා iframe එක සහ පින්තූර සඳහා img එක පෙන්වීම */}
+      {/* PDF රිසිට් පත්‍ර සඳහා iframe එක සහ පින්තූර සඳහා img එක පෙන්වීම */}
       {enlargedSlip && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in duration-200" onClick={() => setEnlargedSlip(null)}>
           <div className="relative w-full max-w-4xl h-[85vh] flex items-center justify-center">
