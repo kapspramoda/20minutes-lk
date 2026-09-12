@@ -7,12 +7,10 @@ const QuestionSchema = new Schema({
 });
 
 const QuizSchema = new Schema({
-  courseId: { type: String, required: true }, // කුමන පාඨමාලාවට අදාළද කියා හඳුනා ගැනීමට
+  // 🔴 වෙනස: තනි Course එකක් වෙනුවට Courses ගොඩක් දාන්න පුළුවන් Array එකක් හැදුවා
+  courseIds: [{ type: String }], 
   title: { type: String, required: true }, // Paper එකේ නම
-  
-  // 🔴 මේක තමයි අලුතින්ම එකතු කළ කාල සීමාව (විනාඩි වලින්)
-  timeLimit: { type: Number, required: true }, 
-  
+  timeLimit: { type: Number, required: true }, // කාල සීමාව
   pdfUrl: { type: String, default: "" },
   questions: [QuestionSchema],
   isVisible: { type: Boolean, default: true } // Hide/Show කිරීමට

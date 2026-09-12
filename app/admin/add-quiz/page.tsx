@@ -14,11 +14,11 @@ export default function AddQuizPage() {
 
   const [courses, setCourses] = useState<any[]>([]);
 
-  // 🔴 Quiz දත්ත ව්‍යුහයට timeLimit එකතු කළා
+  // 🔴 වෙනස: courseId වෙනුවට courseIds Array එකක් දැම්මා
   const [quizData, setQuizData] = useState({
-    courseId: "",
+    courseIds: [] as string[],
     title: "",
-    timeLimit: "", // 🔴 අලුත්: කාල සීමාව (විනාඩි වලින්)
+    timeLimit: "", 
     pdfUrl: "",
     questions: [
       { questionText: "", options: ["", "", "", ""], correctOptionIndex: 0 }
@@ -28,7 +28,6 @@ export default function AddQuizPage() {
   useEffect(() => {
     if (document.documentElement.classList.contains("dark")) setIsDarkMode(true);
     
-    // පවතින පාඨමාලා ගෙන්වා ගැනීම (Course Dropdown එකට)
     const fetchCourses = async () => {
       const res = await fetch("/api/courses");
       const data = await res.json();
@@ -41,6 +40,18 @@ export default function AddQuizPage() {
     setIsDarkMode(!isDarkMode);
     if (!isDarkMode) document.documentElement.classList.add("dark");
     else document.documentElement.classList.remove("dark");
+  };
+
+  // 🔴 අලුත්: Checkbox එක ක්ලික් කළාම Course එක Array එකට දාන සහ අයින් කරන Function එක
+  const handleCourseToggle = (courseId: string) => {
+    setQuizData((prev) => {
+      const isSelected = prev.courseIds.includes(courseId);
+      if (isSelected) {
+        return { ...prev, courseIds: prev.courseIds.filter(id => id !== courseId) };
+      } else {
+        return { ...prev, courseIds: [...prev.courseIds, courseId] };
+      }
+    });
   };
 
   // --- ප්‍රශ්න වෙනස් කිරීමේ Functions ---
@@ -78,13 +89,11 @@ export default function AddQuizPage() {
   // --- Submit ---
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!quizData.courseId) return alert("කරුණාකර අදාළ පාඨමාලාව තෝරන්න.");
-    if (!quizData.timeLimit) return alert("කරුණාකර ප්‍රශ්න පත්‍රයට අදාළ කාල සීමාව ඇතුළත් කරන්න."); // 🔴 අලුත් Validation එකක්
+    if (!quizData.timeLimit) return alert("කරුණාකර ප්‍රශ්න පත්‍රයට අදාළ කාල සීමාව ඇතුළත් කරන්න."); 
     
     setIsLoading(true);
     setMessage({ type: "", text: "" });
 
-    // timeLimit එක Number එකක් විදිහට යවන්න හදාගන්නවා
     const payload = {
       ...quizData,
       timeLimit: Number(quizData.timeLimit)
@@ -158,22 +167,31 @@ export default function AddQuizPage() {
             
             {/* 1. මූලික විස්තර */}
             <div className={`p-6 rounded-xl border ${isDarkMode ? 'bg-slate-900/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-              {/* 🔴 වෙනස: මෙතන md:grid-cols-3 කරලා තීරු 3ක් හැදුවා */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-4">
-                <div>
-                  <label className="block text-sm font-bold mb-2">අදාළ පාඨමාලාව තෝරන්න *</label>
-                  <select required value={quizData.courseId} onChange={(e) => setQuizData({...quizData, courseId: e.target.value})} className={`w-full p-3 rounded-xl border outline-none font-bold ${inputBg}`}>
-                    <option value="" disabled>පාඨමාලාවක් තෝරන්න...</option>
-                    {courses.map(course => (
-                      <option key={course._id} value={course._id}>{course.title}</option>
-                    ))}
-                  </select>
+              
+              {/* 🔴 අලුත්: පාඨමාලා කිහිපයක් තෝරන්න Checkboxes */}
+              <div className="mb-6">
+                <label className="block text-sm font-bold mb-2">මෙම ප්‍රශ්න පත්‍රය අදාළ වන පාඨමාලා තෝරන්න (Question Bank එකේ පමණක් තැබීමට අවශ්‍ය නම් කිසිවක් නොතෝරා සිටින්න)</label>
+                <div className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 p-4 rounded-xl border ${inputBg}`}>
+                  {courses.map(course => (
+                    <label key={course._id} className="flex items-center gap-3 cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        className="w-4 h-4 text-blue-600 rounded cursor-pointer"
+                        checked={quizData.courseIds.includes(course._id)}
+                        onChange={() => handleCourseToggle(course._id)}
+                      />
+                      <span className="text-sm font-semibold truncate">{course.title}</span>
+                    </label>
+                  ))}
+                  {courses.length === 0 && <p className="text-xs text-slate-500">පාඨමාලා කිසිවක් හමු නොවිණි.</p>}
                 </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
                 <div>
                   <label className="block text-sm font-bold mb-2">ප්‍රශ්න පත්‍රයේ නම (Title) *</label>
                   <input type="text" required value={quizData.title} onChange={(e) => setQuizData({...quizData, title: e.target.value})} className={`w-full p-3 rounded-xl border outline-none ${inputBg}`} placeholder="උදා: 1 වන ඒකකය ඇගයීම" />
                 </div>
-                {/* 🔴 අලුත්: කාල සීමාව ඇතුළත් කරන කොටුව */}
                 <div>
                   <label className="block text-sm font-bold mb-2">කාල සීමාව (විනාඩි) *</label>
                   <input 

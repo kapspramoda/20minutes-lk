@@ -13,12 +13,17 @@ export async function POST(req: Request) {
     await connectDB();
     const body = await req.json();
     
-    // 🔴 වෙනස: timeLimit එකත් අනිවාර්යයෙන්ම එවා තිබේදැයි පරීක්ෂා කිරීම
-    if (!body.courseId || !body.title || !body.timeLimit || !body.questions || body.questions.length === 0) {
+    // 🔴 වෙනස: courseId අනිවාර්ය කරන්නේ නෑ, මොකද මේක Question Bank එකක් විදිහටත් තියන්න පුළුවන් නිසා
+    if (!body.title || !body.timeLimit || !body.questions || body.questions.length === 0) {
       return NextResponse.json({ error: "කරුණාකර කාල සීමාව ඇතුළුව සියලුම දත්ත සම්පූර්ණ කරන්න." }, { status: 400 });
     }
 
-    const newQuiz = await Quiz.create(body);
+    const payload = {
+      ...body,
+      courseIds: Array.isArray(body.courseIds) ? body.courseIds : []
+    };
+
+    const newQuiz = await Quiz.create(payload);
     
     return NextResponse.json({ success: true, data: newQuiz }, { status: 201 });
   } catch (error: any) {
