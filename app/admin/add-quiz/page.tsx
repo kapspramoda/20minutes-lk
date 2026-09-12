@@ -14,7 +14,6 @@ export default function AddQuizPage() {
 
   const [courses, setCourses] = useState<any[]>([]);
 
-  // 🔴 වෙනස: courseId වෙනුවට courseIds Array එකක් දැම්මා
   const [quizData, setQuizData] = useState({
     courseIds: [] as string[],
     title: "",
@@ -29,7 +28,8 @@ export default function AddQuizPage() {
     if (document.documentElement.classList.contains("dark")) setIsDarkMode(true);
     
     const fetchCourses = async () => {
-      const res = await fetch("/api/courses");
+      // 🔴 වෙනස: මෙතනට cache: "no-store" දැම්මා (ක්ෂණිකව Load වෙන්න)
+      const res = await fetch("/api/courses", { cache: "no-store" });
       const data = await res.json();
       if (res.ok) setCourses(data.data);
     };
@@ -42,7 +42,6 @@ export default function AddQuizPage() {
     else document.documentElement.classList.remove("dark");
   };
 
-  // 🔴 අලුත්: Checkbox එක ක්ලික් කළාම Course එක Array එකට දාන සහ අයින් කරන Function එක
   const handleCourseToggle = (courseId: string) => {
     setQuizData((prev) => {
       const isSelected = prev.courseIds.includes(courseId);
@@ -54,7 +53,6 @@ export default function AddQuizPage() {
     });
   };
 
-  // --- ප්‍රශ්න වෙනස් කිරීමේ Functions ---
   const handleQuestionTextChange = (index: number, text: string) => {
     const updated = [...quizData.questions];
     updated[index].questionText = text;
@@ -86,7 +84,6 @@ export default function AddQuizPage() {
     setQuizData({ ...quizData, questions: updated });
   };
 
-  // --- Submit ---
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!quizData.timeLimit) return alert("කරුණාකර ප්‍රශ්න පත්‍රයට අදාළ කාල සීමාව ඇතුළත් කරන්න."); 
@@ -121,7 +118,6 @@ export default function AddQuizPage() {
     }
   };
 
-  // Theme Classes
   const themeBg = isDarkMode ? "bg-slate-900 text-slate-100" : "bg-slate-50 text-slate-800";
   const headerBg = isDarkMode ? "bg-slate-900/80 border-slate-800" : "bg-white/80 border-slate-200";
   const cardBg = isDarkMode ? "bg-slate-800 border-slate-700" : "bg-white border-slate-200";
@@ -165,10 +161,8 @@ export default function AddQuizPage() {
 
           <form onSubmit={handleSubmit} className="space-y-8">
             
-            {/* 1. මූලික විස්තර */}
             <div className={`p-6 rounded-xl border ${isDarkMode ? 'bg-slate-900/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
               
-              {/* 🔴 අලුත්: පාඨමාලා කිහිපයක් තෝරන්න Checkboxes */}
               <div className="mb-6">
                 <label className="block text-sm font-bold mb-2">මෙම ප්‍රශ්න පත්‍රය අදාළ වන පාඨමාලා තෝරන්න (Question Bank එකේ පමණක් තැබීමට අවශ්‍ය නම් කිසිවක් නොතෝරා සිටින්න)</label>
                 <div className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 p-4 rounded-xl border ${inputBg}`}>
@@ -206,7 +200,6 @@ export default function AddQuizPage() {
                 </div>
               </div>
 
-              {/* PDF ලින්ක් එක දාන කොටස */}
               <div className="mt-6 border-t border-slate-200 dark:border-slate-700 pt-6">
                 <label className="block text-sm font-bold mb-2">
                   ප්‍රශ්න පත්‍රයේ PDF ලින්ක් එක <span className="text-slate-400 font-normal text-xs ml-2">(අත්‍යවශ්‍ය නැත)</span>
@@ -222,7 +215,6 @@ export default function AddQuizPage() {
               </div>
             </div>
 
-            {/* 2. ප්‍රශ්න ලැයිස්තුව */}
             <div>
               <h2 className="text-lg font-bold mb-4 flex items-center justify-between">
                 <span>ප්‍රශ්න (Questions)</span>
