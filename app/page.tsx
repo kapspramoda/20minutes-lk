@@ -25,8 +25,9 @@ export default function HomePage() {
   const [apiCourses, setApiCourses] = useState<any[]>([]);
   const [isLoadingCourses, setIsLoadingCourses] = useState(true);
 
-  // 🔴 අලුත්: results5.jpeg (ග්‍රාම නිලධාරී) එකතු කළා
+  // 🔴 අලුත්: openit.jpeg (තොරතුරු තාක්ෂණ) උඩින්ම එකතු කළා
   const resultsData = [
+    { id: 8, img: "/openit.jpeg", name: "විශිෂ්ට ප්‍රතිඵල", rank: "තොරතුරු තාක්ෂණ" },
     { id: 7, img: "/results5.jpeg", name: "විශිෂ්ට ප්‍රතිඵල", rank: "ග්‍රාම නිලධාරී" },
     { id: 6, img: "/results3.jpeg", name: "විශිෂ්ට ප්‍රතිඵල", rank: "ඖෂධවේදී" },
     { id: 1, img: "/RESULTS.jpeg", name: "විශිෂ්ට ප්‍රතිඵල", rank: "ප්‍රාථමික අධ්‍යාපන" },
@@ -141,13 +142,11 @@ export default function HomePage() {
     setLoading(true);
 
     if (heroView === "login") {
-      // 🔴 වෙනස: මෙතනින් Admin ගේ පාස්වර්ඩ් එක චෙක් කරන එක අයින් කරලා තියෙන්නේ. ඒක NextAuth එකෙන් බලාගන්නවා.
       const res = await signIn("credentials", { redirect: false, phone, password });
       if (res?.error) {
         setError("දුරකථන අංකය හෝ මුරපදය වැරදියි. කරුණාකර නැවත පරීක්ෂා කරන්න.");
         setLoading(false);
       } else {
-        // 🔴 වෙනස: ලොග් වුණාට පස්සේ Admin නම් /admin එකට, නැත්නම් /dashboard එකට යවනවා
         if (phone === "960431251V" || phone.toLowerCase() === "admin") {
           router.push("/admin");
         } else {
@@ -637,3 +636,4 @@ export default function HomePage() {
     </>
   );
 }
+
