@@ -222,20 +222,21 @@ export default function HomePage() {
       <div className={`modern-font flex min-h-screen flex-col transition-colors duration-300 ${themeBg}`}>
         
         <header className={`sticky top-0 z-50 w-full border-b backdrop-blur-md transition-all duration-300 ${headerBg}`}>
-          <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between px-4 py-3 md:px-6 md:py-4 gap-y-2">
-            <button onClick={() => changeViewAndScrollTop("carousel")} className="flex items-center gap-2 md:gap-3 focus:outline-none relative z-[60]">
-              <img src="/logo.png" alt="20minutes.lk Logo" className="h-7 w-auto sm:h-8 md:h-10 rounded-xl shadow-sm opacity-95" />
-              <span className={`logo-font text-lg md:text-2xl font-semibold truncate ${logoTextColor}`}>20minutes.lk</span>
+          {/* 🔴 වෙනස: කුඩා තිර වලදී flex-wrap වෙනුවට flex-nowrap දාලා overflow හැදුවා */}
+          <div className="mx-auto flex max-w-7xl flex-nowrap items-center justify-between px-2 sm:px-4 py-3 md:px-6 md:py-4 gap-2 overflow-x-hidden">
+            <button onClick={() => changeViewAndScrollTop("carousel")} className="flex items-center gap-1.5 md:gap-3 focus:outline-none relative z-[60] flex-shrink-0">
+              <img src="/logo.png" alt="20minutes.lk Logo" className="h-6 w-auto sm:h-8 md:h-10 rounded-xl shadow-sm opacity-95" />
+              <span className={`logo-font text-base sm:text-lg md:text-2xl font-semibold truncate ${logoTextColor}`}>20minutes.lk</span>
             </button>
 
-            <div className="flex items-center space-x-2 sm:space-x-3 md:space-x-5 flex-shrink-0 relative z-[60]">
-              <button onClick={() => setIsDarkMode(!isDarkMode)} className={`rounded-full p-2 transition-colors focus:outline-none ${isDarkMode ? 'bg-slate-800 text-yellow-400 hover:bg-slate-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+            <div className="flex items-center space-x-1.5 sm:space-x-3 md:space-x-5 flex-shrink-0 relative z-[60]">
+              <button onClick={() => setIsDarkMode(!isDarkMode)} className={`rounded-full p-1.5 sm:p-2 transition-colors focus:outline-none ${isDarkMode ? 'bg-slate-800 text-yellow-400 hover:bg-slate-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
                 {isDarkMode ? <svg className="h-4 w-4 sm:h-5 sm:w-5" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" /></svg> : <svg className="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>}
               </button>
-              <button onClick={() => changeViewAndScrollTop("login")} className={`relative z-[60] cursor-pointer rounded-full border-2 px-3 py-1.5 text-[11px] sm:text-xs font-bold transition-all md:px-5 md:py-2 md:text-sm focus:outline-none ${btnOutline}`}>
+              <button onClick={() => changeViewAndScrollTop("login")} className={`relative z-[60] cursor-pointer rounded-full border-2 px-2.5 py-1 text-[10px] sm:text-xs font-bold transition-all md:px-5 md:py-2 md:text-sm focus:outline-none whitespace-nowrap ${btnOutline}`}>
                 ලොග් වන්න
               </button>
-              <button onClick={() => changeViewAndScrollTop("register")} className="relative z-[60] cursor-pointer rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 px-3 py-1.5 text-[11px] sm:text-xs font-bold text-white shadow-md hover:shadow-lg hover:from-blue-700 hover:to-indigo-700 transition-all md:px-5 md:py-2 md:text-sm focus:outline-none">
+              <button onClick={() => changeViewAndScrollTop("register")} className="relative z-[60] cursor-pointer rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 px-2.5 py-1 text-[10px] sm:text-xs font-bold text-white shadow-md hover:shadow-lg hover:from-blue-700 hover:to-indigo-700 transition-all md:px-5 md:py-2 md:text-sm focus:outline-none whitespace-nowrap">
                 ලියාපදිංචි වන්න
               </button>
             </div>
@@ -558,7 +559,20 @@ export default function HomePage() {
               </div>
             </div>
             
-            <div>
+            {/* 🔴 අලුත්: ෆෝන් එකෙන් බලද්දී Footer එකේ Login/Register බොත්තම් පෙන්වීම */}
+            <div className="block md:hidden border-t border-slate-800 pt-6 mt-2">
+              <h4 className="mb-4 text-base font-bold text-white text-center">ඔබගේ ගිණුමට පිවිසෙන්න</h4>
+              <div className="flex flex-col gap-3">
+                <button onClick={() => changeViewAndScrollTop("login")} className="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-xl border border-slate-700 transition-colors">
+                  ලොග් වන්න (Login)
+                </button>
+                <button onClick={() => changeViewAndScrollTop("register")} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-colors shadow-lg">
+                  ලියාපදිංචි වන්න (Register)
+                </button>
+              </div>
+            </div>
+
+            <div className="hidden md:block">
               <h4 className="mb-4 text-base font-bold text-white md:mb-6 md:text-lg">ඉක්මන් සබැඳි</h4>
               <ul className="space-y-3 text-sm text-slate-400">
                 <li><button onClick={() => changeViewAndScrollTop("login")} className="hover:text-white transition-colors focus:outline-none">ලොග් වන්න</button></li>
@@ -591,7 +605,6 @@ export default function HomePage() {
 
           </div>
           
-          {/* 🔴 අලුත්: Designed and Developed by esip.lk */}
           <div className={`mx-auto mt-10 max-w-7xl border-t pt-6 pb-2 text-center flex flex-col md:flex-row justify-center items-center gap-2 text-xs md:mt-16 md:pt-8 md:text-sm ${isDarkMode ? 'border-slate-800 text-slate-600' : 'border-slate-800 text-slate-500'}`}>
             <span>&copy; {new Date().getFullYear()} 20minutes.lk. All rights reserved.</span>
             <span className="hidden md:inline">|</span>
@@ -636,4 +649,3 @@ export default function HomePage() {
     </>
   );
 }
-
