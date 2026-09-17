@@ -26,11 +26,14 @@ export default function CoursePlayerPage({ params }: PageProps) {
   const [activeVideoUrl, setActiveVideoUrl] = useState<string>("");
   const [activeVideoTitle, setActiveVideoTitle] = useState<string>("");
   const [activePdfUrl, setActivePdfUrl] = useState<string>("");
-  const [activeZoomLink, setActiveZoomLink] = useState<string>(""); // 🔴 අලුත්: Zoom ලින්ක් එක තියාගන්න
+  const [activeZoomLink, setActiveZoomLink] = useState<string>(""); 
 
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [volumeLevel, setVolumeLevel] = useState(100);
+
+  // 🔴 අලුත්: Zoom වීඩියෝව Embed කර පෙන්වීමට State එකක්
+  const [showZoomIframe, setShowZoomIframe] = useState(false);
 
   const ytPlayerRef = useRef<any>(null);
   const isFetched = useRef(false);
@@ -145,7 +148,8 @@ export default function CoursePlayerPage({ params }: PageProps) {
               setActiveVideoUrl(firstSub.lessons[0].videoEmbed || "");
               setActiveVideoTitle(firstSub.lessons[0].title || "");
               setActivePdfUrl(firstSub.lessons[0].pdfUrl || "");
-              setActiveZoomLink(firstSub.lessons[0].zoomRecordLink || ""); // 🔴 අලුත්
+              setActiveZoomLink(firstSub.lessons[0].zoomRecordLink || ""); 
+              setShowZoomIframe(false); // පාඩමක් මාරු වෙද්දි Zoom එක Reset වෙනවා
             }
           }
         } else {
@@ -345,9 +349,11 @@ export default function CoursePlayerPage({ params }: PageProps) {
       setActiveVideoUrl(selectedSub.lessons[0].videoEmbed || "");
       setActiveVideoTitle(selectedSub.lessons[0].title || "");
       setActivePdfUrl(selectedSub.lessons[0].pdfUrl || "");
-      setActiveZoomLink(selectedSub.lessons[0].zoomRecordLink || ""); // 🔴 අලුත්
+      setActiveZoomLink(selectedSub.lessons[0].zoomRecordLink || ""); 
+      setShowZoomIframe(false); // පාඩමක් මාරු වෙද්දි Zoom එක Reset වෙනවා
     } else {
       setActiveVideoUrl(""); setActiveVideoTitle(""); setActivePdfUrl(""); setActiveZoomLink("");
+      setShowZoomIframe(false);
     }
   };
 
@@ -460,25 +466,48 @@ export default function CoursePlayerPage({ params }: PageProps) {
           
           <div className="lg:col-span-2 space-y-4 md:space-y-6">
             
-            {/* Custom Video Player */}
+            {/* Custom Video Player / Zoom Player */}
             <div className={isFullscreen ? "fixed inset-0 z-[99999] bg-black w-screen h-[100dvh] flex flex-col justify-center select-none" : "w-full flex flex-col relative rounded-xl md:rounded-2xl overflow-hidden shadow-lg select-none bg-black border border-slate-800"}>
               
               <div className="relative w-full flex-grow flex items-center justify-center bg-black aspect-video overflow-hidden group">
                   
-                  <div className="w-full h-full absolute inset-0 overflow-hidden scale-[1.35] md:scale-[1.3] pointer-events-none">
+                  {/* YouTube Player */}
+                  <div className={`w-full h-full absolute inset-0 overflow-hidden scale-[1.35] md:scale-[1.3] pointer-events-none ${showZoomIframe ? 'hidden' : 'block'}`}>
                     <div id="yt-player-container" className="w-full h-full pointer-events-none"></div>
                   </div>
 
-                  {/* 🔴 අලුත්: YouTube එකක් නැත්නම් පෙන්වන පණිවිඩය */}
-                  {!activeVideoUrl && (
+                  {/* 🔴 අලුත්: Zoom Iframe පෙන්වීම */}
+                  {showZoomIframe && activeZoomLink && (
+                    <div className="absolute inset-0 w-full h-full bg-slate-900 z-[40]">
+                       <iframe 
+                         src={activeZoomLink} 
+                         className="w-full h-full border-none" 
+                         allowFullScreen 
+                         allow="autoplay; fullscreen"
+                       />
+                    </div>
+                  )}
+
+                  {/* 🔴 වෙනස: YouTube නැත්නම් පෙන්වන කොටස (Zoom Button එකත් එක්ක) */}
+                  {!activeVideoUrl && !showZoomIframe && (
                     <div className="absolute inset-0 z-[50] flex flex-col items-center justify-center text-slate-400 font-bold bg-slate-900 border border-slate-800 p-6 text-center">
                       <svg className="w-12 h-12 md:w-16 md:h-16 mb-4 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
-                      <p className="text-sm md:text-base">මෙම පාඩම සඳහා YouTube වීඩියෝවක් අන්තර්ගත කර නොමැත.</p>
-                      {activeZoomLink && <p className="text-xs md:text-sm text-blue-400 mt-2 font-normal">පහත ඇති "Zoom Recording" බොත්තම ක්ලික් කර නැරඹිය හැක.</p>}
+                      <p className="text-sm md:text-base text-white">මෙම පාඩම සඳහා YouTube වීඩියෝවක් අන්තර්ගත කර නොමැත.</p>
+                      
+                      {activeZoomLink && (
+                        <button 
+                          onClick={() => setShowZoomIframe(true)}
+                          className="mt-6 flex items-center justify-center gap-2 rounded-full bg-[#2D8CFF] hover:bg-[#257ae0] text-white px-6 py-3 text-sm font-bold transition-all shadow-lg shadow-blue-500/30"
+                        >
+                          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M17.064 7.604a1.442 1.442 0 00-1.428.169l-2.915 1.943v-2.3a1.944 1.944 0 00-1.943-1.943H2.943A1.944 1.944 0 001 7.417v9.166A1.944 1.944 0 002.943 18.53h7.835a1.944 1.944 0 001.943-1.943v-2.3l2.915 1.943a1.44 1.44 0 002.264-1.196V9.166a1.44 1.44 0 00-1.836-1.162z" /></svg>
+                          Click to Watch Zoom Recording
+                        </button>
+                      )}
                     </div>
                   )}
                   
-                  <div className="absolute inset-0 z-[60] cursor-pointer" onClick={togglePlay}>
+                  {/* YouTube Play Overlay (Zoom පෙන්වනකොට මේක හංගනවා) */}
+                  <div className={`absolute inset-0 z-[60] cursor-pointer ${showZoomIframe ? 'hidden' : 'block'}`} onClick={togglePlay}>
                     {!isPlaying && activeVideoUrl && (
                         <div className="absolute inset-0 flex items-center justify-center bg-black/40 transition-all">
                           <div className="w-16 h-16 md:w-20 md:h-20 bg-blue-600/90 rounded-full flex items-center justify-center text-white shadow-[0_0_20px_rgba(37,99,235,0.5)] backdrop-blur-md hover:scale-110 transition-transform">
@@ -489,90 +518,93 @@ export default function CoursePlayerPage({ params }: PageProps) {
                   </div>
               </div>
 
-              <div className={`relative z-[70] p-3 md:p-4 flex flex-col gap-2 ${isFullscreen ? 'bg-slate-900/95 backdrop-blur-md pb-6 absolute bottom-0 left-0 w-full' : isDarkMode ? 'bg-slate-900 border-t border-slate-800' : 'bg-white border-t border-slate-200'}`}>
-                
-                <div className="flex items-center gap-2 md:gap-3 w-full px-1 md:px-2">
-                    <span className={`text-[10px] md:text-xs font-bold w-9 md:w-10 text-right ${isFullscreen ? 'text-slate-300' : textSecondary}`}>{formatTime(currentTime)}</span>
-                    <input 
-                      type="range" min="0" max={duration || 100} value={currentTime} onChange={handleSeek}
-                      className="flex-grow h-1.5 md:h-2 bg-slate-300 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
-                    />
-                    <span className={`text-[10px] md:text-xs font-bold w-9 md:w-10 ${isFullscreen ? 'text-slate-300' : textSecondary}`}>{formatTime(duration)}</span>
-                </div>
+              {/* YouTube Player Controls (Zoom එකට මේවා අදාළ නෑ, ඒ නිසා ඒ වෙලාවට මේවා අයින් කරනවා) */}
+              {!showZoomIframe && (
+                <div className={`relative z-[70] p-3 md:p-4 flex flex-col gap-2 ${isFullscreen ? 'bg-slate-900/95 backdrop-blur-md pb-6 absolute bottom-0 left-0 w-full' : isDarkMode ? 'bg-slate-900 border-t border-slate-800' : 'bg-white border-t border-slate-200'}`}>
+                  
+                  <div className="flex items-center gap-2 md:gap-3 w-full px-1 md:px-2">
+                      <span className={`text-[10px] md:text-xs font-bold w-9 md:w-10 text-right ${isFullscreen ? 'text-slate-300' : textSecondary}`}>{formatTime(currentTime)}</span>
+                      <input 
+                        type="range" min="0" max={duration || 100} value={currentTime} onChange={handleSeek}
+                        className="flex-grow h-1.5 md:h-2 bg-slate-300 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                      />
+                      <span className={`text-[10px] md:text-xs font-bold w-9 md:w-10 ${isFullscreen ? 'text-slate-300' : textSecondary}`}>{formatTime(duration)}</span>
+                  </div>
 
-                <div className="flex items-center justify-between px-1 md:px-2 mt-1 md:mt-2">
-                    <div className="flex items-center gap-1.5 md:gap-3">
-                        <button onClick={handleStop} className="p-1.5 md:p-2 rounded-full hover:bg-red-100 text-red-500 transition group" title="Stop">
-                          <svg className="w-4 h-4 md:w-5 md:h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></svg>
-                        </button>
-                        <button onClick={() => handleSkip(-10)} className={`p-1.5 md:p-2 rounded-full transition ${isFullscreen ? 'text-white hover:bg-slate-700' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`} title="Backward 10s">
-                          <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0019 16V8a1 1 0 00-1.6-.8l-5.334 4zM4.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0011 16V8a1 1 0 00-1.6-.8l-5.334 4z" /></svg>
-                        </button>
-                        <button onClick={togglePlay} className="p-2 md:p-2.5 rounded-full bg-blue-600 text-white hover:bg-blue-700 transition shadow-md flex items-center justify-center">
-                          {isPlaying ? (
-                              <svg className="w-5 h-5 md:w-6 md:h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
-                          ) : (
-                              <svg className="w-5 h-5 md:w-6 md:h-6 ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-                          )}
-                        </button>
-                        <button onClick={() => handleSkip(10)} className={`p-1.5 md:p-2 rounded-full transition ${isFullscreen ? 'text-white hover:bg-slate-700' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`} title="Forward 10s">
-                          <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M11.934 11.2a1 1 0 010 1.6l-5.334 4A1 1 0 015 16V8a1 1 0 011.6-.8l5.334 4zM19.934 11.2a1 1 0 010 1.6l-5.334 4A1 1 0 0113 16V8a1 1 0 011.6-.8l5.334 4z" /></svg>
-                        </button>
-                        
-                        <button onClick={changeSpeed} className={`ml-1 md:ml-2 px-2 py-1 md:px-3 md:py-1.5 rounded-lg text-[10px] md:text-xs font-bold transition ${isFullscreen ? 'bg-purple-900/50 text-purple-300 hover:bg-purple-800' : 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 hover:bg-purple-200'}`}>
-                          {playbackSpeed}x Speed
-                        </button>
-
-                        <div className="relative">
-                          <button 
-                            onClick={(e) => { e.stopPropagation(); setShowQualityMenu(!showQualityMenu); }} 
-                            className={`p-1.5 md:p-2 rounded-full transition ${isFullscreen ? 'text-white hover:bg-slate-700' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
-                            title="Video Quality"
-                          >
-                            <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            </svg>
+                  <div className="flex items-center justify-between px-1 md:px-2 mt-1 md:mt-2">
+                      <div className="flex items-center gap-1.5 md:gap-3">
+                          <button onClick={handleStop} className="p-1.5 md:p-2 rounded-full hover:bg-red-100 text-red-500 transition group" title="Stop">
+                            <svg className="w-4 h-4 md:w-5 md:h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></svg>
+                          </button>
+                          <button onClick={() => handleSkip(-10)} className={`p-1.5 md:p-2 rounded-full transition ${isFullscreen ? 'text-white hover:bg-slate-700' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`} title="Backward 10s">
+                            <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0019 16V8a1 1 0 00-1.6-.8l-5.334 4zM4.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0011 16V8a1 1 0 00-1.6-.8l-5.334 4z" /></svg>
+                          </button>
+                          <button onClick={togglePlay} className="p-2 md:p-2.5 rounded-full bg-blue-600 text-white hover:bg-blue-700 transition shadow-md flex items-center justify-center">
+                            {isPlaying ? (
+                                <svg className="w-5 h-5 md:w-6 md:h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+                            ) : (
+                                <svg className="w-5 h-5 md:w-6 md:h-6 ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                            )}
+                          </button>
+                          <button onClick={() => handleSkip(10)} className={`p-1.5 md:p-2 rounded-full transition ${isFullscreen ? 'text-white hover:bg-slate-700' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`} title="Forward 10s">
+                            <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M11.934 11.2a1 1 0 010 1.6l-5.334 4A1 1 0 015 16V8a1 1 0 011.6-.8l5.334 4zM19.934 11.2a1 1 0 010 1.6l-5.334 4A1 1 0 0113 16V8a1 1 0 011.6-.8l5.334 4z" /></svg>
                           </button>
                           
-                          {showQualityMenu && (
-                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 bg-slate-900/95 backdrop-blur-md text-white rounded-xl p-2 shadow-2xl border border-slate-700 flex flex-col gap-1 w-24 md:w-28 z-[100] animate-in fade-in slide-in-from-bottom-2">
-                              <button onClick={() => changeQuality('hd1080')} className={`text-xs md:text-sm py-1.5 px-2 rounded-lg font-bold transition hover:bg-slate-700 text-left ${currentQuality === 'hd1080' ? 'text-blue-400' : ''}`}>1080p HD</button>
-                              <button onClick={() => changeQuality('hd720')} className={`text-xs md:text-sm py-1.5 px-2 rounded-lg font-bold transition hover:bg-slate-700 text-left ${currentQuality === 'hd720' ? 'text-blue-400' : ''}`}>720p HD</button>
-                              <button onClick={() => changeQuality('large')} className={`text-xs md:text-sm py-1.5 px-2 rounded-lg font-bold transition hover:bg-slate-700 text-left ${currentQuality === 'large' ? 'text-blue-400' : ''}`}>480p</button>
-                              <button onClick={() => changeQuality('medium')} className={`text-xs md:text-sm py-1.5 px-2 rounded-lg font-bold transition hover:bg-slate-700 text-left ${currentQuality === 'medium' ? 'text-blue-400' : ''}`}>360p</button>
-                              <button onClick={() => changeQuality('auto')} className={`text-xs md:text-sm py-1.5 px-2 rounded-lg font-bold transition hover:bg-slate-700 text-left ${currentQuality === 'auto' ? 'text-blue-400' : ''}`}>Auto</button>
-                            </div>
-                          )}
-                        </div>
+                          <button onClick={changeSpeed} className={`ml-1 md:ml-2 px-2 py-1 md:px-3 md:py-1.5 rounded-lg text-[10px] md:text-xs font-bold transition ${isFullscreen ? 'bg-purple-900/50 text-purple-300 hover:bg-purple-800' : 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 hover:bg-purple-200'}`}>
+                            {playbackSpeed}x Speed
+                          </button>
 
-                    </div>
-                    
-                    <div className="flex items-center gap-1 md:gap-2">
-                        <button onClick={handleVolumeDown} className={`p-1.5 rounded-full transition ${isFullscreen ? 'text-white hover:bg-slate-700' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
-                          <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M18 12H6" /></svg>
-                        </button>
-                        <button onClick={handleToggleMute} className={`p-1.5 rounded-full transition ${isFullscreen ? 'text-white hover:bg-slate-700' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
-                          {isMuted ? (
-                            <svg className="w-4 h-4 md:w-5 md:h-5 text-red-500" fill="currentColor" viewBox="0 0 24 24"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/></svg>
-                          ) : (
-                            <svg className="w-4 h-4 md:w-5 md:h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
-                          )}
-                        </button>
-                        <button onClick={handleVolumeUp} className={`p-1.5 rounded-full transition ${isFullscreen ? 'text-white hover:bg-slate-700' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
-                          <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
-                        </button>
-                        
-                        <button onClick={toggleFullScreen} className={`ml-1 md:ml-2 p-1.5 md:p-2 rounded-full transition ${isFullscreen ? 'text-white hover:bg-red-500' : isDarkMode ? 'text-slate-300 hover:bg-slate-800' : 'text-slate-600 hover:bg-slate-100'}`} title="Full Screen">
-                          {isFullscreen ? (
-                             <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
-                          ) : (
-                             <svg className="w-4 h-4 md:w-5 md:h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
-                          )}
-                        </button>
-                    </div>
+                          <div className="relative">
+                            <button 
+                              onClick={(e) => { e.stopPropagation(); setShowQualityMenu(!showQualityMenu); }} 
+                              className={`p-1.5 md:p-2 rounded-full transition ${isFullscreen ? 'text-white hover:bg-slate-700' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+                              title="Video Quality"
+                            >
+                              <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                              </svg>
+                            </button>
+                            
+                            {showQualityMenu && (
+                              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 bg-slate-900/95 backdrop-blur-md text-white rounded-xl p-2 shadow-2xl border border-slate-700 flex flex-col gap-1 w-24 md:w-28 z-[100] animate-in fade-in slide-in-from-bottom-2">
+                                <button onClick={() => changeQuality('hd1080')} className={`text-xs md:text-sm py-1.5 px-2 rounded-lg font-bold transition hover:bg-slate-700 text-left ${currentQuality === 'hd1080' ? 'text-blue-400' : ''}`}>1080p HD</button>
+                                <button onClick={() => changeQuality('hd720')} className={`text-xs md:text-sm py-1.5 px-2 rounded-lg font-bold transition hover:bg-slate-700 text-left ${currentQuality === 'hd720' ? 'text-blue-400' : ''}`}>720p HD</button>
+                                <button onClick={() => changeQuality('large')} className={`text-xs md:text-sm py-1.5 px-2 rounded-lg font-bold transition hover:bg-slate-700 text-left ${currentQuality === 'large' ? 'text-blue-400' : ''}`}>480p</button>
+                                <button onClick={() => changeQuality('medium')} className={`text-xs md:text-sm py-1.5 px-2 rounded-lg font-bold transition hover:bg-slate-700 text-left ${currentQuality === 'medium' ? 'text-blue-400' : ''}`}>360p</button>
+                                <button onClick={() => changeQuality('auto')} className={`text-xs md:text-sm py-1.5 px-2 rounded-lg font-bold transition hover:bg-slate-700 text-left ${currentQuality === 'auto' ? 'text-blue-400' : ''}`}>Auto</button>
+                              </div>
+                            )}
+                          </div>
+
+                      </div>
+                      
+                      <div className="flex items-center gap-1 md:gap-2">
+                          <button onClick={handleVolumeDown} className={`p-1.5 rounded-full transition ${isFullscreen ? 'text-white hover:bg-slate-700' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
+                            <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M18 12H6" /></svg>
+                          </button>
+                          <button onClick={handleToggleMute} className={`p-1.5 rounded-full transition ${isFullscreen ? 'text-white hover:bg-slate-700' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
+                            {isMuted ? (
+                              <svg className="w-4 h-4 md:w-5 md:h-5 text-red-500" fill="currentColor" viewBox="0 0 24 24"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/></svg>
+                            ) : (
+                              <svg className="w-4 h-4 md:w-5 md:h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+                            )}
+                          </button>
+                          <button onClick={handleVolumeUp} className={`p-1.5 rounded-full transition ${isFullscreen ? 'text-white hover:bg-slate-700' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
+                            <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
+                          </button>
+                          
+                          <button onClick={toggleFullScreen} className={`ml-1 md:ml-2 p-1.5 md:p-2 rounded-full transition ${isFullscreen ? 'text-white hover:bg-red-500' : isDarkMode ? 'text-slate-300 hover:bg-slate-800' : 'text-slate-600 hover:bg-slate-100'}`} title="Full Screen">
+                            {isFullscreen ? (
+                               <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
+                            ) : (
+                               <svg className="w-4 h-4 md:w-5 md:h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+                            )}
+                          </button>
+                      </div>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Now Playing & PDF Tute Box */}
@@ -583,24 +615,15 @@ export default function CoursePlayerPage({ params }: PageProps) {
                   <h3 className={`text-sm md:text-lg font-bold mt-0.5 truncate ${textPrimary}`}>{activeVideoTitle || "පාඩමක් තෝරන්න"}</h3>
                 </div>
                 
-                {/* 🔴 අලුත්: බොත්තම් දෙකම එක ළඟ පෙන්වන කොටස */}
                 <div className="flex flex-wrap items-center gap-3">
-                  {activeZoomLink && activeZoomLink.trim() !== "" && (
-                    <a 
-                      href={activeZoomLink} target="_blank" rel="noopener noreferrer"
-                      className="flex items-center justify-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 md:px-5 md:py-3 text-xs md:text-sm font-bold transition-all shadow-sm flex-shrink-0"
-                    >
-                      <svg className="w-4 h-4 md:w-5 md:h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M17.064 7.604a1.442 1.442 0 00-1.428.169l-2.915 1.943v-2.3a1.944 1.944 0 00-1.943-1.943H2.943A1.944 1.944 0 001 7.417v9.166A1.944 1.944 0 002.943 18.53h7.835a1.944 1.944 0 001.943-1.943v-2.3l2.915 1.943a1.44 1.44 0 002.264-1.196V9.166a1.44 1.44 0 00-1.836-1.162z" /></svg>
-                      Zoom Recording
-                    </a>
-                  )}
+                  {/* 🔴 වෙනස: Zoom Link බොත්තම අයින් කරලා තියෙන්නේ, මොකද ඒක දැන් Player එක ඇතුළෙමයි තියෙන්නේ */}
                   {activePdfUrl && activePdfUrl.trim() !== "" && (
                     <a 
                       href={activePdfUrl} target="_blank" rel="noopener noreferrer"
-                      className="flex items-center justify-center gap-2 rounded-xl bg-red-600 hover:bg-red-700 text-white px-4 py-2.5 md:px-5 md:py-3 text-xs md:text-sm font-bold transition-all shadow-sm flex-shrink-0"
+                      className="flex items-center justify-center gap-2 rounded-xl bg-red-600 hover:bg-red-700 text-white px-4 py-2.5 md:px-5 md:py-3 text-xs md:text-sm font-bold transition-all shadow-sm flex-shrink-0 w-full md:w-auto"
                     >
                       <svg className="w-4 h-4 md:w-5 md:h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 16l-5-5h3V4h4v7h3l-5 5zm9-2v6H3v-6H1v8h22v-8h-2z"/></svg>
-                      Tute එක (PDF)
+                      Tute එක බාගත කරන්න (PDF)
                     </a>
                   )}
                 </div>
@@ -656,7 +679,7 @@ export default function CoursePlayerPage({ params }: PageProps) {
             <div className="space-y-2 md:space-y-2.5 mb-6">
               {activeSubject?.lessons?.length > 0 ? (
                 activeSubject.lessons.map((lesson: any, index: number) => {
-                  const isActive = activeVideoTitle === lesson.title; // 🔴 වෙනස: Video url නැති නිසා title එකෙන් check කරනවා
+                  const isActive = activeVideoTitle === lesson.title;
                   return (
                     <div 
                       key={lesson.lessonId || lesson._id}
@@ -664,7 +687,8 @@ export default function CoursePlayerPage({ params }: PageProps) {
                         setActiveVideoUrl(lesson.videoEmbed || "");
                         setActiveVideoTitle(lesson.title || "");
                         setActivePdfUrl(lesson.pdfUrl || "");
-                        setActiveZoomLink(lesson.zoomRecordLink || ""); // 🔴 අලුත්
+                        setActiveZoomLink(lesson.zoomRecordLink || ""); 
+                        setShowZoomIframe(false); // 🔴 අලුත්: පාඩමක් ක්ලික් කරද්දි Zoom Player එක වහලා දානවා
                       }}
                       className={`flex items-start gap-2.5 md:gap-3 p-2.5 md:p-3 rounded-lg md:rounded-xl border cursor-pointer transition-all hover:scale-[1.01] ${isActive ? playlistActiveBg : "bg-slate-50/50 dark:bg-slate-900/40 border-slate-100 dark:border-slate-800 hover:bg-slate-100/50 dark:hover:bg-slate-800"}`}
                     >
