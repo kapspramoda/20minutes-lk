@@ -32,7 +32,6 @@ export default function CoursePlayerPage({ params }: PageProps) {
   const [isMuted, setIsMuted] = useState(false);
   const [volumeLevel, setVolumeLevel] = useState(100);
 
-  // 🔴 අලුත්: Zoom වීඩියෝව Embed කර පෙන්වීමට State එකක්
   const [showZoomIframe, setShowZoomIframe] = useState(false);
 
   const ytPlayerRef = useRef<any>(null);
@@ -149,7 +148,7 @@ export default function CoursePlayerPage({ params }: PageProps) {
               setActiveVideoTitle(firstSub.lessons[0].title || "");
               setActivePdfUrl(firstSub.lessons[0].pdfUrl || "");
               setActiveZoomLink(firstSub.lessons[0].zoomRecordLink || ""); 
-              setShowZoomIframe(false); // පාඩමක් මාරු වෙද්දි Zoom එක Reset වෙනවා
+              setShowZoomIframe(false);
             }
           }
         } else {
@@ -350,7 +349,7 @@ export default function CoursePlayerPage({ params }: PageProps) {
       setActiveVideoTitle(selectedSub.lessons[0].title || "");
       setActivePdfUrl(selectedSub.lessons[0].pdfUrl || "");
       setActiveZoomLink(selectedSub.lessons[0].zoomRecordLink || ""); 
-      setShowZoomIframe(false); // පාඩමක් මාරු වෙද්දි Zoom එක Reset වෙනවා
+      setShowZoomIframe(false);
     } else {
       setActiveVideoUrl(""); setActiveVideoTitle(""); setActivePdfUrl(""); setActiveZoomLink("");
       setShowZoomIframe(false);
@@ -466,17 +465,14 @@ export default function CoursePlayerPage({ params }: PageProps) {
           
           <div className="lg:col-span-2 space-y-4 md:space-y-6">
             
-            {/* Custom Video Player / Zoom Player */}
             <div className={isFullscreen ? "fixed inset-0 z-[99999] bg-black w-screen h-[100dvh] flex flex-col justify-center select-none" : "w-full flex flex-col relative rounded-xl md:rounded-2xl overflow-hidden shadow-lg select-none bg-black border border-slate-800"}>
               
               <div className="relative w-full flex-grow flex items-center justify-center bg-black aspect-video overflow-hidden group">
                   
-                  {/* YouTube Player */}
                   <div className={`w-full h-full absolute inset-0 overflow-hidden scale-[1.35] md:scale-[1.3] pointer-events-none ${showZoomIframe ? 'hidden' : 'block'}`}>
                     <div id="yt-player-container" className="w-full h-full pointer-events-none"></div>
                   </div>
 
-                  {/* 🔴 අලුත්: Zoom Iframe පෙන්වීම */}
                   {showZoomIframe && activeZoomLink && (
                     <div className="absolute inset-0 w-full h-full bg-slate-900 z-[40]">
                        <iframe 
@@ -488,7 +484,6 @@ export default function CoursePlayerPage({ params }: PageProps) {
                     </div>
                   )}
 
-                  {/* 🔴 වෙනස: YouTube නැත්නම් පෙන්වන කොටස (Zoom Button එකත් එක්ක) */}
                   {!activeVideoUrl && !showZoomIframe && (
                     <div className="absolute inset-0 z-[50] flex flex-col items-center justify-center text-slate-400 font-bold bg-slate-900 border border-slate-800 p-6 text-center">
                       <svg className="w-12 h-12 md:w-16 md:h-16 mb-4 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
@@ -506,7 +501,6 @@ export default function CoursePlayerPage({ params }: PageProps) {
                     </div>
                   )}
                   
-                  {/* YouTube Play Overlay (Zoom පෙන්වනකොට මේක හංගනවා) */}
                   <div className={`absolute inset-0 z-[60] cursor-pointer ${showZoomIframe ? 'hidden' : 'block'}`} onClick={togglePlay}>
                     {!isPlaying && activeVideoUrl && (
                         <div className="absolute inset-0 flex items-center justify-center bg-black/40 transition-all">
@@ -518,7 +512,6 @@ export default function CoursePlayerPage({ params }: PageProps) {
                   </div>
               </div>
 
-              {/* YouTube Player Controls (Zoom එකට මේවා අදාළ නෑ, ඒ නිසා ඒ වෙලාවට මේවා අයින් කරනවා) */}
               {!showZoomIframe && (
                 <div className={`relative z-[70] p-3 md:p-4 flex flex-col gap-2 ${isFullscreen ? 'bg-slate-900/95 backdrop-blur-md pb-6 absolute bottom-0 left-0 w-full' : isDarkMode ? 'bg-slate-900 border-t border-slate-800' : 'bg-white border-t border-slate-200'}`}>
                   
@@ -607,7 +600,6 @@ export default function CoursePlayerPage({ params }: PageProps) {
               )}
             </div>
 
-            {/* Now Playing & PDF Tute Box */}
             {!isFullscreen && (
               <div className={`p-4 md:p-5 rounded-xl md:rounded-2xl border shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 ${cardBg}`}>
                 <div className="truncate flex-grow">
@@ -616,7 +608,17 @@ export default function CoursePlayerPage({ params }: PageProps) {
                 </div>
                 
                 <div className="flex flex-wrap items-center gap-3">
-                  {/* 🔴 වෙනස: Zoom Link බොත්තම අයින් කරලා තියෙන්නේ, මොකද ඒක දැන් Player එක ඇතුළෙමයි තියෙන්නේ */}
+                  {/* 🔴 අලුත්: YouTube සහ Zoom දෙකම තියෙනවා නම් Player එක මාරු කරන්න බොත්තමක් */}
+                  {activeZoomLink && activeZoomLink.trim() !== "" && activeVideoUrl && activeVideoUrl.trim() !== "" && (
+                    <button 
+                      onClick={() => setShowZoomIframe(!showZoomIframe)}
+                      className="flex items-center justify-center gap-2 rounded-xl bg-[#2D8CFF] hover:bg-[#257ae0] text-white px-4 py-2.5 md:px-5 md:py-3 text-xs md:text-sm font-bold transition-all shadow-sm flex-shrink-0 w-full md:w-auto"
+                    >
+                      <svg className="w-4 h-4 md:w-5 md:h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M17.064 7.604a1.442 1.442 0 00-1.428.169l-2.915 1.943v-2.3a1.944 1.944 0 00-1.943-1.943H2.943A1.944 1.944 0 001 7.417v9.166A1.944 1.944 0 002.943 18.53h7.835a1.944 1.944 0 001.943-1.943v-2.3l2.915 1.943a1.44 1.44 0 002.264-1.196V9.166a1.44 1.44 0 00-1.836-1.162z" /></svg>
+                      {showZoomIframe ? "YouTube වීඩියෝව බලන්න" : "Zoom Recording එක බලන්න"}
+                    </button>
+                  )}
+
                   {activePdfUrl && activePdfUrl.trim() !== "" && (
                     <a 
                       href={activePdfUrl} target="_blank" rel="noopener noreferrer"
@@ -661,7 +663,6 @@ export default function CoursePlayerPage({ params }: PageProps) {
             )}
           </div>
 
-          {/* Playlist Section (Right side) */}
           <div className={`rounded-xl md:rounded-2xl border p-4 shadow-sm md:h-[650px] overflow-y-auto ${cardBg}`}>
             <h3 className="text-xs md:text-sm font-extrabold uppercase tracking-wider text-slate-400 mb-3">විෂයයන් තෝරන්න</h3>
             <div className="flex flex-col gap-2 mb-4 border-b pb-3 dark:border-slate-700">
@@ -688,7 +689,7 @@ export default function CoursePlayerPage({ params }: PageProps) {
                         setActiveVideoTitle(lesson.title || "");
                         setActivePdfUrl(lesson.pdfUrl || "");
                         setActiveZoomLink(lesson.zoomRecordLink || ""); 
-                        setShowZoomIframe(false); // 🔴 අලුත්: පාඩමක් ක්ලික් කරද්දි Zoom Player එක වහලා දානවා
+                        setShowZoomIframe(false);
                       }}
                       className={`flex items-start gap-2.5 md:gap-3 p-2.5 md:p-3 rounded-lg md:rounded-xl border cursor-pointer transition-all hover:scale-[1.01] ${isActive ? playlistActiveBg : "bg-slate-50/50 dark:bg-slate-900/40 border-slate-100 dark:border-slate-800 hover:bg-slate-100/50 dark:hover:bg-slate-800"}`}
                     >
