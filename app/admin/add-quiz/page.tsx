@@ -10,6 +10,7 @@ export default function AddQuizPage() {
   const router = useRouter();
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isCoursesLoading, setIsCoursesLoading] = useState(true); // 🔴 අලුත්: Courses ලෝඩ් වෙනකන් පෙන්වන්න
   const [message, setMessage] = useState({ type: "", text: "" });
 
   const [courses, setCourses] = useState<any[]>([]);
@@ -20,7 +21,8 @@ export default function AddQuizPage() {
     timeLimit: "", 
     pdfUrl: "",
     questions: [
-      { questionText: "", options: ["", "", "", ""], correctOptionIndex: 0 }
+      // 🔴 වෙනස: imageUrl එකතු කළා
+      { questionText: "", imageUrl: "", options: ["", "", "", ""], correctOptionIndex: 0 }
     ]
   });
 
@@ -28,10 +30,16 @@ export default function AddQuizPage() {
     if (document.documentElement.classList.contains("dark")) setIsDarkMode(true);
     
     const fetchCourses = async () => {
-      // 🔴 වෙනස: මෙතනට cache: "no-store" දැම්මා (ක්ෂණිකව Load වෙන්න)
-      const res = await fetch("/api/courses", { cache: "no-store" });
-      const data = await res.json();
-      if (res.ok) setCourses(data.data);
+      setIsCoursesLoading(true);
+      try {
+        const res = await fetch("/api/courses", { cache: "no-store" });
+        const data = await res.json();
+        if (res.ok) setCourses(data.data);
+      } catch (error) {
+        console.error("Error fetching courses:", error);
+      } finally {
+        setIsCoursesLoading(false);
+      }
     };
     fetchCourses();
   }, []);
@@ -59,6 +67,13 @@ export default function AddQuizPage() {
     setQuizData({ ...quizData, questions: updated });
   };
 
+  // 🔴 අලුත්: පින්තූර ලින්ක් එක වෙනස් කරන Function එක
+  const handleQuestionImageChange = (index: number, url: string) => {
+    const updated = [...quizData.questions];
+    updated[index].imageUrl = url;
+    setQuizData({ ...quizData, questions: updated });
+  };
+
   const handleOptionChange = (qIndex: number, oIndex: number, text: string) => {
     const updated = [...quizData.questions];
     updated[qIndex].options[oIndex] = text;
@@ -74,7 +89,7 @@ export default function AddQuizPage() {
   const addQuestion = () => {
     setQuizData({
       ...quizData,
-      questions: [...quizData.questions, { questionText: "", options: ["", "", "", ""], correctOptionIndex: 0 }]
+      questions: [...quizData.questions, { questionText: "", imageUrl: "", options: ["", "", "", ""], correctOptionIndex: 0 }]
     });
   };
 
@@ -84,16 +99,19 @@ export default function AddQuizPage() {
     setQuizData({ ...quizData, questions: updated });
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // 🔴 වෙනස: isDraft කියන පරාමිතිය ඇතුළත් කළා (Draft ද Publish ද කියලා අඳුරගන්න)
+  const handleSubmit = async (e: React.FormEvent | React.MouseEvent, isDraft: boolean = false) => {
     e.preventDefault();
     if (!quizData.timeLimit) return alert("කරුණාකර ප්‍රශ්න පත්‍රයට අදාළ කාල සීමාව ඇතුළත් කරන්න."); 
     
     setIsLoading(true);
     setMessage({ type: "", text: "" });
 
+    // isDraft = true නම් isVisible = false වෙනවා (ළමයින්ට පේන්නේ නෑ)
     const payload = {
       ...quizData,
-      timeLimit: Number(quizData.timeLimit)
+      timeLimit: Number(quizData.timeLimit),
+      isVisible: !isDraft 
     };
 
     try {
@@ -106,7 +124,7 @@ export default function AddQuizPage() {
       const data = await response.json();
 
       if (response.ok) {
-        setMessage({ type: "success", text: "✅ ප්‍රශ්න පත්‍රය සාර්ථකව Database එකට ඇතුළත් කළා!" });
+        setMessage({ type: "success", text: isDraft ? "✅ ප්‍රශ්න පත්‍රය Draft එකක් ලෙස සාර්ථකව සේව් කළා!" : "✅ ප්‍රශ්න පත්‍රය සාර්ථකව Database එකට ඇතුළත් කළා!" });
         setTimeout(() => router.push("/admin"), 2000);
       } else {
         setMessage({ type: "error", text: "❌ දෝෂයක්: " + data.error });
@@ -159,25 +177,44 @@ export default function AddQuizPage() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-8">
+          <form onSubmit={(e) => handleSubmit(e, false)} className="space-y-8">
             
             <div className={`p-6 rounded-xl border ${isDarkMode ? 'bg-slate-900/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
               
               <div className="mb-6">
-                <label className="block text-sm font-bold mb-2">මෙම ප්‍රශ්න පත්‍රය අදාළ වන පාඨමාලා තෝරන්න (Question Bank එකේ පමණක් තැබීමට අවශ්‍ය නම් කිසිවක් නොතෝරා සිටින්න)</label>
+                {/* 🔴 අලුත්: Draft බොත්තම */}
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-3">
+                  <label className="block text-sm font-bold">මෙම ප්‍රශ්න පත්‍රය අදාළ වන පාඨමාලා තෝරන්න (Question Bank එකේ පමණක් තැබීමට අවශ්‍ය නම් කිසිවක් නොතෝරා සිටින්න)</label>
+                  <button 
+                    type="button" 
+                    onClick={(e) => handleSubmit(e, true)}
+                    disabled={isLoading}
+                    className="flex-shrink-0 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-2"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg>
+                    Draft ලෙස සේව් කරන්න
+                  </button>
+                </div>
+
                 <div className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 p-4 rounded-xl border ${inputBg}`}>
-                  {courses.map(course => (
-                    <label key={course._id} className="flex items-center gap-3 cursor-pointer">
-                      <input 
-                        type="checkbox" 
-                        className="w-4 h-4 text-blue-600 rounded cursor-pointer"
-                        checked={quizData.courseIds.includes(course._id)}
-                        onChange={() => handleCourseToggle(course._id)}
-                      />
-                      <span className="text-sm font-semibold truncate">{course.title}</span>
-                    </label>
-                  ))}
-                  {courses.length === 0 && <p className="text-xs text-slate-500">පාඨමාලා කිසිවක් හමු නොවිණි.</p>}
+                  {/* 🔴 වෙනස: Loading Animation එකක් දැම්මා */}
+                  {isCoursesLoading ? (
+                    <p className="text-sm font-bold text-blue-500 animate-pulse col-span-full">පාඨමාලා ගෙනෙමින් පවතී...</p>
+                  ) : courses.length > 0 ? (
+                    courses.map(course => (
+                      <label key={course._id} className="flex items-center gap-3 cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          className="w-4 h-4 text-blue-600 rounded cursor-pointer"
+                          checked={quizData.courseIds.includes(course._id)}
+                          onChange={() => handleCourseToggle(course._id)}
+                        />
+                        <span className="text-sm font-semibold truncate">{course.title}</span>
+                      </label>
+                    ))
+                  ) : (
+                    <p className="text-xs text-slate-500 col-span-full">පාඨමාලා කිසිවක් හමු නොවිණි.</p>
+                  )}
                 </div>
               </div>
 
@@ -234,6 +271,18 @@ export default function AddQuizPage() {
                     <label className="block text-sm font-bold mb-2 text-blue-500">ප්‍රශ්නය {qIndex + 1}</label>
                     <textarea required value={q.questionText} onChange={(e) => handleQuestionTextChange(qIndex, e.target.value)} rows={2} className={`w-full p-3 rounded-xl border outline-none resize-none ${inputBg}`} placeholder="ප්‍රශ්නය මෙහි ටයිප් කරන්න..."></textarea>
                   </div>
+                  
+                  {/* 🔴 අලුත්: පින්තූර ලින්ක් එක දාන කොටුව */}
+                  <div className="mb-6">
+                    <label className="block text-xs font-bold mb-2 text-slate-500">ප්‍රශ්නය සඳහා පින්තූරයක් (Image URL - අත්‍යවශ්‍ය නැත)</label>
+                    <input 
+                      type="url" 
+                      value={q.imageUrl || ""} 
+                      onChange={(e) => handleQuestionImageChange(qIndex, e.target.value)} 
+                      className={`w-full p-2.5 rounded-xl border text-sm outline-none ${inputBg}`} 
+                      placeholder="උදා: https://i.imgur.com/your-image.png" 
+                    />
+                  </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pl-0 md:pl-6 border-l-2 border-blue-200 dark:border-blue-900">
                     {q.options.map((opt, oIndex) => (
@@ -269,7 +318,7 @@ export default function AddQuizPage() {
             </div>
 
             <button type="submit" disabled={isLoading} className="w-full bg-blue-600 text-white font-bold text-lg py-4 rounded-xl hover:bg-blue-700 transition shadow-lg disabled:bg-slate-400 flex justify-center items-center gap-2 mt-8">
-              {isLoading ? "Save වෙමින් පවතී..." : "ප්‍රශ්න පත්‍රය පද්ධතියට එක් කරන්න (Save Quiz)"}
+              {isLoading ? "Save වෙමින් පවතී..." : "ප්‍රශ්න පත්‍රය Publish කරන්න (Save & Publish)"}
             </button>
 
           </form>
