@@ -57,6 +57,16 @@ export default function HomePage() {
   const resultRef = useRef<HTMLDivElement>(null);
   const testiRef = useRef<HTMLDivElement>(null);
 
+  // 🔴 අලුත්: ලින්ක් එකේ #login හෝ #register තිබුණොත් ඉබේම අදාළ ෆෝම් එක පෙන්වීම
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash === "#login") {
+      setHeroView("login");
+    } else if (hash === "#register") {
+      setHeroView("register");
+    }
+  }, []);
+
   useEffect(() => {
     const fetchAvailableCourses = async () => {
       try {
@@ -100,6 +110,13 @@ export default function HomePage() {
     setConfirmPassword("");
     setPhone("");
     window.scrollTo({ top: 0, behavior: "smooth" });
+    
+    // 🔴 අලුත්: URL එකේ තියෙන Hash එකත් වෙනස් කිරීම (Share කරන්න ලේසි වෙන්න)
+    if (view === "carousel") {
+      window.history.pushState(null, "", "/");
+    } else {
+      window.history.pushState(null, "", `/#${view}`);
+    }
   };
 
   const handleAuthSubmit = async (e: React.FormEvent) => {
@@ -221,7 +238,6 @@ export default function HomePage() {
       <div className={`modern-font flex min-h-screen flex-col transition-colors duration-300 ${themeBg}`}>
         
         <header className={`sticky top-0 z-50 w-full border-b backdrop-blur-md transition-all duration-300 ${headerBg}`}>
-          {/* 🔴 වෙනස: කුඩා තිර වලදී බටන් දෙක ලස්සනට යට පේළියට (wrap) එන විදිහට හැදුවා */}
           <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between px-3 py-3 md:px-6 md:py-4 gap-y-3">
             <button onClick={() => changeViewAndScrollTop("carousel")} className="flex items-center gap-2 md:gap-3 focus:outline-none relative z-[60] flex-shrink-0">
               <img src="/logo.png" alt="20minutes.lk Logo" className="h-7 w-auto sm:h-8 md:h-10 rounded-xl shadow-sm opacity-95" />
@@ -571,7 +587,7 @@ export default function HomePage() {
                   ලොග් වන්න (Login)
                 </button>
                 <button onClick={() => changeViewAndScrollTop("register")} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-colors shadow-lg">
-                  ලියාපදිංචි වන්න (Register)
+                  ලියාපදිංචষ্ঠ වන්න (Register)
                 </button>
               </div>
             </div>
@@ -609,6 +625,7 @@ export default function HomePage() {
 
           </div>
           
+          {/* 🔴 අලුත්: Designed and Developed by esip.lk */}
           <div className={`mx-auto mt-10 max-w-7xl border-t pt-6 pb-2 text-center flex flex-col md:flex-row justify-center items-center gap-2 text-xs md:mt-16 md:pt-8 md:text-sm ${isDarkMode ? 'border-slate-800 text-slate-600' : 'border-slate-800 text-slate-500'}`}>
             <span>&copy; {new Date().getFullYear()} 20minutes.lk. All rights reserved.</span>
             <span className="hidden md:inline">|</span>
