@@ -21,7 +21,6 @@ export default function AdminDashboard() {
   const [approvedStudents, setApprovedStudents] = useState<any[]>([]);
   const [isLoadingStudents, setIsLoadingStudents] = useState(true);
   
-  // ෆිල්ටර් සහ සර්ච් කිරීම සඳහා State
   const [selectedFilterCourse, setSelectedFilterCourse] = useState<string>("ALL");
   const [searchPhone, setSearchPhone] = useState<string>("");
 
@@ -41,7 +40,6 @@ export default function AdminDashboard() {
   const [notiText, setNotiText] = useState("");
   const [isSavingNoti, setIsSavingNoti] = useState(false);
 
-  // Auto Publish (Schedule) කිරීම සඳහා State
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
   const [selectedCourseForSchedule, setSelectedCourseForSchedule] = useState<any>(null);
   const [scheduleDate, setScheduleDate] = useState("");
@@ -68,7 +66,6 @@ export default function AdminDashboard() {
     return isNaN(d.getTime()) ? "N/A" : d.toLocaleDateString('si-LK');
   };
 
-  // 🔴 වෙනස: cache: "no-store" එකතු කළා
   const fetchPendingEnrollments = async () => {
     try {
       const res = await fetch("/api/admin/enrollments", { cache: "no-store" });
@@ -78,7 +75,6 @@ export default function AdminDashboard() {
     finally { setIsLoadingApprovals(false); }
   };
 
-  // 🔴 වෙනස: cache: "no-store" එකතු කළා
   const fetchCourses = async () => {
     try {
       const res = await fetch("/api/courses", { cache: "no-store" });
@@ -88,7 +84,6 @@ export default function AdminDashboard() {
     finally { setIsLoadingCourses(false); }
   };
 
-  // 🔴 වෙනස: cache: "no-store" එකතු කළා
   const fetchApprovedStudents = async () => {
     try {
       const res = await fetch("/api/admin/students", { cache: "no-store" });
@@ -98,7 +93,6 @@ export default function AdminDashboard() {
     finally { setIsLoadingStudents(false); }
   };
 
-  // 🔴 වෙනස: cache: "no-store" එකතු කළා
   const fetchQuizzes = async () => {
     try {
       const res = await fetch("/api/admin/quizzes", { cache: "no-store" });
@@ -108,7 +102,6 @@ export default function AdminDashboard() {
     finally { setIsLoadingQuizzes(false); }
   };
 
-  // 🔴 වෙනස: cache: "no-store" එකතු කළා
   const fetchPasswordRequests = async () => {
     try {
       const res = await fetch("/api/admin/passwords", { cache: "no-store" });
@@ -449,6 +442,10 @@ export default function AdminDashboard() {
           <button onClick={() => setActiveTab("passwords")} className={`px-5 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all ${activeTab === "passwords" ? tabActive : tabInactive} flex items-center gap-2`}>
             මුරපද ඉල්ලීම් {passwordRequests.length > 0 && <span className="bg-red-500 text-white rounded-full px-2 py-0.5 text-xs">{passwordRequests.length}</span>}
           </button>
+          {/* 🔴 අලුත්: IQ Tools බොත්තම */}
+          <Link href="/admin/iq-tools" className={`px-5 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all ${tabInactive} flex items-center gap-2 border-l-2 ${isDarkMode ? 'border-slate-700' : 'border-slate-300'} ml-1 pl-4`}>
+            🧩 IQ ඉගැන්වීම් මෙවලම්
+          </Link>
         </div>
 
         {/* --- 1. Approvals Tab --- */}
