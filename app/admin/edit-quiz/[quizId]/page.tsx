@@ -5,12 +5,7 @@ import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
-type PageProps = {
-  // 🔴 වෙනස: මෙතන quizId කියලා හරියටම දුන්නා
-  params: Promise<{ quizId: string }> | { quizId: string };
-};
-
-export default function EditQuizPage({ params }: PageProps) {
+export default function EditQuizPage({ params }: any) {
   const { data: session } = useSession();
   const router = useRouter();
   
@@ -23,7 +18,6 @@ export default function EditQuizPage({ params }: PageProps) {
 
   const [courses, setCourses] = useState<any[]>([]);
 
-  // 🔴 අලුත්: courseId එක වෙනුවට courseIds (Array එකක්), imageUrl සහ isVisible දාලා තියෙනවා
   const [quizData, setQuizData] = useState({
     courseIds: [] as string[],
     title: "",
@@ -35,29 +29,42 @@ export default function EditQuizPage({ params }: PageProps) {
     ]
   });
 
+  // 🔴 වෙනස: Loading හිරවෙන එක නවත්වන්න, useEffect එක Safe විදිහට ලිව්වා
   useEffect(() => {
+    let isMounted = true;
     if (document.documentElement.classList.contains("dark")) setIsDarkMode(true);
 
     const fetchInitialData = async () => {
-      const resolved = await params;
-      setQuizId(resolved.quizId); // 🔴 quizId එක හරියටම ගන්නවා
-
       try {
+        // Next.js 13/14/15 වලට ගැළපෙන පරිදි Parameter එක ලබාගැනීම
+        const resolvedParams = await Promise.resolve(params);
+        const currentId = resolvedParams?.quizId || resolvedParams?.id;
+
+        if (!currentId) {
+          if (isMounted) {
+            setMessage({ type: "error", text: "ID එක සොයාගැනීමට නොහැක." });
+            setIsFetching(false);
+          }
+          return;
+        }
+
+        if (isMounted) setQuizId(currentId);
+
         // 1. Courses ටික ගෙන ඒම
-        setIsCoursesLoading(true);
+        if (isMounted) setIsCoursesLoading(true);
         const courseRes = await fetch("/api/courses", { cache: "no-store" });
         const courseData = await courseRes.json();
-        if (courseRes.ok) setCourses(courseData.data);
-        setIsCoursesLoading(false);
+        if (courseRes.ok && isMounted) setCourses(courseData.data);
+        if (isMounted) setIsCoursesLoading(false);
 
         // 2. Quiz එකේ පරණ දත්ත ටික ගෙන ඒම
-        const quizRes = await fetch(`/api/admin/quizzes/${resolved.quizId}`, { cache: "no-store" });
+        const quizRes = await fetch(`/api/admin/quizzes/${currentId}`, { cache: "no-store" });
         const fetchedQuiz = await quizRes.json();
         
-        if (quizRes.ok && fetchedQuiz.data) {
+        if (quizRes.ok && fetchedQuiz.data && isMounted) {
           const q = fetchedQuiz.data;
           
-          // පරණ Quiz වල තිබ්බේ courseId (තනි String එකක්) නම් ඒක array එකක් කරන්න
+          // පරණ Quiz වල තිබ්බේ courseId (තනි String එකක්) නම් ඒක array එකක් කිරීම
           let mappedCourseIds = q.courseIds || [];
           if (mappedCourseIds.length === 0 && q.courseId) {
               mappedCourseIds = [q.courseId];
@@ -76,19 +83,23 @@ export default function EditQuizPage({ params }: PageProps) {
               correctOptionIndex: question.correctOptionIndex !== undefined ? question.correctOptionIndex : 0
             })) : [{ questionText: "", imageUrl: "", options: ["", "", "", ""], correctOptionIndex: 0 }]
           });
-        } else {
+        } else if (isMounted) {
           setMessage({ type: "error", text: "ප්‍රශ්න පත්‍රය සොයාගැනීමට නොහැක." });
         }
       } catch (error) {
         console.error(error);
-        setMessage({ type: "error", text: "දත්ත ලබා ගැනීමේදී දෝෂයක් මතු විය." });
+        if (isMounted) setMessage({ type: "error", text: "දත්ත ලබා ගැනීමේදී දෝෂයක් මතු විය." });
       } finally {
-        setIsFetching(false); // 🔴 Loading කැරකෙන එක නවත්වනවා
+        if (isMounted) setIsFetching(false);
       }
     };
 
     fetchInitialData();
-  }, [params]);
+    
+    return () => {
+      isMounted = false;
+    };
+  }, []); // 🔴 Dependency Array එක හිස්ව තැබුවා (එවිට එකවරක් පමණක් Load වී හිරවීම නවතී)
 
   const toggleTheme = () => {
     setIsDarkMode(!isDarkMode);
@@ -96,7 +107,6 @@ export default function EditQuizPage({ params }: PageProps) {
     else document.documentElement.classList.remove("dark");
   };
 
-  // --- Functions ---
   const handleCourseToggle = (courseId: string) => {
     setQuizData((prev) => {
       const isSelected = prev.courseIds.includes(courseId);
@@ -145,16 +155,18 @@ export default function EditQuizPage({ params }: PageProps) {
     setQuizData({ ...quizData, questions: updated });
   };
 
-  // --- Submit Update ---
   const handleSubmit = async (e: React.FormEvent | React.MouseEvent, isDraft: boolean = false) => {
     e.preventDefault();
+    if (quizData.courseIds.length === 0) return alert("කරුණාකර අවම වශයෙන් එක් පාඨමාලාවක් හෝ තෝරන්න.");
     if (!quizData.timeLimit) return alert("කරුණාකර ප්‍රශ්න පත්‍රයට අදාළ කාල සීමාව ඇතුළත් කරන්න.");
     
     setIsLoading(true);
     setMessage({ type: "", text: "" });
 
+    // Database එකට යැවීමට සකස් කරන Data Payload එක
     const payload = {
       ...quizData,
+      courseId: quizData.courseIds[0], // පරණ ක්‍රමයට සහය දැක්වීමට
       timeLimit: Number(quizData.timeLimit),
       isVisible: !isDraft 
     };
@@ -181,17 +193,17 @@ export default function EditQuizPage({ params }: PageProps) {
     }
   };
 
-  // Theme Classes
   const themeBg = isDarkMode ? "bg-slate-900 text-slate-100" : "bg-slate-50 text-slate-800";
   const headerBg = isDarkMode ? "bg-slate-900/80 border-slate-800" : "bg-white/80 border-slate-200";
   const cardBg = isDarkMode ? "bg-slate-800 border-slate-700" : "bg-white border-slate-200";
   const inputBg = isDarkMode ? "bg-slate-700 border-slate-600 text-white placeholder-slate-400" : "bg-white border-slate-300 text-slate-900";
 
+  // 🔴 Loading Animation එක
   if (isFetching) {
     return (
       <div className={`min-h-screen flex items-center justify-center ${themeBg}`}>
         <div className="flex flex-col items-center">
-          <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
           <p className="font-bold text-slate-500">දත්ත ගෙනෙමින් පවතී...</p>
         </div>
       </div>
@@ -239,7 +251,7 @@ export default function EditQuizPage({ params }: PageProps) {
               
               <div className="mb-6">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-3">
-                  <label className="block text-sm font-bold">මෙම ප්‍රශ්න පත්‍රය අදාළ වන පාඨමාලා තෝරන්න (Question Bank එකේ පමණක් තැබීමට අවශ්‍ය නම් කිසිවක් නොතෝරා සිටින්න)</label>
+                  <label className="block text-sm font-bold">මෙම ප්‍රශ්න පත්‍රය අදාළ වන පාඨමාලා තෝරන්න</label>
                   <button 
                     type="button" 
                     onClick={(e) => handleSubmit(e, true)}
@@ -333,6 +345,12 @@ export default function EditQuizPage({ params }: PageProps) {
                       className={`w-full p-2.5 rounded-xl border text-sm outline-none ${inputBg}`} 
                       placeholder="උදා: https://i.imgur.com/your-image.png" 
                     />
+                    {/* පින්තූරයක් තියෙනවා නම් ඒක පෙන්වීම */}
+                    {q.imageUrl && (
+                      <div className="mt-3 p-2 bg-slate-100 dark:bg-slate-800 rounded-lg inline-block">
+                         <img src={q.imageUrl} alt={`Question ${qIndex + 1}`} className="max-h-32 object-contain rounded" />
+                      </div>
+                    )}
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pl-0 md:pl-6 border-l-2 border-blue-200 dark:border-blue-900">
