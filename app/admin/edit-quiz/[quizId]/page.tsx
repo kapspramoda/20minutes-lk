@@ -6,22 +6,24 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 type PageProps = {
-  params: Promise<{ id: string }> | { id: string };
+  // 🔴 වෙනස: මෙතන quizId කියලා හරියටම දුන්නා
+  params: Promise<{ quizId: string }> | { quizId: string };
 };
 
 export default function EditQuizPage({ params }: PageProps) {
   const { data: session } = useSession();
   const router = useRouter();
   
-  const [quizId, setQuizId] = useState<string>("");
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [isFetchingData, setIsFetchingData] = useState(true);
+  const [isFetching, setIsFetching] = useState(true);
   const [isCoursesLoading, setIsCoursesLoading] = useState(true);
   const [message, setMessage] = useState({ type: "", text: "" });
+  const [quizId, setQuizId] = useState<string>("");
 
   const [courses, setCourses] = useState<any[]>([]);
 
+  // 🔴 අලුත්: courseId එක වෙනුවට courseIds (Array එකක්), imageUrl සහ isVisible දාලා තියෙනවා
   const [quizData, setQuizData] = useState({
     courseIds: [] as string[],
     title: "",
@@ -33,35 +35,27 @@ export default function EditQuizPage({ params }: PageProps) {
     ]
   });
 
-  // URL එකෙන් id එක ලබා ගැනීම
-  useEffect(() => {
-    const resolveParams = async () => {
-      const resolved = await params;
-      setQuizId(resolved.id);
-    };
-    resolveParams();
-  }, [params]);
-
   useEffect(() => {
     if (document.documentElement.classList.contains("dark")) setIsDarkMode(true);
-    
-    const fetchCoursesAndQuiz = async () => {
-      if (!quizId) return;
-      
+
+    const fetchInitialData = async () => {
+      const resolved = await params;
+      setQuizId(resolved.quizId); // 🔴 quizId එක හරියටම ගන්නවා
+
       try {
-        // 1. Courses ටික ලබා ගැනීම
+        // 1. Courses ටික ගෙන ඒම
         setIsCoursesLoading(true);
-        const coursesRes = await fetch("/api/courses", { cache: "no-store" });
-        const coursesData = await coursesRes.json();
-        if (coursesRes.ok) setCourses(coursesData.data);
+        const courseRes = await fetch("/api/courses", { cache: "no-store" });
+        const courseData = await courseRes.json();
+        if (courseRes.ok) setCourses(courseData.data);
         setIsCoursesLoading(false);
 
-        // 2. දැනට තියෙන Quiz එකේ දත්ත ලබා ගැනීම
-        const quizRes = await fetch(`/api/admin/quizzes/${quizId}`, { cache: "no-store" });
-        const quizDataRes = await quizRes.json();
+        // 2. Quiz එකේ පරණ දත්ත ටික ගෙන ඒම
+        const quizRes = await fetch(`/api/admin/quizzes/${resolved.quizId}`, { cache: "no-store" });
+        const fetchedQuiz = await quizRes.json();
         
-        if (quizRes.ok && quizDataRes.data) {
-          const q = quizDataRes.data;
+        if (quizRes.ok && fetchedQuiz.data) {
+          const q = fetchedQuiz.data;
           
           // පරණ Quiz වල තිබ්බේ courseId (තනි String එකක්) නම් ඒක array එකක් කරන්න
           let mappedCourseIds = q.courseIds || [];
@@ -83,18 +77,18 @@ export default function EditQuizPage({ params }: PageProps) {
             })) : [{ questionText: "", imageUrl: "", options: ["", "", "", ""], correctOptionIndex: 0 }]
           });
         } else {
-          setMessage({ type: "error", text: "ප්‍රශ්න පත්‍රය සොයාගත නොහැක." });
+          setMessage({ type: "error", text: "ප්‍රශ්න පත්‍රය සොයාගැනීමට නොහැක." });
         }
       } catch (error) {
-        console.error("Error fetching data:", error);
+        console.error(error);
         setMessage({ type: "error", text: "දත්ත ලබා ගැනීමේදී දෝෂයක් මතු විය." });
       } finally {
-        setIsFetchingData(false);
+        setIsFetching(false); // 🔴 Loading කැරකෙන එක නවත්වනවා
       }
     };
 
-    fetchCoursesAndQuiz();
-  }, [quizId]);
+    fetchInitialData();
+  }, [params]);
 
   const toggleTheme = () => {
     setIsDarkMode(!isDarkMode);
@@ -102,6 +96,7 @@ export default function EditQuizPage({ params }: PageProps) {
     else document.documentElement.classList.remove("dark");
   };
 
+  // --- Functions ---
   const handleCourseToggle = (courseId: string) => {
     setQuizData((prev) => {
       const isSelected = prev.courseIds.includes(courseId);
@@ -150,10 +145,10 @@ export default function EditQuizPage({ params }: PageProps) {
     setQuizData({ ...quizData, questions: updated });
   };
 
-  // 🔴 වෙනස: POST වෙනුවට PUT යොදාගැනීම (Update කිරීමට)
+  // --- Submit Update ---
   const handleSubmit = async (e: React.FormEvent | React.MouseEvent, isDraft: boolean = false) => {
     e.preventDefault();
-    if (!quizData.timeLimit) return alert("කරුණාකර ප්‍රශ්න පත්‍රයට අදාළ කාල සීමාව ඇතුළත් කරන්න."); 
+    if (!quizData.timeLimit) return alert("කරුණාකර ප්‍රශ්න පත්‍රයට අදාළ කාල සීමාව ඇතුළත් කරන්න.");
     
     setIsLoading(true);
     setMessage({ type: "", text: "" });
@@ -186,12 +181,13 @@ export default function EditQuizPage({ params }: PageProps) {
     }
   };
 
+  // Theme Classes
   const themeBg = isDarkMode ? "bg-slate-900 text-slate-100" : "bg-slate-50 text-slate-800";
   const headerBg = isDarkMode ? "bg-slate-900/80 border-slate-800" : "bg-white/80 border-slate-200";
   const cardBg = isDarkMode ? "bg-slate-800 border-slate-700" : "bg-white border-slate-200";
   const inputBg = isDarkMode ? "bg-slate-700 border-slate-600 text-white placeholder-slate-400" : "bg-white border-slate-300 text-slate-900";
 
-  if (isFetchingData) {
+  if (isFetching) {
     return (
       <div className={`min-h-screen flex items-center justify-center ${themeBg}`}>
         <div className="flex flex-col items-center">
@@ -204,7 +200,6 @@ export default function EditQuizPage({ params }: PageProps) {
 
   return (
     <div className={`modern-font min-h-screen transition-colors duration-300 ${themeBg}`}>
-      
       <header className={`sticky top-0 z-50 w-full border-b backdrop-blur-md transition-all duration-300 ${headerBg}`}>
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 md:px-6 md:py-4">
           <div className="flex items-center gap-2 md:gap-3">
@@ -226,7 +221,7 @@ export default function EditQuizPage({ params }: PageProps) {
         <div className={`rounded-2xl shadow-sm border p-6 md:p-8 ${cardBg}`}>
           
           <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-4 mb-6">
-            <h1 className="text-xl md:text-2xl font-bold">ප්‍රශ්න පත්‍රය යාවත්කාලීන කිරීම (Edit)</h1>
+            <h1 className="text-xl md:text-2xl font-bold text-blue-500">ප්‍රශ්න පත්‍රය යාවත්කාලීන කිරීම (Edit)</h1>
             <Link href="/admin" className={`text-sm font-bold px-4 py-2 rounded-lg transition-colors ${isDarkMode ? 'bg-slate-700 hover:bg-slate-600' : 'bg-slate-100 hover:bg-slate-200'}`}>
               &larr; ආපසු
             </Link>
@@ -280,7 +275,7 @@ export default function EditQuizPage({ params }: PageProps) {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
                 <div>
                   <label className="block text-sm font-bold mb-2">ප්‍රශ්න පත්‍රයේ නම (Title) *</label>
-                  <input type="text" required value={quizData.title} onChange={(e) => setQuizData({...quizData, title: e.target.value})} className={`w-full p-3 rounded-xl border outline-none ${inputBg}`} placeholder="උදා: 1 වන ඒකකය ඇගයීම" />
+                  <input type="text" required value={quizData.title} onChange={(e) => setQuizData({...quizData, title: e.target.value})} className={`w-full p-3 rounded-xl border outline-none ${inputBg}`} />
                 </div>
                 <div>
                   <label className="block text-sm font-bold mb-2">කාල සීමාව (විනාඩි) *</label>
@@ -291,7 +286,6 @@ export default function EditQuizPage({ params }: PageProps) {
                     value={quizData.timeLimit} 
                     onChange={(e) => setQuizData({...quizData, timeLimit: e.target.value})} 
                     className={`w-full p-3 rounded-xl border outline-none ${inputBg}`} 
-                    placeholder="උදා: 30" 
                   />
                 </div>
               </div>
@@ -327,7 +321,7 @@ export default function EditQuizPage({ params }: PageProps) {
 
                   <div className="mb-4">
                     <label className="block text-sm font-bold mb-2 text-blue-500">ප්‍රශ්නය {qIndex + 1}</label>
-                    <textarea required value={q.questionText} onChange={(e) => handleQuestionTextChange(qIndex, e.target.value)} rows={2} className={`w-full p-3 rounded-xl border outline-none resize-none ${inputBg}`} placeholder="ප්‍රශ්නය මෙහි ටයිප් කරන්න..."></textarea>
+                    <textarea required value={q.questionText} onChange={(e) => handleQuestionTextChange(qIndex, e.target.value)} rows={2} className={`w-full p-3 rounded-xl border outline-none resize-none ${inputBg}`}></textarea>
                   </div>
                   
                   <div className="mb-6">
@@ -360,7 +354,6 @@ export default function EditQuizPage({ params }: PageProps) {
                             type="text" required value={opt} 
                             onChange={(e) => handleOptionChange(qIndex, oIndex, e.target.value)} 
                             className={`w-full p-2.5 pl-8 rounded-lg border text-sm outline-none ${q.correctOptionIndex === oIndex ? 'border-green-400 bg-green-50/10' : ''} ${inputBg}`} 
-                            placeholder="පිළිතුර..." 
                           />
                         </div>
                       </div>
@@ -375,7 +368,7 @@ export default function EditQuizPage({ params }: PageProps) {
             </div>
 
             <button type="submit" disabled={isLoading} className="w-full bg-blue-600 text-white font-bold text-lg py-4 rounded-xl hover:bg-blue-700 transition shadow-lg disabled:bg-slate-400 flex justify-center items-center gap-2 mt-8">
-              {isLoading ? "Update වෙමින් පවතී..." : "ප්‍රශ්න පත්‍රය යාවත්කාලීන කර Publish කරන්න"}
+              {isLoading ? "Update වෙමින් පවතී..." : "වෙනස්කම් සේව් කරන්න (Update Quiz)"}
             </button>
 
           </form>
