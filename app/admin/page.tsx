@@ -45,13 +45,23 @@ export default function AdminDashboard() {
   const [scheduleDate, setScheduleDate] = useState("");
   const [isSavingSchedule, setIsSavingSchedule] = useState(false);
 
-  useEffect(() => {
+ useEffect(() => {
     if (document.documentElement.classList.contains("dark")) setIsDarkMode(true);
-    fetchPendingEnrollments();
-    fetchCourses();
-    fetchApprovedStudents();
-    fetchQuizzes(); 
-    fetchPasswordRequests();
+    
+    // 🔴 එකපාර API requests 5ම යවන්නේ නැතුව, එකින් එක පිළිවෙළට Load කිරීම
+    const loadAdminDataSequentially = async () => {
+      try {
+        await fetchCourses();          // 1. මුලින්ම පාඨමාලා ගෙන්න ගන්න
+        await fetchPendingEnrollments(); // 2. ඊටපස්සේ Slips ටික
+        await fetchApprovedStudents();   // 3. ඊටපස්සේ සිසුන්
+        await fetchQuizzes();          // 4. ඊටපස්සේ Quizzes
+        await fetchPasswordRequests();   // 5. අන්තිමට මුරපද ඉල්ලීම්
+      } catch (error) {
+        console.error("Data loading error:", error);
+      }
+    };
+
+    loadAdminDataSequentially();
   }, []);
 
   const toggleTheme = () => {
