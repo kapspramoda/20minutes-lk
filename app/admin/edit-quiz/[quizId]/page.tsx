@@ -6,67 +6,95 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 type PageProps = {
-  params: Promise<{ quizId: string }> | { quizId: string };
+  params: Promise<{ id: string }> | { id: string };
 };
 
 export default function EditQuizPage({ params }: PageProps) {
   const { data: session } = useSession();
   const router = useRouter();
   
+  const [quizId, setQuizId] = useState<string>("");
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [isFetching, setIsFetching] = useState(true);
+  const [isFetchingData, setIsFetchingData] = useState(true);
+  const [isCoursesLoading, setIsCoursesLoading] = useState(true);
   const [message, setMessage] = useState({ type: "", text: "" });
-  const [quizId, setQuizId] = useState<string>("");
 
   const [courses, setCourses] = useState<any[]>([]);
+
   const [quizData, setQuizData] = useState({
-    courseId: "",
+    courseIds: [] as string[],
     title: "",
-    timeLimit: "", // 🔴 අලුතින් එකතු කළා
-    pdfUrl: "",    // 🔴 අලුතින් එකතු කළා
+    timeLimit: "", 
+    pdfUrl: "",
+    isVisible: true,
     questions: [
-      { questionText: "", options: ["", "", "", ""], correctOptionIndex: 0 }
+      { questionText: "", imageUrl: "", options: ["", "", "", ""], correctOptionIndex: 0 }
     ]
   });
 
+  // URL එකෙන් id එක ලබා ගැනීම
+  useEffect(() => {
+    const resolveParams = async () => {
+      const resolved = await params;
+      setQuizId(resolved.id);
+    };
+    resolveParams();
+  }, [params]);
+
   useEffect(() => {
     if (document.documentElement.classList.contains("dark")) setIsDarkMode(true);
-
-    const fetchInitialData = async () => {
-      const resolved = await params;
-      setQuizId(resolved.quizId);
-
+    
+    const fetchCoursesAndQuiz = async () => {
+      if (!quizId) return;
+      
       try {
-        // 1. Courses ටික ගෙන ඒම
-        const courseRes = await fetch("/api/courses");
-        const courseData = await courseRes.json();
-        if (courseRes.ok) setCourses(courseData.data);
+        // 1. Courses ටික ලබා ගැනීම
+        setIsCoursesLoading(true);
+        const coursesRes = await fetch("/api/courses", { cache: "no-store" });
+        const coursesData = await coursesRes.json();
+        if (coursesRes.ok) setCourses(coursesData.data);
+        setIsCoursesLoading(false);
 
-        // 2. Quiz එකේ පරණ දත්ත ටික ගෙන ඒම
-        const quizRes = await fetch(`/api/admin/quizzes/${resolved.quizId}`);
-        const fetchedQuiz = await quizRes.json();
+        // 2. දැනට තියෙන Quiz එකේ දත්ත ලබා ගැනීම
+        const quizRes = await fetch(`/api/admin/quizzes/${quizId}`, { cache: "no-store" });
+        const quizDataRes = await quizRes.json();
         
-        if (quizRes.ok && fetchedQuiz.data) {
+        if (quizRes.ok && quizDataRes.data) {
+          const q = quizDataRes.data;
+          
+          // පරණ Quiz වල තිබ්බේ courseId (තනි String එකක්) නම් ඒක array එකක් කරන්න
+          let mappedCourseIds = q.courseIds || [];
+          if (mappedCourseIds.length === 0 && q.courseId) {
+              mappedCourseIds = [q.courseId];
+          }
+
           setQuizData({
-            courseId: fetchedQuiz.data.courseId,
-            title: fetchedQuiz.data.title,
-            timeLimit: fetchedQuiz.data.timeLimit || "", // 🔴 Database එකෙන් එන කාලය
-            pdfUrl: fetchedQuiz.data.pdfUrl || "",       // 🔴 Database එකෙන් එන PDF ලින්ක් එක
-            questions: fetchedQuiz.data.questions
+            courseIds: mappedCourseIds,
+            title: q.title || "",
+            timeLimit: q.timeLimit ? q.timeLimit.toString() : "",
+            pdfUrl: q.pdfUrl || "",
+            isVisible: q.isVisible !== undefined ? q.isVisible : true,
+            questions: q.questions && q.questions.length > 0 ? q.questions.map((question: any) => ({
+              questionText: question.questionText || "",
+              imageUrl: question.imageUrl || "",
+              options: question.options || ["", "", "", ""],
+              correctOptionIndex: question.correctOptionIndex !== undefined ? question.correctOptionIndex : 0
+            })) : [{ questionText: "", imageUrl: "", options: ["", "", "", ""], correctOptionIndex: 0 }]
           });
         } else {
-          setMessage({ type: "error", text: "ප්‍රශ්න පත්‍රය සොයාගැනීමට නොහැක." });
+          setMessage({ type: "error", text: "ප්‍රශ්න පත්‍රය සොයාගත නොහැක." });
         }
       } catch (error) {
-        console.error(error);
+        console.error("Error fetching data:", error);
+        setMessage({ type: "error", text: "දත්ත ලබා ගැනීමේදී දෝෂයක් මතු විය." });
       } finally {
-        setIsFetching(false);
+        setIsFetchingData(false);
       }
     };
 
-    fetchInitialData();
-  }, [params]);
+    fetchCoursesAndQuiz();
+  }, [quizId]);
 
   const toggleTheme = () => {
     setIsDarkMode(!isDarkMode);
@@ -74,10 +102,26 @@ export default function EditQuizPage({ params }: PageProps) {
     else document.documentElement.classList.remove("dark");
   };
 
-  // --- Functions ---
+  const handleCourseToggle = (courseId: string) => {
+    setQuizData((prev) => {
+      const isSelected = prev.courseIds.includes(courseId);
+      if (isSelected) {
+        return { ...prev, courseIds: prev.courseIds.filter(id => id !== courseId) };
+      } else {
+        return { ...prev, courseIds: [...prev.courseIds, courseId] };
+      }
+    });
+  };
+
   const handleQuestionTextChange = (index: number, text: string) => {
     const updated = [...quizData.questions];
     updated[index].questionText = text;
+    setQuizData({ ...quizData, questions: updated });
+  };
+
+  const handleQuestionImageChange = (index: number, url: string) => {
+    const updated = [...quizData.questions];
+    updated[index].imageUrl = url;
     setQuizData({ ...quizData, questions: updated });
   };
 
@@ -96,7 +140,7 @@ export default function EditQuizPage({ params }: PageProps) {
   const addQuestion = () => {
     setQuizData({
       ...quizData,
-      questions: [...quizData.questions, { questionText: "", options: ["", "", "", ""], correctOptionIndex: 0 }]
+      questions: [...quizData.questions, { questionText: "", imageUrl: "", options: ["", "", "", ""], correctOptionIndex: 0 }]
     });
   };
 
@@ -106,32 +150,31 @@ export default function EditQuizPage({ params }: PageProps) {
     setQuizData({ ...quizData, questions: updated });
   };
 
-  // --- Submit Update ---
-  const handleSubmit = async (e: React.FormEvent) => {
+  // 🔴 වෙනස: POST වෙනුවට PUT යොදාගැනීම (Update කිරීමට)
+  const handleSubmit = async (e: React.FormEvent | React.MouseEvent, isDraft: boolean = false) => {
     e.preventDefault();
-    if (!quizData.courseId) return alert("කරුණාකර අදාළ පාඨමාලාව තෝරන්න.");
-    if (!quizData.timeLimit) return alert("කරුණාකර ප්‍රශ්න පත්‍රයට අදාළ කාල සීමාව ඇතුළත් කරන්න."); // 🔴 අලුත් Validation එක
+    if (!quizData.timeLimit) return alert("කරුණාකර ප්‍රශ්න පත්‍රයට අදාළ කාල සීමාව ඇතුළත් කරන්න."); 
     
     setIsLoading(true);
     setMessage({ type: "", text: "" });
 
+    const payload = {
+      ...quizData,
+      timeLimit: Number(quizData.timeLimit),
+      isVisible: !isDraft 
+    };
+
     try {
       const response = await fetch(`/api/admin/quizzes/${quizId}`, {
-        method: "PUT", // වෙනස් කිරීමට PUT පාවිච්චි කරයි
+        method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: quizData.title,
-          courseId: quizData.courseId,
-          timeLimit: Number(quizData.timeLimit), // 🔴 Number එකක් විදිහට යවනවා
-          pdfUrl: quizData.pdfUrl,               // 🔴 PDF ලින්ක් එක යවනවා
-          questions: quizData.questions
-        }),
+        body: JSON.stringify(payload),
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        setMessage({ type: "success", text: "✅ ප්‍රශ්න පත්‍රය සාර්ථකව යාවත්කාලීන (Update) කරන ලදී!" });
+        setMessage({ type: "success", text: isDraft ? "✅ ප්‍රශ්න පත්‍රය Draft එකක් ලෙස සාර්ථකව Update කළා!" : "✅ ප්‍රශ්න පත්‍රය සාර්ථකව Update කළා!" });
         setTimeout(() => router.push("/admin"), 2000);
       } else {
         setMessage({ type: "error", text: "❌ දෝෂයක්: " + data.error });
@@ -143,18 +186,25 @@ export default function EditQuizPage({ params }: PageProps) {
     }
   };
 
-  // Theme Classes
   const themeBg = isDarkMode ? "bg-slate-900 text-slate-100" : "bg-slate-50 text-slate-800";
   const headerBg = isDarkMode ? "bg-slate-900/80 border-slate-800" : "bg-white/80 border-slate-200";
   const cardBg = isDarkMode ? "bg-slate-800 border-slate-700" : "bg-white border-slate-200";
   const inputBg = isDarkMode ? "bg-slate-700 border-slate-600 text-white placeholder-slate-400" : "bg-white border-slate-300 text-slate-900";
 
-  if (isFetching) {
-    return <div className={`min-h-screen flex items-center justify-center font-bold ${themeBg}`}>දත්ත ගෙනෙමින් පවතී...</div>;
+  if (isFetchingData) {
+    return (
+      <div className={`min-h-screen flex items-center justify-center ${themeBg}`}>
+        <div className="flex flex-col items-center">
+          <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+          <p className="font-bold text-slate-500">දත්ත ගෙනෙමින් පවතී...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className={`modern-font min-h-screen transition-colors duration-300 ${themeBg}`}>
+      
       <header className={`sticky top-0 z-50 w-full border-b backdrop-blur-md transition-all duration-300 ${headerBg}`}>
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 md:px-6 md:py-4">
           <div className="flex items-center gap-2 md:gap-3">
@@ -176,7 +226,7 @@ export default function EditQuizPage({ params }: PageProps) {
         <div className={`rounded-2xl shadow-sm border p-6 md:p-8 ${cardBg}`}>
           
           <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-4 mb-6">
-            <h1 className="text-xl md:text-2xl font-bold text-blue-500">ප්‍රශ්න පත්‍රය වෙනස් කිරීම</h1>
+            <h1 className="text-xl md:text-2xl font-bold">ප්‍රශ්න පත්‍රය යාවත්කාලීන කිරීම (Edit)</h1>
             <Link href="/admin" className={`text-sm font-bold px-4 py-2 rounded-lg transition-colors ${isDarkMode ? 'bg-slate-700 hover:bg-slate-600' : 'bg-slate-100 hover:bg-slate-200'}`}>
               &larr; ආපසු
             </Link>
@@ -188,25 +238,50 @@ export default function EditQuizPage({ params }: PageProps) {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-8">
+          <form onSubmit={(e) => handleSubmit(e, !quizData.isVisible)} className="space-y-8">
             
-            {/* 🔴 වෙනස: md:grid-cols-3 කරලා තීරු 3ක් හැදුවා */}
             <div className={`p-6 rounded-xl border ${isDarkMode ? 'bg-slate-900/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-4">
-                <div>
-                  <label className="block text-sm font-bold mb-2">අදාළ පාඨමාලාව *</label>
-                  <select required value={quizData.courseId} onChange={(e) => setQuizData({...quizData, courseId: e.target.value})} className={`w-full p-3 rounded-xl border outline-none font-bold ${inputBg}`}>
-                    <option value="" disabled>පාඨමාලාවක් තෝරන්න...</option>
-                    {courses.map(course => (
-                      <option key={course._id} value={course._id}>{course.title}</option>
-                    ))}
-                  </select>
+              
+              <div className="mb-6">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-3">
+                  <label className="block text-sm font-bold">මෙම ප්‍රශ්න පත්‍රය අදාළ වන පාඨමාලා තෝරන්න (Question Bank එකේ පමණක් තැබීමට අවශ්‍ය නම් කිසිවක් නොතෝරා සිටින්න)</label>
+                  <button 
+                    type="button" 
+                    onClick={(e) => handleSubmit(e, true)}
+                    disabled={isLoading}
+                    className="flex-shrink-0 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-2"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg>
+                    Draft ලෙස සේව් කරන්න
+                  </button>
                 </div>
+
+                <div className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 p-4 rounded-xl border ${inputBg}`}>
+                  {isCoursesLoading ? (
+                    <p className="text-sm font-bold text-blue-500 animate-pulse col-span-full">පාඨමාලා ගෙනෙමින් පවතී...</p>
+                  ) : courses.length > 0 ? (
+                    courses.map(course => (
+                      <label key={course._id} className="flex items-center gap-3 cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          className="w-4 h-4 text-blue-600 rounded cursor-pointer"
+                          checked={quizData.courseIds.includes(course._id)}
+                          onChange={() => handleCourseToggle(course._id)}
+                        />
+                        <span className="text-sm font-semibold truncate">{course.title}</span>
+                      </label>
+                    ))
+                  ) : (
+                    <p className="text-xs text-slate-500 col-span-full">පාඨමාලා කිසිවක් හමු නොවිණි.</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
                 <div>
                   <label className="block text-sm font-bold mb-2">ප්‍රශ්න පත්‍රයේ නම (Title) *</label>
-                  <input type="text" required value={quizData.title} onChange={(e) => setQuizData({...quizData, title: e.target.value})} className={`w-full p-3 rounded-xl border outline-none ${inputBg}`} />
+                  <input type="text" required value={quizData.title} onChange={(e) => setQuizData({...quizData, title: e.target.value})} className={`w-full p-3 rounded-xl border outline-none ${inputBg}`} placeholder="උදා: 1 වන ඒකකය ඇගයීම" />
                 </div>
-                {/* 🔴 අලුත්: කාල සීමාව ඇතුළත් කරන කොටුව */}
                 <div>
                   <label className="block text-sm font-bold mb-2">කාල සීමාව (විනාඩි) *</label>
                   <input 
@@ -216,11 +291,11 @@ export default function EditQuizPage({ params }: PageProps) {
                     value={quizData.timeLimit} 
                     onChange={(e) => setQuizData({...quizData, timeLimit: e.target.value})} 
                     className={`w-full p-3 rounded-xl border outline-none ${inputBg}`} 
+                    placeholder="උදා: 30" 
                   />
                 </div>
               </div>
 
-              {/* 🔴 අලුත්: PDF ලින්ක් එක දාන කොටස */}
               <div className="mt-6 border-t border-slate-200 dark:border-slate-700 pt-6">
                 <label className="block text-sm font-bold mb-2">
                   ප්‍රශ්න පත්‍රයේ PDF ලින්ක් එක <span className="text-slate-400 font-normal text-xs ml-2">(අත්‍යවශ්‍ය නැත)</span>
@@ -252,7 +327,18 @@ export default function EditQuizPage({ params }: PageProps) {
 
                   <div className="mb-4">
                     <label className="block text-sm font-bold mb-2 text-blue-500">ප්‍රශ්නය {qIndex + 1}</label>
-                    <textarea required value={q.questionText} onChange={(e) => handleQuestionTextChange(qIndex, e.target.value)} rows={2} className={`w-full p-3 rounded-xl border outline-none resize-none ${inputBg}`}></textarea>
+                    <textarea required value={q.questionText} onChange={(e) => handleQuestionTextChange(qIndex, e.target.value)} rows={2} className={`w-full p-3 rounded-xl border outline-none resize-none ${inputBg}`} placeholder="ප්‍රශ්නය මෙහි ටයිප් කරන්න..."></textarea>
+                  </div>
+                  
+                  <div className="mb-6">
+                    <label className="block text-xs font-bold mb-2 text-slate-500">ප්‍රශ්නය සඳහා පින්තූරයක් (Image URL - අත්‍යවශ්‍ය නැත)</label>
+                    <input 
+                      type="url" 
+                      value={q.imageUrl || ""} 
+                      onChange={(e) => handleQuestionImageChange(qIndex, e.target.value)} 
+                      className={`w-full p-2.5 rounded-xl border text-sm outline-none ${inputBg}`} 
+                      placeholder="උදා: https://i.imgur.com/your-image.png" 
+                    />
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pl-0 md:pl-6 border-l-2 border-blue-200 dark:border-blue-900">
@@ -264,6 +350,7 @@ export default function EditQuizPage({ params }: PageProps) {
                           checked={q.correctOptionIndex === oIndex}
                           onChange={() => handleCorrectOptionChange(qIndex, oIndex)}
                           className="w-5 h-5 text-blue-600 cursor-pointer"
+                          title="නිවැරදි පිළිතුර ලෙස ලකුණු කරන්න"
                         />
                         <div className="flex-grow flex items-center relative">
                           <span className={`absolute left-3 text-xs font-bold ${q.correctOptionIndex === oIndex ? 'text-green-500' : 'text-slate-400'}`}>
@@ -273,6 +360,7 @@ export default function EditQuizPage({ params }: PageProps) {
                             type="text" required value={opt} 
                             onChange={(e) => handleOptionChange(qIndex, oIndex, e.target.value)} 
                             className={`w-full p-2.5 pl-8 rounded-lg border text-sm outline-none ${q.correctOptionIndex === oIndex ? 'border-green-400 bg-green-50/10' : ''} ${inputBg}`} 
+                            placeholder="පිළිතුර..." 
                           />
                         </div>
                       </div>
@@ -287,8 +375,9 @@ export default function EditQuizPage({ params }: PageProps) {
             </div>
 
             <button type="submit" disabled={isLoading} className="w-full bg-blue-600 text-white font-bold text-lg py-4 rounded-xl hover:bg-blue-700 transition shadow-lg disabled:bg-slate-400 flex justify-center items-center gap-2 mt-8">
-              {isLoading ? "Update වෙමින් පවතී..." : "වෙනස්කම් සේව් කරන්න (Update Quiz)"}
+              {isLoading ? "Update වෙමින් පවතී..." : "ප්‍රශ්න පත්‍රය යාවත්කාලීන කර Publish කරන්න"}
             </button>
+
           </form>
         </div>
       </main>
