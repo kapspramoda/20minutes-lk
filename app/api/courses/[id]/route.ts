@@ -1,7 +1,8 @@
+
 import { NextResponse } from "next/server";
 import mongoose from "mongoose";
 import Course from "@/models/Course";
-import { getCachedData } from "@/lib/cache"; // 🔴 අලුතින් එකතු කළා
+import { getCachedData } from "@/lib/cache";
 
 const connectDB = async () => {
   if (mongoose.connection.readyState >= 1) return;
@@ -16,11 +17,15 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     await connectDB();
     const resolvedParams = await params;
     
-    // 🔴 ඩේටාබේස් එක වෙනුවට Cache එකෙන් ලබා ගැනීම (තත්පර 60කට)
+    // 🔴 ඩේටාබේස් එක වෙනුවට Cache එකෙන් ලබා ගැනීම
     const course = await getCachedData(
-      `course_details_${resolvedParams.id}`, // ID එකට අනුව Cache Key එක හැදෙනවා
+      `course_details_${resolvedParams.id}`,
       async () => {
-        return await Course.findById(resolvedParams.id).lean(); // lean() එකත් දැම්මා වේගවත් වෙන්න
+        return await Course.findById(resolvedParams.id)
+                           // 🔴 වෙනස: මේ පිටුවට අවශ්‍ය නැති බර දත්ත (Cover Image එක) අතහැරීම
+                           // ඔයාගේ පින්තූරය සේව් වෙන නම 'image', 'coverImage' හෝ 'thumbnail' විය හැක.
+                           .select("-image -thumbnail -coverImage") 
+                           .lean(); 
       },
       60 
     );
@@ -31,6 +36,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
+
+
 
 // 2. පාඨමාලාව Update කිරීම (PUT)
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> | { id: string } }) {
