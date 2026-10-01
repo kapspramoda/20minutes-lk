@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import mongoose from "mongoose";
 import Quiz from "@/models/Quiz";
+import { getCachedData } from "@/lib/cache"; // 🔴 අලුතින් එකතු කළා
 
 type Context = { params: Promise<{ quizId: string }> | { quizId: string } };
 
@@ -12,8 +13,14 @@ export async function GET(req: Request, context: Context) {
       await mongoose.connect(process.env.MONGODB_URI as string);
     }
     
-    // Quiz එක Database එකෙන් සොයා ගැනීම
-    const quiz = await Quiz.findById(resolvedParams.quizId);
+    // 🔴 ඩේටාබේස් එක වෙනුවට Cache එකෙන් ලබා ගැනීම (විනාඩි 2කට)
+    const quiz = await getCachedData(
+      `quiz_details_${resolvedParams.quizId}`, 
+      async () => {
+        return await Quiz.findById(resolvedParams.quizId).lean();
+      },
+      120
+    );
     
     if (!quiz) {
       return NextResponse.json({ success: false, message: "Quiz not found" });

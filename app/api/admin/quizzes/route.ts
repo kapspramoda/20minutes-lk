@@ -1,19 +1,18 @@
 import { NextResponse } from "next/server";
 import mongoose from "mongoose";
 import Quiz from "@/models/Quiz";
+import { getCachedData } from "@/lib/cache"; // 🔴 අලුතින් එකතු කළා
 
 const connectDB = async () => {
   if (mongoose.connection.readyState >= 1) return;
   await mongoose.connect(process.env.MONGODB_URI as string);
 };
 
-// අලුත් Quiz එකක් Database එකට ඇතුළත් කිරීම (POST)
 export async function POST(req: Request) {
   try {
     await connectDB();
     const body = await req.json();
     
-    // 🔴 වෙනස: courseId අනිවාර්ය කරන්නේ නෑ, මොකද මේක Question Bank එකක් විදිහටත් තියන්න පුළුවන් නිසා
     if (!body.title || !body.timeLimit || !body.questions || body.questions.length === 0) {
       return NextResponse.json({ error: "කරුණාකර කාල සීමාව ඇතුළුව සියලුම දත්ත සම්පූර්ණ කරන්න." }, { status: 400 });
     }
@@ -35,7 +34,16 @@ export async function POST(req: Request) {
 export async function GET() {
   try {
     await connectDB();
-    const quizzes = await Quiz.find().sort({ createdAt: -1 }).lean();
+    
+    // 🔴 ඩේටාබේස් එක වෙනුවට Cache එකෙන් ලබා ගැනීම (තත්පර 120කට) - මේවා නිතර වෙනස් නොවන නිසා
+    const quizzes = await getCachedData(
+      "admin_all_quizzes",
+      async () => {
+        return await Quiz.find().sort({ createdAt: -1 }).lean();
+      },
+      120 // විනාඩි 2ක් RAM එකේ තියාගන්නවා
+    );
+    
     return NextResponse.json({ success: true, data: quizzes }, { status: 200 });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
