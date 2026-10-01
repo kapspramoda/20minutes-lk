@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import connectToDatabase from "@/lib/mongodb";
 import Enrollment from "@/models/Enrollment";
-import { getCachedData } from "@/lib/cache"; // 🔴 අලුතින් එකතු කළා
+import { getCachedData } from "@/lib/cache"; 
 
 export async function GET(req: Request) {
   try {
@@ -16,9 +16,12 @@ export async function GET(req: Request) {
 
     // 🔴 ඩේටාබේස් එක වෙනුවට Cache එකෙන් ලබා ගැනීම
     const userCourses = await getCachedData(
-      `student_enrollments_${phone}`, // දුරකථන අංකයට අනුව Cache වේ
+      `student_enrollments_${phone}`, 
       async () => {
-        return await Enrollment.find({ userPhone: phone }).sort({ createdAt: -1 }).lean();
+        return await Enrollment.find({ userPhone: phone })
+                               .select("-slipImage") // 🔴 වෙනස: බර වැඩි රිසිට් පින්තූරය සම්පූර්ණයෙන්ම අතහැරීම
+                               .sort({ createdAt: -1 })
+                               .lean();
       },
       60 
     );
