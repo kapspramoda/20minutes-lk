@@ -18,12 +18,15 @@ async function connectToDatabase() {
   }
 
   if (!cached.promise) {
+    // 🔴 අලුත් වෙනස: Database Connection එක වේගවත් කිරීමට සැකසුම් (Options) වෙනස් කිරීම
     const opts = {
       bufferCommands: false,
+      maxPoolSize: 10, // එකවර හදන Connections ගණන 10කට සීමා කරයි (මෙයින් සර්වර් එක හිරවීම නවතී)
+      serverSelectionTimeoutMS: 5000, // තත්පර 5ක් ඇතුළත ඉක්මනින් Connect වේ (Loading වෙලා තියෙන එක නවතී)
     };
 
     cached.promise = mongoose.connect(MONGODB_URI as string, opts).then((mongoose) => {
-      console.log("MongoDB සම්බන්ධ විය!");
+      console.log("MongoDB සම්බන්ධ විය! (Optimized)");
       return mongoose;
     });
   }
