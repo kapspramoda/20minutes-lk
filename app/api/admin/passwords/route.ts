@@ -12,7 +12,7 @@ const connectDB = async () => {
 export async function GET() {
   try {
     await connectDB();
-    const requests = await PasswordReset.find({ status: "pending" }).sort({ createdAt: -1 });
+    const requests = await PasswordReset.find({ status: "pending" }).sort({ createdAt: -1 }).lean();
     return NextResponse.json({ data: requests }, { status: 200 });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

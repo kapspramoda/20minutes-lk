@@ -7,7 +7,7 @@ export async function GET() {
   try {
     await connectToDatabase();
     // status එක 'pending' වන ඒවා පමණක් අලුත්ම එක උඩින් එන විදිහට ගෙන ඒම
-    const pendingEnrollments = await Enrollment.find({ status: "pending" }).sort({ createdAt: -1 });
+    const pendingEnrollments = await Enrollment.find({ status: "pending" }).sort({ createdAt: -1 }).lean();
     return NextResponse.json({ enrollments: pendingEnrollments }, { status: 200 });
   } catch (error) {
     return NextResponse.json({ message: "දත්ත ලබාගැනීමේදී දෝෂයක් මතු විය." }, { status: 500 });
