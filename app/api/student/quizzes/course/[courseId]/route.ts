@@ -12,9 +12,12 @@ export async function GET(_req: Request, context: Context) {
       await mongoose.connect(process.env.MONGODB_URI as string);
     }
     
-    // 🔴 වෙනස් කළ කොටස: "Hide කරලා නැති (false නොවන) සියල්ල ගෙන එන්න"
+    // 🔴 වෙනස් කළ කොටස: පරණ (courseId) සහ අලුත් (courseIds array) කියන ක්‍රම දෙකෙන්ම Quizzes අදිනවා
     const quizzes = await Quiz.find({ 
-      courseId: resolvedParams.courseId, 
+      $or: [
+        { courseId: resolvedParams.courseId }, // පරණ ක්‍රමයට සේව් වූ ඒවා
+        { courseIds: { $in: [resolvedParams.courseId] } } // අලුත් ක්‍රමයට සේව් වූ ඒවා
+      ],
       isVisible: { $ne: false } 
     }).select("_id title questions createdAt"); 
 
