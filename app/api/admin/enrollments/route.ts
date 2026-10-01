@@ -1,20 +1,24 @@
 import { NextResponse } from "next/server";
 import connectToDatabase from "@/lib/mongodb";
 import Enrollment from "@/models/Enrollment";
-import { getCachedData } from "@/lib/cache"; // 🔴 අලුතින් එකතු කළා
+import { getCachedData } from "@/lib/cache"; 
 
-// 1. Pending රිසිට්පත් සියල්ල ලබා ගැනීම (GET Request)
+// 1. Pending රිසිට්පත් සියල්ල ලබා ගැනීම (GET Request) - වේගවත් කිරීම සඳහා ප්‍රශස්ත කර ඇත
 export async function GET() {
   try {
     await connectToDatabase();
     
-    // 🔴 ඩේටාබේස් එක වෙනුවට Cache එකෙන් ලබා ගැනීම (තත්පර 60කට)
+    // 🔴 ඩේටාබේස් එක වෙනුවට Cache එකෙන් ලබා ගැනීම සහ බර වැඩි slipImage එක සම්පූර්ණයෙන්ම අතහැරීම
     const pendingEnrollments = await getCachedData(
-      "admin_pending_enrollments",
+      "admin_pending_enrollments_optimized",
       async () => {
-        return await Enrollment.find({ status: "pending" }).sort({ createdAt: -1 }).lean();
+        return await Enrollment.find({ status: "pending" })
+                               // 🔴 වෙනස: slipImage එක ඉවත් කර අත්‍යවශ්‍ය දත්ත පමණක් ලබා ගැනීම
+                               .select("-slipImage") 
+                               .sort({ createdAt: -1 })
+                               .lean();
       },
-      60 
+      60 // තත්පර 60ක් RAM එකේ තබාගනී
     );
     
     return NextResponse.json({ enrollments: pendingEnrollments }, { status: 200 });
