@@ -62,7 +62,8 @@ export default function AdminDashboard() {
   const router = useRouter();
   const [isDarkMode, setIsDarkMode] = useState(false);
   
-  const [activeTab, setActiveTab] = useState<"approvals" | "courses" | "quizzes" | "students" | "passwords">("approvals");
+  // 🔴 වෙනස: Default load වෙන Tab එක "courses" විදිහට වෙනස් කළා
+  const [activeTab, setActiveTab] = useState<"approvals" | "courses" | "quizzes" | "students" | "passwords">("courses");
   
   const [pendingApprovals, setPendingApprovals] = useState<any[]>([]);
   const [isLoadingApprovals, setIsLoadingApprovals] = useState(true);
@@ -498,15 +499,26 @@ export default function AdminDashboard() {
           </div>
         </div>
 
+        {/* 🔴 වෙනස: Tabs වල පෙළගැස්ම වෙනස් කළා සහ රතු පාට Notification එක දැම්මා */}
         <div className="flex space-x-2 mb-6 overflow-x-auto pb-2 [&::-webkit-scrollbar]:hidden">
-          <button onClick={() => setActiveTab("approvals")} className={`px-5 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all ${activeTab === "approvals" ? tabActive : tabInactive}`}>රිසිට්පත් අනුමත කිරීම</button>
-          <button onClick={() => setActiveTab("courses")} className={`px-5 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all ${activeTab === "courses" ? tabActive : tabInactive}`}>පාඨමාලා කළමනාකරණය</button>
-          <button onClick={() => setActiveTab("quizzes")} className={`px-5 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all ${activeTab === "quizzes" ? tabActive : tabInactive}`}>විභාග කළමනාකරණය</button>
-          <button onClick={() => setActiveTab("students")} className={`px-5 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all ${activeTab === "students" ? tabActive : tabInactive}`}>සිසුන්ගේ විස්තර</button>
-          <button onClick={() => setActiveTab("passwords")} className={`px-5 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all ${activeTab === "passwords" ? tabActive : tabInactive} flex items-center gap-2`}>
-            මුරපද ඉල්ලීම් {passwordRequests.length > 0 && <span className="bg-red-500 text-white rounded-full px-2 py-0.5 text-xs">{passwordRequests.length}</span>}
+          <button onClick={() => setActiveTab("courses")} className={`px-5 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all ${activeTab === "courses" ? tabActive : tabInactive}`}>
+            පාඨමාලා කළමනාකරණය
           </button>
-          <Link href="/admin/iq-tools" className={`px-5 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all ${tabInactive} flex items-center gap-2 border-l-2 ${isDarkMode ? 'border-slate-700' : 'border-slate-300'} ml-1 pl-4`}>
+          <button onClick={() => setActiveTab("approvals")} className={`px-5 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all flex items-center gap-2 ${activeTab === "approvals" ? tabActive : tabInactive}`}>
+            රිසිට්පත් අනුමත කිරීම 
+            {pendingApprovals.length > 0 && <span className="bg-red-500 text-white rounded-full px-2 py-0.5 text-xs">{pendingApprovals.length}</span>}
+          </button>
+          <button onClick={() => setActiveTab("quizzes")} className={`px-5 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all ${activeTab === "quizzes" ? tabActive : tabInactive}`}>
+            විභාග කළමනාකරණය
+          </button>
+          <button onClick={() => setActiveTab("students")} className={`px-5 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all ${activeTab === "students" ? tabActive : tabInactive}`}>
+            සිසුන්ගේ විස්තර
+          </button>
+          <button onClick={() => setActiveTab("passwords")} className={`px-5 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all flex items-center gap-2 ${activeTab === "passwords" ? tabActive : tabInactive}`}>
+            මුරපද ඉල්ලීම් 
+            {passwordRequests.length > 0 && <span className="bg-red-500 text-white rounded-full px-2 py-0.5 text-xs">{passwordRequests.length}</span>}
+          </button>
+          <Link href="/admin/iq-tools" className={`px-5 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all flex items-center gap-2 border-l-2 ${isDarkMode ? 'border-slate-700' : 'border-slate-300'} ml-1 pl-4 ${tabInactive}`}>
             🧩 IQ ඉගැන්වීම් මෙවලම්
           </Link>
         </div>
@@ -526,7 +538,6 @@ export default function AdminDashboard() {
                 {(pendingApprovals || []).map((req) => (
                   <div key={req._id} className={`flex flex-col overflow-hidden rounded-2xl border shadow-sm transition-all ${cardBg}`}>
                     
-                    {/* 🔴 වෙනස් කළ කොටස: Lazy Loading Image Component එක භාවිත කිරීම */}
                     <SlipPreview enrollmentId={req._id} onEnlarge={setEnlargedSlip} />
 
                     <div className="p-5 flex flex-col flex-grow">
