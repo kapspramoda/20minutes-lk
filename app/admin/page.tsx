@@ -5,6 +5,58 @@ import { signOut, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
+// 🔴 අලුත් කොටස: රිසිට්පත හිමින් ලෝඩ් කිරීම සඳහා වෙනම Component එකක්
+function SlipPreview({ enrollmentId, onEnlarge }: { enrollmentId: string, onEnlarge: (slip: string) => void }) {
+  const [slipData, setSlipData] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch(`/api/admin/enrollments/get-slip?id=${enrollmentId}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.slipImage) setSlipData(data.slipImage);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, [enrollmentId]);
+
+  return (
+    <div 
+      className="h-48 overflow-hidden bg-slate-200 dark:bg-slate-700 relative group cursor-pointer flex items-center justify-center" 
+      onClick={() => slipData && onEnlarge(slipData)}
+    >
+      {loading ? (
+        <span className="text-sm font-bold text-slate-500 animate-pulse">පින්තූරය ගෙනෙමින්...</span>
+      ) : slipData ? (
+        slipData.startsWith('data:application/pdf') ? (
+          <div className="flex flex-col items-center justify-center w-full h-full text-slate-500 hover:scale-110 transition-transform duration-500">
+            <svg className="w-16 h-16 mb-2 text-red-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 16l-5-5h3V4h4v7h3l-5 5zm9-2v6H3v-6H1v8h22v-8h-2z"/></svg>
+            <span className="font-bold text-sm">PDF රිසිට්පත</span>
+          </div>
+        ) : (
+          <img 
+            src={slipData} 
+            alt="Bank Slip" 
+            className="w-full h-full object-cover hover:scale-110 transition-transform duration-500" 
+            onError={(e) => { 
+              e.currentTarget.src = "https://placehold.co/600x400/e2e8f0/64748b?text=Image+Load+Error"; 
+            }}
+          />
+        )
+      ) : (
+        <span className="text-sm font-bold text-slate-500">පින්තූරයක් නැත</span>
+      )}
+      
+      {slipData && (
+        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+          <span className="text-white text-sm font-bold flex items-center gap-2">විශාල කර බලන්න</span>
+        </div>
+      )}
+    </div>
+  );
+}
+// 🔴 අලුත් කොටස අවසන්
+
 export default function AdminDashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -45,7 +97,7 @@ export default function AdminDashboard() {
   const [scheduleDate, setScheduleDate] = useState("");
   const [isSavingSchedule, setIsSavingSchedule] = useState(false);
 
- useEffect(() => {
+  useEffect(() => {
     if (document.documentElement.classList.contains("dark")) setIsDarkMode(true);
     
     // 🔴 එකවර දත්ත සියල්ල වේගයෙන් ගෙන්වා ගැනීම (Parallel Fetching)
@@ -454,7 +506,6 @@ export default function AdminDashboard() {
           <button onClick={() => setActiveTab("passwords")} className={`px-5 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all ${activeTab === "passwords" ? tabActive : tabInactive} flex items-center gap-2`}>
             මුරපද ඉල්ලීම් {passwordRequests.length > 0 && <span className="bg-red-500 text-white rounded-full px-2 py-0.5 text-xs">{passwordRequests.length}</span>}
           </button>
-          {/* 🔴 අලුත්: IQ Tools බොත්තම */}
           <Link href="/admin/iq-tools" className={`px-5 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all ${tabInactive} flex items-center gap-2 border-l-2 ${isDarkMode ? 'border-slate-700' : 'border-slate-300'} ml-1 pl-4`}>
             🧩 IQ ඉගැන්වීම් මෙවලම්
           </Link>
@@ -474,30 +525,10 @@ export default function AdminDashboard() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {(pendingApprovals || []).map((req) => (
                   <div key={req._id} className={`flex flex-col overflow-hidden rounded-2xl border shadow-sm transition-all ${cardBg}`}>
-                    <div 
-                      className="h-48 overflow-hidden bg-slate-200 dark:bg-slate-700 relative group cursor-pointer flex items-center justify-center" 
-                      onClick={() => setEnlargedSlip(req.slipImage)}
-                    >
-                      {req.slipImage && req.slipImage.startsWith('data:application/pdf') ? (
-                        <div className="flex flex-col items-center justify-center w-full h-full text-slate-500 hover:scale-110 transition-transform duration-500">
-                          <svg className="w-16 h-16 mb-2 text-red-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 16l-5-5h3V4h4v7h3l-5 5zm9-2v6H3v-6H1v8h22v-8h-2z"/></svg>
-                          <span className="font-bold text-sm">PDF රිසිට්පත</span>
-                        </div>
-                      ) : (
-                        <img 
-                          src={req.slipImage && req.slipImage.length > 30 ? req.slipImage : "https://placehold.co/600x400/e2e8f0/64748b?text=Image+Not+Found"} 
-                          alt="Bank Slip" 
-                          className="w-full h-full object-cover hover:scale-110 transition-transform duration-500" 
-                          onError={(e) => { 
-                            e.currentTarget.src = "https://placehold.co/600x400/e2e8f0/64748b?text=Image+Load+Error"; 
-                          }}
-                        />
-                      )}
-                      
-                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                          <span className="text-white text-sm font-bold flex items-center gap-2">විශාල කර බලන්න</span>
-                      </div>
-                    </div>
+                    
+                    {/* 🔴 වෙනස් කළ කොටස: Lazy Loading Image Component එක භාවිත කිරීම */}
+                    <SlipPreview enrollmentId={req._id} onEnlarge={setEnlargedSlip} />
+
                     <div className="p-5 flex flex-col flex-grow">
                       <div className="mb-4">
                         <h3 className={`text-lg font-bold mt-1 ${textPrimary}`}>දුරකථන: {req.userPhone}</h3>
@@ -816,7 +847,7 @@ export default function AdminDashboard() {
               </button>
             </div>
             <p className={`text-sm mb-4 ${textSecondary}`}>
-              <span className="font-bold text-blue-500">{selectedCourseForSchedule.title}</span> පාඨමාලාව ස්වයංක්‍රීයව සිසුන්ට දර්ශනය විය යුතු දිනය සහ වේලාව තෝරන්න. (මකා දැමීමට අවශ්‍ය නම් හිස්ව තබා සේව් කරන්න).
+              <span className="font-bold text-blue-500">{selectedCourseForSchedule.title}</span> පාඨමාලාව ස්වයංක්‍‍රීයව සිසුන්ට දර්ශනය විය යුතු දිනය සහ වේලාව තෝරන්න. (මකා දැමීමට අවශ්‍ය නම් හිස්ව තබා සේව් කරන්න).
             </p>
             <input
               type="datetime-local"
