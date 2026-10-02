@@ -232,6 +232,18 @@ export default function StudentExamPage({ params }: PageProps) {
                     <span className="text-blue-500 mr-2">{qIdx + 1}.</span> {q.questionText}
                   </h3>
                   
+                  {/* 🔴 අලුතින් එකතු කළ කොටස: පින්තූරයක් තිබේ නම් එය පෙන්වීම */}
+                  {q.imageUrl && (
+                    <div className="my-5 flex justify-center md:justify-start">
+                      <img 
+                        src={q.imageUrl} 
+                        alt={`Question ${qIdx + 1}`} 
+                        className="max-w-full md:max-w-2xl max-h-80 object-contain rounded-xl shadow-sm border border-slate-200 bg-slate-50"
+                      />
+                    </div>
+                  )}
+                  {/* 🔴 පින්තූර කොටස අවසන් */}
+
                   <div className="grid grid-cols-1 gap-3">
                     {q.options.map((option: string, oIdx: number) => {
                       const isSelected = selectedAnswers[qIdx] === oIdx;
