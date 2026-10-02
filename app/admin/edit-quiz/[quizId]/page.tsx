@@ -29,14 +29,12 @@ export default function EditQuizPage({ params }: any) {
     ]
   });
 
-  // 🔴 වෙනස: Loading හිරවෙන එක නවත්වන්න, useEffect එක Safe විදිහට ලිව්වා
   useEffect(() => {
     let isMounted = true;
     if (document.documentElement.classList.contains("dark")) setIsDarkMode(true);
 
     const fetchInitialData = async () => {
       try {
-        // Next.js 13/14/15 වලට ගැළපෙන පරිදි Parameter එක ලබාගැනීම
         const resolvedParams = await Promise.resolve(params);
         const currentId = resolvedParams?.quizId || resolvedParams?.id;
 
@@ -50,21 +48,18 @@ export default function EditQuizPage({ params }: any) {
 
         if (isMounted) setQuizId(currentId);
 
-        // 1. Courses ටික ගෙන ඒම
         if (isMounted) setIsCoursesLoading(true);
         const courseRes = await fetch("/api/courses", { cache: "no-store" });
         const courseData = await courseRes.json();
         if (courseRes.ok && isMounted) setCourses(courseData.data);
         if (isMounted) setIsCoursesLoading(false);
 
-        // 2. Quiz එකේ පරණ දත්ත ටික ගෙන ඒම
         const quizRes = await fetch(`/api/admin/quizzes/${currentId}`, { cache: "no-store" });
         const fetchedQuiz = await quizRes.json();
         
         if (quizRes.ok && fetchedQuiz.data && isMounted) {
           const q = fetchedQuiz.data;
           
-          // පරණ Quiz වල තිබ්බේ courseId (තනි String එකක්) නම් ඒක array එකක් කිරීම
           let mappedCourseIds = q.courseIds || [];
           if (mappedCourseIds.length === 0 && q.courseId) {
               mappedCourseIds = [q.courseId];
@@ -99,7 +94,7 @@ export default function EditQuizPage({ params }: any) {
     return () => {
       isMounted = false;
     };
-  }, []); // 🔴 Dependency Array එක හිස්ව තැබුවා (එවිට එකවරක් පමණක් Load වී හිරවීම නවතී)
+  }, []); 
 
   const toggleTheme = () => {
     setIsDarkMode(!isDarkMode);
@@ -155,23 +150,27 @@ export default function EditQuizPage({ params }: any) {
     setQuizData({ ...quizData, questions: updated });
   };
 
+  // 🔴 අලුත් handleSubmit (PUT එක සඳහා)
   const handleSubmit = async (e: React.FormEvent | React.MouseEvent, isDraft: boolean = false) => {
     e.preventDefault();
-    if (quizData.courseIds.length === 0) return alert("කරුණාකර අවම වශයෙන් එක් පාඨමාලාවක් හෝ තෝරන්න.");
-    if (!quizData.timeLimit) return alert("කරුණාකර ප්‍රශ්න පත්‍රයට අදාළ කාල සීමාව ඇතුළත් කරන්න.");
+    
+    if (!isDraft) {
+      if (quizData.courseIds.length === 0) return alert("කරුණාකර අවම වශයෙන් එක් පාඨමාලාවක් හෝ තෝරන්න.");
+      if (!quizData.timeLimit) return alert("කරුණාකර ප්‍රශ්න පත්‍රයට අදාළ කාල සීමාව ඇතුළත් කරන්න.");
+    }
     
     setIsLoading(true);
     setMessage({ type: "", text: "" });
 
-    // Database එකට යැවීමට සකස් කරන Data Payload එක
     const payload = {
       ...quizData,
-      courseId: quizData.courseIds[0], // පරණ ක්‍රමයට සහය දැක්වීමට
-      timeLimit: Number(quizData.timeLimit),
+      courseId: quizData.courseIds.length > 0 ? quizData.courseIds[0] : null, 
+      timeLimit: quizData.timeLimit ? Number(quizData.timeLimit) : 0, 
       isVisible: !isDraft 
     };
 
     try {
+      // 🔴 Edit Quiz නිසා මෙතන යන්නේ PUT request එකක්
       const response = await fetch(`/api/admin/quizzes/${quizId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -198,7 +197,6 @@ export default function EditQuizPage({ params }: any) {
   const cardBg = isDarkMode ? "bg-slate-800 border-slate-700" : "bg-white border-slate-200";
   const inputBg = isDarkMode ? "bg-slate-700 border-slate-600 text-white placeholder-slate-400" : "bg-white border-slate-300 text-slate-900";
 
-  // 🔴 Loading Animation එක
   if (isFetching) {
     return (
       <div className={`min-h-screen flex items-center justify-center ${themeBg}`}>
@@ -345,7 +343,6 @@ export default function EditQuizPage({ params }: any) {
                       className={`w-full p-2.5 rounded-xl border text-sm outline-none ${inputBg}`} 
                       placeholder="උදා: https://i.imgur.com/your-image.png" 
                     />
-                    {/* පින්තූරයක් තියෙනවා නම් ඒක පෙන්වීම */}
                     {q.imageUrl && (
                       <div className="mt-3 p-2 bg-slate-100 dark:bg-slate-800 rounded-lg inline-block">
                          <img src={q.imageUrl} alt={`Question ${qIndex + 1}`} className="max-h-32 object-contain rounded" />
@@ -372,6 +369,7 @@ export default function EditQuizPage({ params }: any) {
                             type="text" required value={opt} 
                             onChange={(e) => handleOptionChange(qIndex, oIndex, e.target.value)} 
                             className={`w-full p-2.5 pl-8 rounded-lg border text-sm outline-none ${q.correctOptionIndex === oIndex ? 'border-green-400 bg-green-50/10' : ''} ${inputBg}`} 
+                            placeholder="පිළිතුර..." 
                           />
                         </div>
                       </div>

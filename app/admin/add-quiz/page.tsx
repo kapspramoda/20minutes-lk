@@ -10,7 +10,7 @@ export default function AddQuizPage() {
   const router = useRouter();
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [isCoursesLoading, setIsCoursesLoading] = useState(true); // 🔴 අලුත්: Courses ලෝඩ් වෙනකන් පෙන්වන්න
+  const [isCoursesLoading, setIsCoursesLoading] = useState(true);
   const [message, setMessage] = useState({ type: "", text: "" });
 
   const [courses, setCourses] = useState<any[]>([]);
@@ -21,7 +21,6 @@ export default function AddQuizPage() {
     timeLimit: "", 
     pdfUrl: "",
     questions: [
-      // 🔴 වෙනස: imageUrl එකතු කළා
       { questionText: "", imageUrl: "", options: ["", "", "", ""], correctOptionIndex: 0 }
     ]
   });
@@ -67,7 +66,6 @@ export default function AddQuizPage() {
     setQuizData({ ...quizData, questions: updated });
   };
 
-  // 🔴 අලුත්: පින්තූර ලින්ක් එක වෙනස් කරන Function එක
   const handleQuestionImageChange = (index: number, url: string) => {
     const updated = [...quizData.questions];
     updated[index].imageUrl = url;
@@ -99,22 +97,27 @@ export default function AddQuizPage() {
     setQuizData({ ...quizData, questions: updated });
   };
 
-  // 🔴 වෙනස: isDraft කියන පරාමිතිය ඇතුළත් කළා (Draft ද Publish ද කියලා අඳුරගන්න)
+  // 🔴 අලුත් handleSubmit (POST එක සඳහා)
   const handleSubmit = async (e: React.FormEvent | React.MouseEvent, isDraft: boolean = false) => {
     e.preventDefault();
-    if (!quizData.timeLimit) return alert("කරුණාකර ප්‍රශ්න පත්‍රයට අදාළ කාල සීමාව ඇතුළත් කරන්න."); 
+    
+    if (!isDraft) {
+      if (quizData.courseIds.length === 0) return alert("කරුණාකර අවම වශයෙන් එක් පාඨමාලාවක් හෝ තෝරන්න.");
+      if (!quizData.timeLimit) return alert("කරුණාකර ප්‍රශ්න පත්‍රයට අදාළ කාල සීමාව ඇතුළත් කරන්න.");
+    }
     
     setIsLoading(true);
     setMessage({ type: "", text: "" });
 
-    // isDraft = true නම් isVisible = false වෙනවා (ළමයින්ට පේන්නේ නෑ)
     const payload = {
       ...quizData,
-      timeLimit: Number(quizData.timeLimit),
+      courseId: quizData.courseIds.length > 0 ? quizData.courseIds[0] : null, 
+      timeLimit: quizData.timeLimit ? Number(quizData.timeLimit) : 0, 
       isVisible: !isDraft 
     };
 
     try {
+      // 🔴 Add Quiz නිසා මෙතන යන්නේ POST request එකක්
       const response = await fetch("/api/admin/quizzes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -182,7 +185,6 @@ export default function AddQuizPage() {
             <div className={`p-6 rounded-xl border ${isDarkMode ? 'bg-slate-900/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
               
               <div className="mb-6">
-                {/* 🔴 අලුත්: Draft බොත්තම */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-3">
                   <label className="block text-sm font-bold">මෙම ප්‍රශ්න පත්‍රය අදාළ වන පාඨමාලා තෝරන්න (Question Bank එකේ පමණක් තැබීමට අවශ්‍ය නම් කිසිවක් නොතෝරා සිටින්න)</label>
                   <button 
@@ -197,7 +199,6 @@ export default function AddQuizPage() {
                 </div>
 
                 <div className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 p-4 rounded-xl border ${inputBg}`}>
-                  {/* 🔴 වෙනස: Loading Animation එකක් දැම්මා */}
                   {isCoursesLoading ? (
                     <p className="text-sm font-bold text-blue-500 animate-pulse col-span-full">පාඨමාලා ගෙනෙමින් පවතී...</p>
                   ) : courses.length > 0 ? (
@@ -272,7 +273,6 @@ export default function AddQuizPage() {
                     <textarea required value={q.questionText} onChange={(e) => handleQuestionTextChange(qIndex, e.target.value)} rows={2} className={`w-full p-3 rounded-xl border outline-none resize-none ${inputBg}`} placeholder="ප්‍රශ්නය මෙහි ටයිප් කරන්න..."></textarea>
                   </div>
                   
-                  {/* 🔴 අලුත්: පින්තූර ලින්ක් එක දාන කොටුව */}
                   <div className="mb-6">
                     <label className="block text-xs font-bold mb-2 text-slate-500">ප්‍රශ්නය සඳහා පින්තූරයක් (Image URL - අත්‍යවශ්‍ය නැත)</label>
                     <input 
@@ -282,6 +282,11 @@ export default function AddQuizPage() {
                       className={`w-full p-2.5 rounded-xl border text-sm outline-none ${inputBg}`} 
                       placeholder="උදා: https://i.imgur.com/your-image.png" 
                     />
+                    {q.imageUrl && (
+                      <div className="mt-3 p-2 bg-slate-100 dark:bg-slate-800 rounded-lg inline-block">
+                         <img src={q.imageUrl} alt={`Question ${qIndex + 1}`} className="max-h-32 object-contain rounded" />
+                      </div>
+                    )}
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pl-0 md:pl-6 border-l-2 border-blue-200 dark:border-blue-900">

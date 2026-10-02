@@ -3,6 +3,7 @@ import mongoose, { Schema, model, models } from "mongoose";
 const QuestionSchema = new Schema({
   questionText: { type: String, required: true },
   options: [{ type: String, required: true }], // පිළිතුරු 4
+  imageUrl: { type: String, default: "" },
   correctOptionIndex: { type: Number, required: true } // නිවැරදි පිළිතුරේ Index එක (0, 1, 2, 3)
 });
 
