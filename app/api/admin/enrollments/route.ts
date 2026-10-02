@@ -3,15 +3,23 @@ import connectToDatabase from "@/lib/mongodb";
 import Enrollment from "@/models/Enrollment";
 import { getCachedData } from "@/lib/cache"; 
 
+// 1. Pending රිසිට්පත් සියල්ල ලබා ගැනීම (වේගවත් කර ඇත)
 export async function GET() {
   try {
     await connectToDatabase();
     
-    // 🔴 පින්තූරය (-slipImage) අතහැර අත්‍යවශ්‍ය දත්ත පමණක් ගෙන ඒම
-    const pendingEnrollments = await Enrollment.find({ status: "pending" })
+    // 🔴 වැදගත්ම කොටස: Database එක වෙනුවට Cache එකෙන් ගැනීම 
+    const pendingEnrollments = await getCachedData(
+      "admin_pending_enrollments_optimized",
+      async () => {
+        return await Enrollment.find({ status: "pending" })
+                               // 🔴 පින්තූරය (-slipImage) අතහැර අත්‍යවශ්‍ය දත්ත පමණක් ගෙන ඒම
                                .select("-slipImage") 
                                .sort({ createdAt: -1 })
                                .lean();
+      },
+      60 // තත්පර 60ක් RAM එකේ තියාගනී (වේගය උපරිම කරයි)
+    );
     
     return NextResponse.json({ enrollments: pendingEnrollments }, { status: 200 });
   } catch (error) {
