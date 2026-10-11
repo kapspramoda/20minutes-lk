@@ -44,6 +44,32 @@ export default function CoursePlayerPage({ params }: PageProps) {
   const [showQualityMenu, setShowQualityMenu] = useState(false);
   const [currentQuality, setCurrentQuality] = useState("auto");
 
+  // 🔴 Controls Auto-hide state
+  const [showControls, setShowControls] = useState(true);
+  const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const resetControlsTimeout = () => {
+    if (isFullscreen) {
+      setShowControls(true);
+      if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+      if (isPlaying) {
+        controlsTimeoutRef.current = setTimeout(() => {
+          setShowControls(false);
+        }, 3000); // තත්පර 3 කින් Controls හැංගෙනවා
+      }
+    }
+  };
+
+  useEffect(() => {
+    resetControlsTimeout();
+    if (!isFullscreen) {
+      setShowControls(true);
+    }
+    return () => {
+      if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+    };
+  }, [isFullscreen, isPlaying]);
+
   useEffect(() => {
     const resolveParams = async () => {
       const resolved = await params;
@@ -465,11 +491,15 @@ export default function CoursePlayerPage({ params }: PageProps) {
           
           <div className="lg:col-span-2 space-y-4 md:space-y-6">
             
-            <div className={isFullscreen ? "fixed inset-0 z-[99999] bg-black w-screen h-[100dvh] flex flex-col justify-center select-none" : "w-full flex flex-col relative rounded-xl md:rounded-2xl overflow-hidden shadow-lg select-none bg-black border border-slate-800"}>
+            <div 
+              className={isFullscreen ? "fixed inset-0 z-[99999] bg-black w-screen h-[100dvh] flex flex-col justify-center select-none" : "w-full flex flex-col relative rounded-xl md:rounded-2xl overflow-hidden shadow-lg select-none bg-black border border-slate-800"}
+              onMouseMove={resetControlsTimeout}
+              onTouchStart={resetControlsTimeout}
+              onClick={resetControlsTimeout}
+            >
               
               <div className="relative w-full flex-grow flex items-center justify-center bg-black aspect-video overflow-hidden group">
                   
-                  {/* 🔴 වෙනස: Video එක crop වෙන එක නවත්වන්න scale අයින් කළා */}
                   <div className={`w-full h-full absolute inset-0 overflow-hidden pointer-events-none ${showZoomIframe ? 'hidden' : 'block'}`}>
                     <div id="yt-player-container" className="w-full h-full pointer-events-none"></div>
                   </div>
@@ -502,7 +532,7 @@ export default function CoursePlayerPage({ params }: PageProps) {
                     </div>
                   )}
                   
-                  <div className={`absolute inset-0 z-[60] cursor-pointer ${showZoomIframe ? 'hidden' : 'block'}`} onClick={togglePlay}>
+                  <div className={`absolute inset-0 z-[60] cursor-pointer ${showZoomIframe ? 'hidden' : 'block'}`} onClick={(e) => { togglePlay(); resetControlsTimeout(); }}>
                     {!isPlaying && activeVideoUrl && (
                         <div className="absolute inset-0 flex items-center justify-center bg-black/40 transition-all">
                           <div className="w-16 h-16 md:w-20 md:h-20 bg-blue-600/90 rounded-full flex items-center justify-center text-white shadow-[0_0_20px_rgba(37,99,235,0.5)] backdrop-blur-md hover:scale-110 transition-transform">
@@ -514,7 +544,10 @@ export default function CoursePlayerPage({ params }: PageProps) {
               </div>
 
               {!showZoomIframe && (
-                <div className={`relative z-[70] p-3 md:p-4 flex flex-col gap-2 ${isFullscreen ? 'bg-slate-900/95 backdrop-blur-md pb-6 absolute bottom-0 left-0 w-full' : isDarkMode ? 'bg-slate-900 border-t border-slate-800' : 'bg-white border-t border-slate-200'}`}>
+                <div 
+                  className={`relative z-[70] p-3 md:p-4 flex flex-col gap-2 transition-transform duration-500 ease-in-out ${isFullscreen ? `bg-slate-900/95 backdrop-blur-md pb-6 absolute bottom-0 left-0 w-full ${!showControls ? 'translate-y-full opacity-0 pointer-events-none' : 'translate-y-0 opacity-100'}` : isDarkMode ? 'bg-slate-900 border-t border-slate-800' : 'bg-white border-t border-slate-200'}`}
+                  onClick={(e) => { e.stopPropagation(); resetControlsTimeout(); }}
+                >
                   
                   <div className="flex items-center gap-2 md:gap-3 w-full px-1 md:px-2">
                       <span className={`text-[10px] md:text-xs font-bold w-9 md:w-10 text-right ${isFullscreen ? 'text-slate-300' : textSecondary}`}>{formatTime(currentTime)}</span>
@@ -717,7 +750,7 @@ export default function CoursePlayerPage({ params }: PageProps) {
             තරග විභාග ජයගැනීමට අවශ්‍ය නිවැරදිම මඟපෙන්වීම ලබාදෙන ශ්‍රී ලංකාවේ ප්‍රමුඛතම මාර්ගගත වේදිකාව.
           </p>
           <p className={`text-[10px] mt-4 font-bold opacity-70 ${textSecondary}`}>
-            Designed and developed by esip.lk
+            designed and developed by esip.lk
           </p>
         </footer>
 
