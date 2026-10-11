@@ -232,7 +232,8 @@ export default function CoursePlayerPage({ params }: PageProps) {
             showinfo: 0,
             fs: 0,
             playsinline: 1,
-            iv_load_policy: 3
+            iv_load_policy: 3,
+            cc_load_policy: 0 // 🔴 වෙනස 1: Subtitles ඉබේම ඔන් වෙන එක නවත්වන්න මේක දැම්මා
           },
           events: {
             onReady: (event: any) => {
@@ -429,6 +430,15 @@ export default function CoursePlayerPage({ params }: PageProps) {
 
   return (
     <div className={`modern-font min-h-screen flex flex-col transition-colors duration-300 ${themeBg}`} onClick={() => showQualityMenu && setShowQualityMenu(false)}>
+      
+      {/* 🔴 වෙනස 2: Iframe එක 100% දිග ඇරෙන්න මේ CSS එක එකතු කළා */}
+      <style>{`
+        #yt-player-container iframe {
+          width: 100% !important;
+          height: 100% !important;
+        }
+      `}</style>
+      
       <header className={`sticky top-0 z-50 w-full border-b backdrop-blur-md ${headerBg}`}>
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 md:px-6 md:py-4">
           <div className="flex items-center gap-2 md:gap-3">
@@ -498,7 +508,8 @@ export default function CoursePlayerPage({ params }: PageProps) {
               onClick={resetControlsTimeout}
             >
               
-              <div className="relative w-full flex-grow flex items-center justify-center bg-black aspect-video overflow-hidden group">
+              {/* 🔴 වෙනස 3: Fullscreen එකේදී 'aspect-video' අයින් වෙලා 'h-full' (තිරයේ උසටම) හැදෙන්න දැම්මා */}
+              <div className={`relative w-full flex-grow flex items-center justify-center bg-black overflow-hidden group ${!isFullscreen ? 'aspect-video' : 'h-full'}`}>
                   
                   <div className={`w-full h-full absolute inset-0 overflow-hidden pointer-events-none ${showZoomIframe ? 'hidden' : 'block'}`}>
                     <div id="yt-player-container" className="w-full h-full pointer-events-none"></div>
@@ -743,7 +754,6 @@ export default function CoursePlayerPage({ params }: PageProps) {
           </div>
         </div>
 
-        {/* 🔴 අලුත් Footer එක */}
         <footer className="mt-10 border-t border-slate-200 dark:border-slate-800 pt-6 pb-2 text-center px-4">
           <p className={`text-sm font-bold ${textPrimary}`}>All right reserved @20minutes.lk</p>
           <p className={`text-xs mt-2 max-w-2xl mx-auto leading-relaxed ${textSecondary}`}>
