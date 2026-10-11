@@ -402,7 +402,7 @@ export default function CoursePlayerPage({ params }: PageProps) {
   const activeSubject = course.subjects?.find((s: any) => (s.subjectId || s._id) === activeSubjectId);
 
   return (
-    <div className={`modern-font min-h-screen transition-colors duration-300 ${themeBg}`} onClick={() => showQualityMenu && setShowQualityMenu(false)}>
+    <div className={`modern-font min-h-screen flex flex-col transition-colors duration-300 ${themeBg}`} onClick={() => showQualityMenu && setShowQualityMenu(false)}>
       <header className={`sticky top-0 z-50 w-full border-b backdrop-blur-md ${headerBg}`}>
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 md:px-6 md:py-4">
           <div className="flex items-center gap-2 md:gap-3">
@@ -419,7 +419,7 @@ export default function CoursePlayerPage({ params }: PageProps) {
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl p-4 md:p-6 lg:p-8 mt-2 md:mt-4 pb-12">
+      <main className="mx-auto flex-grow w-full max-w-7xl p-4 md:p-6 lg:p-8 mt-2 md:mt-4 pb-12">
         {course?.notification && course.notification.trim() !== "" && (
           <div className="mb-6 p-4 md:p-5 bg-yellow-100 dark:bg-amber-900/30 border-2 border-yellow-400 dark:border-amber-600 rounded-xl flex items-start gap-3 shadow-md animate-in fade-in">
             <span className="text-2xl mt-0.5">📢</span>
@@ -469,7 +469,8 @@ export default function CoursePlayerPage({ params }: PageProps) {
               
               <div className="relative w-full flex-grow flex items-center justify-center bg-black aspect-video overflow-hidden group">
                   
-                  <div className={`w-full h-full absolute inset-0 overflow-hidden scale-[1.35] md:scale-[1.3] pointer-events-none ${showZoomIframe ? 'hidden' : 'block'}`}>
+                  {/* 🔴 වෙනස: Video එක crop වෙන එක නවත්වන්න scale අයින් කළා */}
+                  <div className={`w-full h-full absolute inset-0 overflow-hidden pointer-events-none ${showZoomIframe ? 'hidden' : 'block'}`}>
                     <div id="yt-player-container" className="w-full h-full pointer-events-none"></div>
                   </div>
 
@@ -608,7 +609,6 @@ export default function CoursePlayerPage({ params }: PageProps) {
                 </div>
                 
                 <div className="flex flex-wrap items-center gap-3">
-                  {/* 🔴 අලුත්: YouTube සහ Zoom දෙකම තියෙනවා නම් Player එක මාරු කරන්න බොත්තමක් */}
                   {activeZoomLink && activeZoomLink.trim() !== "" && activeVideoUrl && activeVideoUrl.trim() !== "" && (
                     <button 
                       onClick={() => setShowZoomIframe(!showZoomIframe)}
@@ -708,8 +708,19 @@ export default function CoursePlayerPage({ params }: PageProps) {
               )}
             </div>
           </div>
-
         </div>
+
+        {/* 🔴 අලුත් Footer එක */}
+        <footer className="mt-10 border-t border-slate-200 dark:border-slate-800 pt-6 pb-2 text-center px-4">
+          <p className={`text-sm font-bold ${textPrimary}`}>All right reserved @20minutes.lk</p>
+          <p className={`text-xs mt-2 max-w-2xl mx-auto leading-relaxed ${textSecondary}`}>
+            තරග විභාග ජයගැනීමට අවශ්‍ය නිවැරදිම මඟපෙන්වීම ලබාදෙන ශ්‍රී ලංකාවේ ප්‍රමුඛතම මාර්ගගත වේදිකාව.
+          </p>
+          <p className={`text-[10px] mt-4 font-bold opacity-70 ${textSecondary}`}>
+            Designed and developed by esip.lk
+          </p>
+        </footer>
+
       </main>
     </div>
   );
