@@ -760,7 +760,7 @@ export default function CoursePlayerPage({ params }: PageProps) {
             තරග විභාග ජයගැනීමට අවශ්‍ය නිවැරදිම මඟපෙන්වීම ලබාදෙන ශ්‍රී ලංකාවේ ප්‍රමුඛතම මාර්ගගත වේදිකාව.
           </p>
           <p className={`text-[10px] mt-4 font-bold opacity-70 ${textSecondary}`}>
-            designed and developed by esip.lk
+            Designed and developed by esip.lk
           </p>
         </footer>
 
