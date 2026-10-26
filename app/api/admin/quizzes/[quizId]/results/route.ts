@@ -8,16 +8,13 @@ const connectDB = async () => {
   await mongoose.connect(process.env.MONGODB_URI as string);
 };
 
-export async function GET(req: Request, { params }: { params: Promise<{ id: string }> | { id: string } }) {
+export async function GET(req: Request, { params }: { params: Promise<{ quizId: string }> | { quizId: string } }) {
   try {
     await connectDB();
     const resolvedParams = await params;
-    const quizId = resolvedParams.id;
+    const quizId = resolvedParams.quizId; // මෙතන id වෙනුවට quizId ලෙස ලබා ගනී
 
-    const results = await QuizResult.find({ quizId })
-      .sort({ score: -1 })
-      .lean();
-
+    const results = await QuizResult.find({ quizId }).sort({ score: -1 }).lean();
     const userPhones = results.map(r => r.userPhone);
     const users = await User.find({ phone: { $in: userPhones } }).select("phone name").lean();
     
@@ -28,7 +25,6 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 
     const rankedResults = results.map((result: any, index: number) => {
       const percentageScore = Math.round((result.score / result.totalQuestions) * 100);
-
       return {
         _id: result._id,
         rank: index + 1,
