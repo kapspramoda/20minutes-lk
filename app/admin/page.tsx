@@ -5,7 +5,6 @@ import { signOut, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
-// 🔴 අලුත් කොටස: රිසිට්පත හිමින් ලෝඩ් කිරීම සඳහා වෙනම Component එකක්
 function SlipPreview({ enrollmentId, onEnlarge }: { enrollmentId: string, onEnlarge: (slip: string) => void }) {
   const [slipData, setSlipData] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -55,15 +54,13 @@ function SlipPreview({ enrollmentId, onEnlarge }: { enrollmentId: string, onEnla
     </div>
   );
 }
-// 🔴 අලුත් කොටස අවසන්
 
 export default function AdminDashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [isDarkMode, setIsDarkMode] = useState(false);
   
-  // 🔴 වෙනස: Default load වෙන Tab එක "courses" විදිහට වෙනස් කළා
-  const [activeTab, setActiveTab] = useState<"approvals" | "courses" | "quizzes" | "students" | "passwords">("courses");
+  const [activeTab, setActiveTab] = useState<"approvals" | "courses" | "quizzes" | "students" | "passwords" | "exam-results">("courses");
   
   const [pendingApprovals, setPendingApprovals] = useState<any[]>([]);
   const [isLoadingApprovals, setIsLoadingApprovals] = useState(true);
@@ -98,10 +95,14 @@ export default function AdminDashboard() {
   const [scheduleDate, setScheduleDate] = useState("");
   const [isSavingSchedule, setIsSavingSchedule] = useState(false);
 
+  // විභාග ප්‍රතිඵල සඳහා State
+  const [selectedQuizForResults, setSelectedQuizForResults] = useState<any>(null);
+  const [quizResults, setQuizResults] = useState<any[]>([]);
+  const [isLoadingResults, setIsLoadingResults] = useState(false);
+
   useEffect(() => {
     if (document.documentElement.classList.contains("dark")) setIsDarkMode(true);
     
-    // 🔴 එකවර දත්ත සියල්ල වේගයෙන් ගෙන්වා ගැනීම (Parallel Fetching)
     const loadAdminDataFast = async () => {
       try {
         await Promise.all([
@@ -173,6 +174,26 @@ export default function AdminDashboard() {
       const data = await res.json();
       if (res.ok) setPasswordRequests(data.data || []);
     } catch (error) { console.error(error); }
+  };
+
+  const handleViewResults = async (quiz: any) => {
+    setSelectedQuizForResults(quiz);
+    setIsLoadingResults(true);
+    try {
+      const res = await fetch(`/api/admin/quizzes/${quiz._id}/results`);
+      const data = await res.json();
+      if (res.ok) {
+        setQuizResults(data.data || []);
+      } else {
+        alert("ප්‍රතිඵල ලබාගැනීමේදී දෝෂයක් මතු විය.");
+        setQuizResults([]);
+      }
+    } catch (error) {
+      console.error(error);
+      alert("තාක්ෂණික දෝෂයක්.");
+    } finally {
+      setIsLoadingResults(false);
+    }
   };
 
   const todaysIncome = useMemo(() => {
@@ -470,7 +491,7 @@ export default function AdminDashboard() {
           </div>
           <div className="flex items-center space-x-3 md:space-x-5 flex-shrink-0">
             <button onClick={toggleTheme} className={`rounded-full p-2 transition-colors focus:outline-none ${isDarkMode ? 'bg-slate-800 text-yellow-400' : 'bg-slate-100 text-slate-600'}`}>
-              {isDarkMode ? <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" /></svg> : <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>}
+              {isDarkMode ? '🌞' : '🌙'}
             </button>
             <button onClick={() => signOut({ callbackUrl: "/" })} className="rounded-full bg-red-500/10 border border-red-500/50 px-4 py-1.5 text-xs md:text-sm font-semibold text-red-500 transition hover:bg-red-50 hover:text-white">
               ඉවත් වන්න
@@ -499,7 +520,6 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* 🔴 වෙනස: Tabs වල පෙළගැස්ම වෙනස් කළා සහ රතු පාට Notification එක දැම්මා */}
         <div className="flex space-x-2 mb-6 overflow-x-auto pb-2 [&::-webkit-scrollbar]:hidden">
           <button onClick={() => setActiveTab("courses")} className={`px-5 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all ${activeTab === "courses" ? tabActive : tabInactive}`}>
             පාඨමාලා කළමනාකරණය
@@ -511,6 +531,12 @@ export default function AdminDashboard() {
           <button onClick={() => setActiveTab("quizzes")} className={`px-5 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all ${activeTab === "quizzes" ? tabActive : tabInactive}`}>
             විභාග කළමනාකරණය
           </button>
+          
+          {/* Exam Results Tab Button */}
+          <button onClick={() => { setActiveTab("exam-results"); setSelectedQuizForResults(null); }} className={`px-5 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all ${activeTab === "exam-results" ? tabActive : tabInactive}`}>
+            විභාග ප්‍රතිඵල (Marks)
+          </button>
+
           <button onClick={() => setActiveTab("students")} className={`px-5 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all ${activeTab === "students" ? tabActive : tabInactive}`}>
             සිසුන්ගේ විස්තර
           </button>
@@ -670,6 +696,111 @@ export default function AdminDashboard() {
                   );
                 })}
               </div>
+            )}
+          </div>
+        )}
+
+        {/* --- Exam Results Tab (අලුත් කොටස) --- */}
+        {activeTab === "exam-results" && (
+          <div className="animate-in fade-in duration-300">
+            {!selectedQuizForResults ? (
+              <>
+                <div className="mb-6">
+                  <h2 className={`text-xl font-bold ${textPrimary}`}>සිසුන්ගේ විභාග ප්‍රතිඵල (Exam Results)</h2>
+                  <p className={`text-sm ${textSecondary}`}>ප්‍රතිඵල බැලීම සඳහා පහතින් ප්‍රශ්න පත්‍රයක් තෝරන්න.</p>
+                </div>
+                {isLoadingQuizzes ? (
+                  <div className="text-center py-10 text-slate-500 font-bold animate-pulse">විභාග ලබාගනිමින් පවතී...</div>
+                ) : (quizzes || []).length === 0 ? (
+                  <div className={`p-10 rounded-3xl border text-center ${cardBg}`}>
+                    <h3 className={`text-lg font-bold ${textPrimary}`}>තවමත් විභාග කිසිවක් සාදා නැත!</h3>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {(quizzes || []).map((quiz) => {
+                      const linkedCourse = (courses || []).find(c => c._id === quiz.courseId);
+                      return (
+                        <div key={quiz._id} className={`p-6 rounded-2xl border shadow-sm flex flex-col hover:shadow-md transition-shadow cursor-pointer ${cardBg}`} onClick={() => handleViewResults(quiz)}>
+                          <div className="mb-4">
+                            <span className="text-xs font-bold bg-blue-100 text-blue-700 px-3 py-1 rounded-full truncate max-w-full inline-block">
+                              {linkedCourse ? linkedCourse.title : "Course Not Found"}
+                            </span>
+                          </div>
+                          <h3 className={`text-lg font-bold ${textPrimary} mb-2`}>{quiz.title}</h3>
+                          <p className={`text-sm font-bold ${textSecondary}`}>ප්‍රශ්න ගණන: {quiz.questions?.length || 0}</p>
+                          <div className="mt-6">
+                            <button className="w-full bg-blue-50 hover:bg-blue-600 text-blue-600 hover:text-white border border-blue-200 py-2.5 rounded-xl text-sm font-bold transition-all">
+                              ප්‍රතිඵල බලන්න (View Results) &rarr;
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
+                  <div>
+                    <button onClick={() => setSelectedQuizForResults(null)} className={`text-sm font-bold px-4 py-2 rounded-lg mb-3 transition-colors ${isDarkMode ? 'bg-slate-700 hover:bg-slate-600' : 'bg-slate-200 hover:bg-slate-300'}`}>
+                      &larr; ආපසු (Back)
+                    </button>
+                    <h2 className={`text-xl font-bold ${textPrimary}`}>{selectedQuizForResults.title} - ප්‍රතිඵල</h2>
+                    <p className={`text-sm font-bold text-blue-500 mt-1`}>{(courses || []).find(c => c._id === selectedQuizForResults.courseId)?.title}</p>
+                  </div>
+                  <div className="flex gap-3">
+                    <div className={`px-4 py-2 rounded-xl border shadow-sm font-bold text-sm flex items-center gap-2 ${cardBg}`}>
+                      <span>සමඟභාගී වූ සිසුන්:</span>
+                      <span className="text-blue-600 text-lg">{quizResults.length}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {isLoadingResults ? (
+                  <div className="text-center py-10 text-slate-500 font-bold animate-pulse">ප්‍රතිඵල ගෙනෙමින් පවතී...</div>
+                ) : quizResults.length === 0 ? (
+                  <div className={`p-10 rounded-3xl border text-center ${cardBg}`}>
+                    <h3 className={`text-lg font-bold ${textPrimary}`}>මෙම විභාගය සඳහා තවමත් කිසිදු සිසුවෙකු මුහුණ දී නැත.</h3>
+                  </div>
+                ) : (
+                  <div className={`rounded-2xl border overflow-hidden shadow-sm ${cardBg}`}>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-sm">
+                        <thead className={`text-xs uppercase font-bold border-b ${isDarkMode ? 'bg-slate-800 text-slate-400 border-slate-700' : 'bg-slate-50 text-slate-500 border-slate-200'}`}>
+                          <tr>
+                            <th className="px-6 py-4">ස්ථානය (Rank)</th>
+                            <th className="px-6 py-4">සිසුවාගේ නම</th>
+                            <th className="px-6 py-4">දුරකථන අංකය</th>
+                            <th className="px-6 py-4 text-center">ලකුණු (Score)</th>
+                            <th className="px-6 py-4 text-right">ගත වූ කාලය</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
+                          {quizResults.map((result, idx) => (
+                            <tr key={result._id || idx} className={`transition-colors ${isDarkMode ? 'hover:bg-slate-700/50' : 'hover:bg-slate-50'}`}>
+                              <td className="px-6 py-4 font-extrabold">
+                                {result.rank === 1 ? <span className="text-amber-500 flex items-center gap-1">🥇 1 වන ස්ථානය</span> :
+                                 result.rank === 2 ? <span className="text-slate-400 flex items-center gap-1">🥈 2 වන ස්ථානය</span> :
+                                 result.rank === 3 ? <span className="text-amber-700 flex items-center gap-1">🥉 3 වන ස්ථානය</span> :
+                                 <span className={textSecondary}>{result.rank} වන ස්ථානය</span>}
+                              </td>
+                              <td className={`px-6 py-4 font-bold ${textPrimary}`}>{result.userId?.name || "Unknown"}</td>
+                              <td className={`px-6 py-4 font-bold text-blue-500`}>{result.userId?.phone || result.userPhone || "N/A"}</td>
+                              <td className={`px-6 py-4 font-extrabold text-center text-lg ${result.score > 50 ? 'text-emerald-500' : 'text-red-500'}`}>
+                                {result.score}%
+                              </td>
+                              <td className={`px-6 py-4 text-right font-bold ${textSecondary}`}>
+                                {result.timeTaken ? `${Math.floor(result.timeTaken / 60)}m ${result.timeTaken % 60}s` : "N/A"}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}
@@ -939,5 +1070,3 @@ export default function AdminDashboard() {
     </div>
   );
 }
-
-
