@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 import User from "@/models/User";
 import PasswordReset from "@/models/PasswordReset";
 import bcrypt from "bcryptjs"; 
-import { getCachedData } from "@/lib/cache"; // 🔴 අලුතින් එකතු කළා
+import { getCachedData } from "@/lib/cache";
 
 const connectDB = async () => {
   if (mongoose.connection.readyState >= 1) return;
@@ -37,8 +37,43 @@ export async function PATCH(req: Request) {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(newPasswordPlain, salt);
 
+    // Database යාවත්කාලීන කිරීම
     await User.updateOne({ phone }, { $set: { password: hashedPassword } });
     await PasswordReset.findByIdAndUpdate(id, { status: "approved" });
+
+    // --- SMS යැවීමේ කොටස ආරම්භය ---
+    if (phone && newPasswordPlain) {
+      let formattedPhone = phone;
+      
+      // දුරකථන අංකය 947XXXXXXXX ෆෝමැට් එකට හැරවීම
+      if (formattedPhone.startsWith('0')) {
+        formattedPhone = '94' + formattedPhone.substring(1);
+      } else if (!formattedPhone.startsWith('94')) {
+        formattedPhone = '94' + formattedPhone;
+      }
+
+      const message = `ආයුබෝවන්, ඔබගේ 20minutes.lk ගිණුමේ මුරපදය සාර්ථකව වෙනස් කර ඇත.\n\nදුරකථන අංකය: ${phone}\nනව මුරපදය: ${newPasswordPlain}\n\nලොග් වීමට: https://www.20minutes.lk/`;
+
+      try {
+        await fetch("https://app.text.lk/api/v3/sms/send", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${process.env.TEXTLK_API_TOKEN}`,
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+          },
+          body: JSON.stringify({
+            recipient: formattedPhone,
+            sender_id: process.env.TEXTLK_SENDER_ID || "Text.lk",
+            message: message
+          })
+        });
+        console.log("Password Reset SMS Sent to", formattedPhone);
+      } catch (smsError) {
+        console.error("SMS යැවීමේ දෝෂයක්:", smsError);
+      }
+    }
+    // --- SMS යැවීමේ කොටස අවසානය ---
 
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (error: any) {

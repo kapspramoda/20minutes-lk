@@ -394,8 +394,9 @@ export default function AdminDashboard() {
     }
   };
 
+  // SMS යැවීම සඳහා යාවත්කාලීන කළ handleApprovePassword කේතය
   const handleApprovePassword = async (req: any) => {
-    const confirmApprove = window.confirm(`${req.phone} අංකයට අලුත් මුරපදය අනුමත කර WhatsApp පණිවිඩය යැවීමට අවශ්‍යද?`);
+    const confirmApprove = window.confirm(`${req.phone} අංකයට අලුත් මුරපදය අනුමත කර SMS පණිවිඩය යැවීමට අවශ්‍යද?`);
     if (!confirmApprove) return;
 
     try {
@@ -407,12 +408,7 @@ export default function AdminDashboard() {
 
       if (res.ok) {
         setPasswordRequests(prev => prev.filter(r => r._id !== req._id));
-        let formattedPhone = req.phone;
-        if (formattedPhone.startsWith('0')) {
-          formattedPhone = '94' + formattedPhone.substring(1);
-        }
-        const msg = `ආයුබෝවන්, ඔබගේ 20minutes.lk ගිණුමේ මුරපදය සාර්ථකව වෙනස් කර ඇත.\n\n📱 දුරකථන අංකය: ${req.phone}\n🔑 නව මුරපදය: ${req.newPasswordPlain}\n\nකරුණාකර පහත සබැඳියෙන් ලොග් වන්න:\nhttps://www.20minutes.lk/`;
-        window.open(`https://wa.me/${formattedPhone}?text=${encodeURIComponent(msg)}`, '_blank');
+        alert("මුරපදය සාර්ථකව අනුමත කර සිසුවා වෙත SMS පණිවිඩය යවන ලදී!");
       } else {
         alert("මුරපදය යාවත්කාලීන කිරීම අසාර්ථකයි.");
       }
