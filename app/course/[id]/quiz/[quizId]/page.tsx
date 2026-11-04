@@ -15,7 +15,7 @@ export default function StudentExamPage({ params }: PageProps) {
   const [quiz, setQuiz] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   
-  // අලුත් States: විභාගයේ පියවර සහ කාලය
+  // විභාගයේ පියවර සහ කාලය
   const [step, setStep] = useState<"instructions" | "playing" | "results">("instructions");
   const [hasAgreed, setHasAgreed] = useState(false);
   const [timeLeft, setTimeLeft] = useState(0); 
@@ -32,8 +32,14 @@ export default function StudentExamPage({ params }: PageProps) {
         const data = await res.json();
         if (res.ok && data.data) {
           setQuiz(data.data);
-          // එක් ප්‍රශ්නයකට විනාඩි 2 බැගින් කාලය ලබා දීම (තත්පර වලින්)
-          setTimeLeft(data.data.questions.length * 120); 
+          
+          // 🔴 අලුත් වෙනස: Admin දුන් වෙලාව (duration) විනාඩි වලින් තිබේ නම් එය තත්පර බවට පත් කිරීම.
+          // ලබා දී නොමැති නම් පමණක් පැරණි ක්‍රමයට (ප්‍රශ්නයකට විනාඩි 2 බැගින්) හැදීම.
+          const durationInSeconds = data.data.duration 
+            ? data.data.duration * 60 
+            : data.data.questions.length * 120;
+            
+          setTimeLeft(durationInSeconds); 
         }
       } catch (error) { 
         console.error(error); 
@@ -151,7 +157,8 @@ export default function StudentExamPage({ params }: PageProps) {
               </li>
               <li className="flex items-start gap-3">
                 <span className="text-blue-500 mt-0.5">✔️</span>
-                ඔබට හිමිවන මුළු කාලය විනාඩි <b>{quiz.questions.length * 2}</b> කි.
+                {/* 🔴 අලුත් වෙනස: නිවැරදි විනාඩි ගණන පෙන්වීම */}
+                ඔබට හිමිවන මුළු කාලය විනාඩි <b>{quiz.duration || quiz.questions.length * 2}</b> කි.
               </li>
               <li className="flex items-start gap-3">
                 <span className="text-red-500 mt-0.5">⚠️</span>
@@ -178,7 +185,6 @@ export default function StudentExamPage({ params }: PageProps) {
               🚀 විභාගය අරඹන්න (Start Quiz)
             </button>
 
-            {/* 🔴 අලුත් PDF බටන් එක (උපදෙස් පිටුවේ) */}
             {quiz.pdfUrl && (
               <a 
                 href={quiz.pdfUrl} 
@@ -208,7 +214,6 @@ export default function StudentExamPage({ params }: PageProps) {
                 
                 <p className="text-sm font-bold text-slate-400 border-t pt-4">පහතින් ඔබගේ හරි/වැරදි පිළිතුරු පරීක්ෂා කර බලන්න 👇</p>
                 
-                {/* 🔴 අලුත් PDF බටන් එක (ප්‍රතිඵල පිටුවේ) */}
                 {quiz.pdfUrl && (
                   <div className="mt-5 flex justify-center">
                     <a 
@@ -232,7 +237,6 @@ export default function StudentExamPage({ params }: PageProps) {
                     <span className="text-blue-500 mr-2">{qIdx + 1}.</span> {q.questionText}
                   </h3>
                   
-                  {/* 🔴 අලුතින් එකතු කළ කොටස: පින්තූරයක් තිබේ නම් එය පෙන්වීම */}
                   {q.imageUrl && (
                     <div className="my-5 flex justify-center md:justify-start">
                       <img 
@@ -242,7 +246,6 @@ export default function StudentExamPage({ params }: PageProps) {
                       />
                     </div>
                   )}
-                  {/* 🔴 පින්තූර කොටස අවසන් */}
 
                   <div className="grid grid-cols-1 gap-3">
                     {q.options.map((option: string, oIdx: number) => {
@@ -253,22 +256,20 @@ export default function StudentExamPage({ params }: PageProps) {
                       let indicator = String.fromCharCode(65 + oIdx);
                       let indicatorStyle = "bg-slate-100 text-slate-600";
                       
-                      // පිළිතුරු සපයන අවස්ථාවේදී
                       if (step === "playing" && isSelected) {
                         optionStyle = "border-blue-500 bg-blue-50/50 text-blue-800 font-bold";
                         indicatorStyle = "bg-blue-600 text-white";
                       }
                       
-                      // ප්‍රතිඵල පෙන්වන අවස්ථාවේදී (Colors)
                       if (step === "results") {
                         if (isCorrectAnswer) {
                           optionStyle = "border-green-500 bg-green-50 text-green-800 font-bold ring-1 ring-green-500";
                           indicatorStyle = "bg-green-500 text-white";
-                          indicator = "✓"; // හරි එකට හරි ලකුණ
+                          indicator = "✓"; 
                         } else if (isSelected && !isCorrectAnswer) {
                           optionStyle = "border-red-400 bg-red-50 text-red-800 font-bold";
                           indicatorStyle = "bg-red-500 text-white";
-                          indicator = "✕"; // වැරදි එකට කතිරය
+                          indicator = "✕"; 
                         } else {
                           optionStyle = "border-slate-100 bg-white opacity-50 text-slate-500 cursor-not-allowed";
                         }
