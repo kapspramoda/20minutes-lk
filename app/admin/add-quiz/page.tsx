@@ -97,7 +97,6 @@ export default function AddQuizPage() {
     setQuizData({ ...quizData, questions: updated });
   };
 
-  // 🔴 අලුත් handleSubmit (POST එක සඳහා)
   const handleSubmit = async (e: React.FormEvent | React.MouseEvent, isDraft: boolean = false) => {
     e.preventDefault();
     
@@ -109,15 +108,14 @@ export default function AddQuizPage() {
     setIsLoading(true);
     setMessage({ type: "", text: "" });
 
+    // 🔴 වෙනස: අලුත් Schema එකට ගැළපෙන පරිදි courseId ඉවත් කර, quizData හි ඇති සම්පූර්ණ courseIds එකම යැවීම
     const payload = {
       ...quizData,
-      courseId: quizData.courseIds.length > 0 ? quizData.courseIds[0] : null, 
       timeLimit: quizData.timeLimit ? Number(quizData.timeLimit) : 0, 
       isVisible: !isDraft 
     };
 
     try {
-      // 🔴 Add Quiz නිසා මෙතන යන්නේ POST request එකක්
       const response = await fetch("/api/admin/quizzes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
