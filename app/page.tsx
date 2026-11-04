@@ -43,6 +43,7 @@ export default function HomePage() {
   ];
 
   const slides = [
+    { id: 0, title: "20minutes.lk වෙත සාදරයෙන් පිළිගනිමු", subtitle: "ඔබගේ අනාගතය වෙනුවෙන් හොඳම තීරණය අදම ගන්න.", btnText: "දැන්ම එක්වන්න", image: "/IMG_3741.JPG.jpeg" },
     { id: 1, title: "ඔබේ සිහිනය සැබෑ කරන හොඳම මාර්ගගත වේදිකාව", subtitle: "කෙටි කාලයකින් වැඩි විෂය කරුණු ප්‍රමාණයක් අවබෝධ කරගනිමින් තරග විභාග ජයගන්න.", btnText: "දැන්ම එක්වන්න", image: "/slide1.jpg" },
     { id: 2, title: "2023 වසරේ විශිෂ්ටතම ප්‍රතිඵල", subtitle: "LLB ප්‍රවේශ විභාගයෙන් දිවයිනේ ඉහළම සාමාර්ථ ලබාගත් අපගේ සිසුන්.", btnText: "ප්‍රතිඵල බලන්න", image: "/slide2.jpg" },
     { id: 3, title: "විශේෂ වට්ටම් සහිතයි!", subtitle: "මෙම දීමනාව සීමිත කාලයක් සඳහා පමණි.", btnText: "වට්ටම ලබාගන්න", image: "/slide3.jpg" }
@@ -268,7 +269,7 @@ export default function HomePage() {
                     <img 
                       src={slide.image} 
                       alt={slide.title} 
-                      className="absolute inset-0 h-full w-full object-cover z-0 pointer-events-none" 
+                      className="absolute inset-0 h-full w-full object-contain md:object-cover z-0 pointer-events-none" 
                       onError={(e) => { e.currentTarget.src = "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=1920&auto=format&fit=crop"; }} 
                     />
                     <div className={`absolute inset-0 z-0 transition-colors duration-300 pointer-events-none ${isDarkMode ? 'bg-slate-950/80' : 'bg-slate-900/65'}`}></div>
@@ -568,7 +569,7 @@ export default function HomePage() {
               
               <div className="mt-6 flex space-x-5">
                 <a href="https://www.facebook.com/share/1D4uc4UiGn/?mibextid=wwXIfr" target="_blank" rel="noreferrer" className="text-slate-400 hover:text-blue-500 transition-colors" title="Facebook">
-                 
+                  
                 </a>
                 <a href="https://youtube.com/@20minuteslk?si=YhilxLi7_6FPuk9X" target="_blank" rel="noreferrer" className="text-slate-400 hover:text-red-500 transition-colors" title="YouTube">
                   <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path fillRule="evenodd" d="M19.812 5.418c.861.23 1.538.907 1.768 1.768C21.998 8.746 22 12 22 12s0 3.255-.418 4.814a2.504 2.504 0 0 1-1.768 1.768c-1.56.419-7.814.419-7.814.419s-6.255 0-7.814-.419a2.505 2.505 0 0 1-1.768-1.768C2 15.255 2 12 2 12s0-3.255.417-4.814a2.507 2.507 0 0 1 1.768-1.768C5.744 5 11.998 5 11.998 5s6.255 0 7.814.418ZM15.194 12 10 15V9l5.194 3Z" clipRule="evenodd" /></svg>
@@ -587,7 +588,7 @@ export default function HomePage() {
                   ලොග් වන්න (Login)
                 </button>
                 <button onClick={() => changeViewAndScrollTop("register")} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-colors shadow-lg">
-                  ලියාපදිංචষ্ঠ වන්න (Register)
+                  ලියාපදිංචි වන්න (Register)
                 </button>
               </div>
             </div>
