@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
@@ -199,30 +200,37 @@ export default function AdminDashboard() {
     }
   };
 
-  // 🔴 අලුත් කොටස: තෝරාගත් පාඨමාලාවට අනුව ලකුණු ෆිල්ටර් කර රෑන්ක් කිරීම (Recalculate Ranks)
+  // 🔴 Update කළ කොටස: Phone number ෆෝමැට් එක ගළපා පාඨමාලාව Filter කිරීම
   const displayedQuizResults = useMemo(() => {
     let filtered = [...quizResults];
     
     if (resultCourseFilter !== "ALL") {
-      // තෝරාගත් පාඨමාලාවේ සිටින සිසුන්ගේ දුරකථන අංක ලැයිස්තුවක් සෑදීම
-      const validPhones = (approvedStudents || [])
-        .filter(s => s.courseId === resultCourseFilter || s.courseTitle === resultCourseFilter)
-        .map(s => s.userPhone);
+      // Phone number එකේ අන්තිම ඉලක්කම් 9 පමණක් ලබා ගන්නා ෆන්ක්ෂන් එක
+      const getCorePhone = (p: string | undefined | null) => {
+        if (!p) return "";
+        const cleanPhone = p.toString().replace(/\s+/g, '');
+        return cleanPhone.slice(-9); 
+      };
 
-      // එම පාඨමාලාවේ සිටින සිසුන්ගේ ප්‍රතිඵල පමණක් වෙන්කර ගැනීම
+      // Select කළ පාඨමාලාවේ ඉන්න ළමයින්ගේ අංක වල අවසන් ඉලක්කම් 9 ලබා ගැනීම
+      const validCorePhones = (approvedStudents || [])
+        .filter(s => s.courseId === resultCourseFilter || s.courseTitle === resultCourseFilter)
+        .map(s => getCorePhone(s.userPhone));
+
+      // ප්‍රතිඵල ලැයිස්තුවේ ඉන්න ළමයින්ව Filter කිරීම
       filtered = filtered.filter(res => {
-        const phone = res.userId?.phone || res.userPhone;
-        return validPhones.includes(phone);
+        const resultPhone = getCorePhone(res.userId?.phone || res.userPhone);
+        return validCorePhones.includes(resultPhone);
       });
     }
 
-    // ලකුණු (Score) අනුව සහ ගතකළ කාලය (Time) අනුව නැවත Sort කිරීම
+    // ලකුණු (Score) සහ ගතවූ කාලය (TimeTaken) අනුව Sort කිරීම
     filtered.sort((a, b) => {
       if (b.score !== a.score) return b.score - a.score;
       return (a.timeTaken || Number.MAX_SAFE_INTEGER) - (b.timeTaken || Number.MAX_SAFE_INTEGER);
     });
 
-    // Sort කළ පසුව 1, 2, 3 ලෙස අලුතින් Rank එකක් ලබා දීම
+    // Sort කළ පසු 1, 2, 3 ලෙස රෑන්ක් ලබා දීම
     return filtered.map((res, index) => ({
       ...res,
       calculatedRank: index + 1
@@ -811,7 +819,7 @@ export default function AdminDashboard() {
                   <div className={`rounded-2xl border overflow-hidden shadow-sm ${cardBg}`}>
                     <div className="overflow-x-auto">
                       <table className="w-full text-left text-sm">
-                        <thead className={`text-xs uppercase font-bold border-b ${isDarkMode ? 'bg-slate-800 text-slate-400 border-slate-700' : 'bg-slate-50 text-slate-500 border-slate-200'}`}>
+                        <thead className={`text-xs uppercase font-bold border-b ${isDarkMode ? 'bg-slate-800 text-slate-400 border-slate-700' : 'bg-slate-50 text-slate-50 border-slate-200'}`}>
                           <tr>
                             <th className="px-6 py-4">ස්ථානය (Rank)</th>
                             <th className="px-6 py-4">සිසුවාගේ නම</th>
