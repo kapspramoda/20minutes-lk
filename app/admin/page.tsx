@@ -99,6 +99,8 @@ export default function AdminDashboard() {
   const [selectedQuizForResults, setSelectedQuizForResults] = useState<any>(null);
   const [quizResults, setQuizResults] = useState<any[]>([]);
   const [isLoadingResults, setIsLoadingResults] = useState(false);
+  // 🔴 අලුත් State එක: ප්‍රතිඵල Course එක අනුව ෆිල්ටර් කිරීමට
+  const [resultCourseFilter, setResultCourseFilter] = useState<string>("ALL");
 
   useEffect(() => {
     if (document.documentElement.classList.contains("dark")) setIsDarkMode(true);
@@ -178,6 +180,7 @@ export default function AdminDashboard() {
 
   const handleViewResults = async (quiz: any) => {
     setSelectedQuizForResults(quiz);
+    setResultCourseFilter("ALL"); // අලුත් Quiz එකක් තේරූ විට ෆිල්ටරය රීසෙට් වීම
     setIsLoadingResults(true);
     try {
       const res = await fetch(`/api/admin/quizzes/${quiz._id}/results`);
@@ -195,6 +198,36 @@ export default function AdminDashboard() {
       setIsLoadingResults(false);
     }
   };
+
+  // 🔴 අලුත් කොටස: තෝරාගත් පාඨමාලාවට අනුව ලකුණු ෆිල්ටර් කර රෑන්ක් කිරීම (Recalculate Ranks)
+  const displayedQuizResults = useMemo(() => {
+    let filtered = [...quizResults];
+    
+    if (resultCourseFilter !== "ALL") {
+      // තෝරාගත් පාඨමාලාවේ සිටින සිසුන්ගේ දුරකථන අංක ලැයිස්තුවක් සෑදීම
+      const validPhones = (approvedStudents || [])
+        .filter(s => s.courseId === resultCourseFilter || s.courseTitle === resultCourseFilter)
+        .map(s => s.userPhone);
+
+      // එම පාඨමාලාවේ සිටින සිසුන්ගේ ප්‍රතිඵල පමණක් වෙන්කර ගැනීම
+      filtered = filtered.filter(res => {
+        const phone = res.userId?.phone || res.userPhone;
+        return validPhones.includes(phone);
+      });
+    }
+
+    // ලකුණු (Score) අනුව සහ ගතකළ කාලය (Time) අනුව නැවත Sort කිරීම
+    filtered.sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      return (a.timeTaken || Number.MAX_SAFE_INTEGER) - (b.timeTaken || Number.MAX_SAFE_INTEGER);
+    });
+
+    // Sort කළ පසුව 1, 2, 3 ලෙස අලුතින් Rank එකක් ලබා දීම
+    return filtered.map((res, index) => ({
+      ...res,
+      calculatedRank: index + 1
+    }));
+  }, [quizResults, resultCourseFilter, approvedStudents]);
 
   const todaysIncome = useMemo(() => {
     const today = new Date().toDateString();
@@ -394,7 +427,6 @@ export default function AdminDashboard() {
     }
   };
 
-  // SMS යැවීම සඳහා යාවත්කාලීන කළ handleApprovePassword කේතය
   const handleApprovePassword = async (req: any) => {
     const confirmApprove = window.confirm(`${req.phone} අංකයට අලුත් මුරපදය අනුමත කර SMS පණිවිඩය යැවීමට අවශ්‍යද?`);
     if (!confirmApprove) return;
@@ -528,7 +560,6 @@ export default function AdminDashboard() {
             විභාග කළමනාකරණය
           </button>
           
-          {/* Exam Results Tab Button */}
           <button onClick={() => { setActiveTab("exam-results"); setSelectedQuizForResults(null); }} className={`px-5 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all ${activeTab === "exam-results" ? tabActive : tabInactive}`}>
             විභාග ප්‍රතිඵල (Marks)
           </button>
@@ -663,13 +694,17 @@ export default function AdminDashboard() {
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {(quizzes || []).map((quiz) => {
-                  const linkedCourse = (courses || []).find(c => c._id === quiz.courseId);
                   return (
                     <div key={quiz._id} className={`p-5 rounded-2xl border shadow-sm flex flex-col ${cardBg}`}>
                       <div className="flex justify-between items-start mb-4">
                         <div>
                           <h3 className={`text-lg font-bold ${textPrimary} pr-4`}>{quiz.title}</h3>
-                          <p className="text-sm font-bold text-purple-500 mt-1">{linkedCourse ? linkedCourse.title : "Course Not Found"}</p>
+                          <div className="flex flex-wrap gap-1 mt-2">
+                            {quiz.courseIds && quiz.courseIds.map((cId: string) => {
+                              const linkedC = (courses || []).find(c => c._id === cId);
+                              return linkedC ? <span key={cId} className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-bold">{linkedC.title}</span> : null;
+                            })}
+                          </div>
                           <p className={`text-xs mt-2 font-bold ${textSecondary}`}>ප්‍රශ්න ගණන: {quiz.questions?.length || 0}</p>
                         </div>
                         <span className={`px-3 py-1 rounded-full text-[10px] font-bold border flex-shrink-0 ${quiz.isVisible ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-500 border-slate-200'}`}>
@@ -714,13 +749,13 @@ export default function AdminDashboard() {
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {(quizzes || []).map((quiz) => {
-                      const linkedCourse = (courses || []).find(c => c._id === quiz.courseId);
                       return (
                         <div key={quiz._id} className={`p-6 rounded-2xl border shadow-sm flex flex-col hover:shadow-md transition-shadow cursor-pointer ${cardBg}`} onClick={() => handleViewResults(quiz)}>
-                          <div className="mb-4">
-                            <span className="text-xs font-bold bg-blue-100 text-blue-700 px-3 py-1 rounded-full truncate max-w-full inline-block">
-                              {linkedCourse ? linkedCourse.title : "Course Not Found"}
-                            </span>
+                          <div className="mb-4 flex flex-wrap gap-1">
+                            {quiz.courseIds && quiz.courseIds.map((cId: string) => {
+                              const linkedC = (courses || []).find(c => c._id === cId);
+                              return linkedC ? <span key={cId} className="text-[10px] font-bold bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full truncate inline-block max-w-full">{linkedC.title}</span> : null;
+                            })}
                           </div>
                           <h3 className={`text-lg font-bold ${textPrimary} mb-2`}>{quiz.title}</h3>
                           <p className={`text-sm font-bold ${textSecondary}`}>ප්‍රශ්න ගණන: {quiz.questions?.length || 0}</p>
@@ -737,27 +772,40 @@ export default function AdminDashboard() {
               </>
             ) : (
               <>
+                {/* 🔴 ප්‍රතිඵල Course එක අනුව ෆිල්ටර් කිරීමේ Dropdown එක */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
                   <div>
                     <button onClick={() => setSelectedQuizForResults(null)} className={`text-sm font-bold px-4 py-2 rounded-lg mb-3 transition-colors ${isDarkMode ? 'bg-slate-700 hover:bg-slate-600' : 'bg-slate-200 hover:bg-slate-300'}`}>
                       &larr; ආපසු (Back)
                     </button>
                     <h2 className={`text-xl font-bold ${textPrimary}`}>{selectedQuizForResults.title} - ප්‍රතිඵල</h2>
-                    <p className={`text-sm font-bold text-blue-500 mt-1`}>{(courses || []).find(c => c._id === selectedQuizForResults.courseId)?.title}</p>
                   </div>
-                  <div className="flex gap-3">
-                    <div className={`px-4 py-2 rounded-xl border shadow-sm font-bold text-sm flex items-center gap-2 ${cardBg}`}>
+                  
+                  <div className="flex flex-col md:flex-row gap-3">
+                    <select
+                      value={resultCourseFilter}
+                      onChange={(e) => setResultCourseFilter(e.target.value)}
+                      className={`p-2.5 rounded-xl border font-bold text-sm outline-none shadow-sm ${inputBg}`}
+                    >
+                      <option value="ALL">සියලුම පාඨමාලා (All Courses)</option>
+                      {selectedQuizForResults.courseIds && selectedQuizForResults.courseIds.map((cId: string) => {
+                        const course = (courses || []).find(c => c._id === cId);
+                        return course ? <option key={cId} value={course._id}>{course.title}</option> : null;
+                      })}
+                    </select>
+
+                    <div className={`px-4 py-2.5 rounded-xl border shadow-sm font-bold text-sm flex items-center gap-2 ${cardBg}`}>
                       <span>සමඟභාගී වූ සිසුන්:</span>
-                      <span className="text-blue-600 text-lg">{quizResults.length}</span>
+                      <span className="text-blue-600 text-lg">{displayedQuizResults.length}</span>
                     </div>
                   </div>
                 </div>
 
                 {isLoadingResults ? (
                   <div className="text-center py-10 text-slate-500 font-bold animate-pulse">ප්‍රතිඵල ගෙනෙමින් පවතී...</div>
-                ) : quizResults.length === 0 ? (
+                ) : displayedQuizResults.length === 0 ? (
                   <div className={`p-10 rounded-3xl border text-center ${cardBg}`}>
-                    <h3 className={`text-lg font-bold ${textPrimary}`}>මෙම විභාගය සඳහා තවමත් කිසිදු සිසුවෙකු මුහුණ දී නැත.</h3>
+                    <h3 className={`text-lg font-bold ${textPrimary}`}>මෙම විභාගය සඳහා තෝරාගත් පාඨමාලාවෙන් කිසිදු සිසුවෙකු මුහුණ දී නැත.</h3>
                   </div>
                 ) : (
                   <div className={`rounded-2xl border overflow-hidden shadow-sm ${cardBg}`}>
@@ -773,13 +821,14 @@ export default function AdminDashboard() {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-                          {quizResults.map((result, idx) => (
+                          {displayedQuizResults.map((result, idx) => (
                             <tr key={result._id || idx} className={`transition-colors ${isDarkMode ? 'hover:bg-slate-700/50' : 'hover:bg-slate-50'}`}>
                               <td className="px-6 py-4 font-extrabold">
-                                {result.rank === 1 ? <span className="text-amber-500 flex items-center gap-1">🥇 1 වන ස්ථානය</span> :
-                                 result.rank === 2 ? <span className="text-slate-400 flex items-center gap-1">🥈 2 වන ස්ථානය</span> :
-                                 result.rank === 3 ? <span className="text-amber-700 flex items-center gap-1">🥉 3 වන ස්ථානය</span> :
-                                 <span className={textSecondary}>{result.rank} වන ස්ථානය</span>}
+                                {/* 🔴 අලුතින් හැදුන Rank එක මෙතැනින් පෙන්වයි */}
+                                {result.calculatedRank === 1 ? <span className="text-amber-500 flex items-center gap-1">🥇 1 වන ස්ථානය</span> :
+                                 result.calculatedRank === 2 ? <span className="text-slate-400 flex items-center gap-1">🥈 2 වන ස්ථානය</span> :
+                                 result.calculatedRank === 3 ? <span className="text-amber-700 flex items-center gap-1">🥉 3 වන ස්ථානය</span> :
+                                 <span className={textSecondary}>{result.calculatedRank} වන ස්ථානය</span>}
                               </td>
                               <td className={`px-6 py-4 font-bold ${textPrimary}`}>{result.userId?.name || "Unknown"}</td>
                               <td className={`px-6 py-4 font-bold text-blue-500`}>{result.userId?.phone || result.userPhone || "N/A"}</td>
@@ -925,7 +974,7 @@ export default function AdminDashboard() {
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
               <div>
                 <h2 className={`text-xl font-bold ${textPrimary}`}>මුරපද වෙනස් කිරීමේ ඉල්ලීම්</h2>
-                <p className={`text-sm ${textSecondary}`}>සිසුන් විසින් ඉල්ලා ඇති නව මුරපද අනුමත කර WhatsApp හරහා යවන්න.</p>
+                <p className={`text-sm ${textSecondary}`}>සිසුන් විසින් ඉල්ලා ඇති නව මුරපද අනුමත කර SMS හරහා යවන්න.</p>
               </div>
               <button onClick={fetchPasswordRequests} className="flex items-center gap-2 bg-blue-100 hover:bg-blue-200 text-blue-700 px-4 py-2 rounded-xl text-sm font-bold transition-all">
                 🔄 Refresh

@@ -9,11 +9,16 @@ type PageProps = {
 };
 
 export default function StudentExamPage({ params }: PageProps) {
-  const { data: session } = useSession();
+  // 🔴 අලුත් වෙනස: status එකත් ලබා ගත්තා (Session එක ලෝඩ් වෙනකම් ඉන්න)
+  const { data: session, status } = useSession();
   const router = useRouter();
   
   const [quiz, setQuiz] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // 🔴 අලුත් States: කලින් කරලද කියලා බලන්න
+  const [alreadyAttempted, setAlreadyAttempted] = useState(false);
+  const [previousScore, setPreviousScore] = useState<number | null>(null);
   
   // විභාගයේ පියවර සහ කාලය
   const [step, setStep] = useState<"instructions" | "playing" | "results">("instructions");
@@ -23,17 +28,36 @@ export default function StudentExamPage({ params }: PageProps) {
   const [selectedAnswers, setSelectedAnswers] = useState<{ [key: number]: number }>({});
   const [score, setScore] = useState(0);
 
-  // 1. Database එකෙන් ප්‍රශ්න පත්‍රය ගෙන ඒම
+  // 1. Database එකෙන් දත්ත සහ Attempt එක ගෙන ඒම
   useEffect(() => {
+    if (status === "loading") return; // Session එක ලෝඩ් වෙනකම් ඉන්නවා
+
     const fetchQuizData = async () => {
       const resolved = await params;
       try {
+        const userPhone = (session?.user as any)?.phone || session?.user?.name;
+        
+        // 🔴 1. කලින් විභාගය කරලද කියලා චෙක් කිරීම
+        if (userPhone) {
+          const attemptRes = await fetch("/api/student/quizzes/check-attempt", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ quizId: resolved.quizId, userPhone })
+          });
+          const attemptData = await attemptRes.json();
+          if (attemptData.hasAttempted) {
+            setAlreadyAttempted(true);
+            setPreviousScore(attemptData.score);
+          }
+        }
+
+        // 2. ප්‍රශ්න පත්‍රය ගෙන ඒම
         const res = await fetch(`/api/student/quizzes/${resolved.quizId}`);
         const data = await res.json();
         if (res.ok && data.data) {
           setQuiz(data.data);
           
-          // 🔴 අලුත් වෙනස: Admin දුන් වෙලාව (duration) විනාඩි වලින් තිබේ නම් එය තත්පර බවට පත් කිරීම.
+          // 🔴 අලුත් වෙනස: Admin දුන් වෙලාව (duration/timeLimit) විනාඩි වලින් තිබේ නම් එය තත්පර බවට පත් කිරීම.
           // ලබා දී නොමැති නම් පමණක් පැරණි ක්‍රමයට (ප්‍රශ්නයකට විනාඩි 2 බැගින්) හැදීම.
           const durationInSeconds = data.data.duration 
             ? data.data.duration * 60 
@@ -47,8 +71,9 @@ export default function StudentExamPage({ params }: PageProps) {
         setIsLoading(false); 
       }
     };
+    
     fetchQuizData();
-  }, [params]);
+  }, [params, status, session]);
 
   // 2. Timer එක හැසිරවීම (තත්පරයෙන් තත්පරය අඩුවීම)
   useEffect(() => {
@@ -95,7 +120,7 @@ export default function StudentExamPage({ params }: PageProps) {
     });
 
     setScore(calculatedScore);
-    setStep("results"); // ප්‍රතිඵල පිටුවට මාරු වීම
+    setStep("results"); 
 
     try {
       const userPhone = (session?.user as any)?.phone || session?.user?.name;
@@ -120,7 +145,6 @@ export default function StudentExamPage({ params }: PageProps) {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 modern-font relative pb-10">
       
-      {/* ඇලෙනසුළු (Sticky) Header එක සහ Timer එක */}
       <div className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-slate-200 shadow-sm px-4 md:px-8 py-3 md:py-4 flex items-center justify-between">
         <h1 className="text-sm md:text-xl font-bold text-slate-900 truncate max-w-[50%] md:max-w-[70%]">{quiz.title}</h1>
         
@@ -139,9 +163,7 @@ export default function StudentExamPage({ params }: PageProps) {
 
       <div className="max-w-3xl mx-auto mt-6 md:mt-8 px-4">
         
-        {/* =========================================
-            පියවර 1: උපදෙස් පිටුව (Instructions)
-           ========================================= */}
+        {/* උපදෙස් පිටුව */}
         {step === "instructions" && (
           <div className="bg-white rounded-3xl border border-slate-200 p-6 md:p-10 shadow-sm">
             <div className="w-16 h-16 bg-blue-100 text-blue-600 flex items-center justify-center rounded-2xl mb-6 mx-auto">
@@ -157,7 +179,6 @@ export default function StudentExamPage({ params }: PageProps) {
               </li>
               <li className="flex items-start gap-3">
                 <span className="text-blue-500 mt-0.5">✔️</span>
-                {/* 🔴 අලුත් වෙනස: නිවැරදි විනාඩි ගණන පෙන්වීම */}
                 ඔබට හිමිවන මුළු කාලය විනාඩි <b>{quiz.duration || quiz.questions.length * 2}</b> කි.
               </li>
               <li className="flex items-start gap-3">
@@ -170,20 +191,38 @@ export default function StudentExamPage({ params }: PageProps) {
               </li>
             </ul>
 
-            <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl flex items-start gap-3 mb-8 cursor-pointer" onClick={() => setHasAgreed(!hasAgreed)}>
-              <div className={`w-6 h-6 rounded border flex items-center justify-center flex-shrink-0 mt-0.5 transition-colors ${hasAgreed ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white border-slate-300'}`}>
-                {hasAgreed && <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
+            {/* 🔴 අලුත් වෙනස: කලින් කරලා නම් අනතුරු ඇඟවීමක් පෙන්වා විභාගය Block කිරීම */}
+            {alreadyAttempted ? (
+              <div className="bg-red-50 border border-red-200 rounded-3xl p-6 md:p-8 text-center mb-8 shadow-sm">
+                <div className="w-20 h-20 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-5 text-4xl shadow-inner">
+                  ⚠️
+                </div>
+                <h3 className="text-xl md:text-2xl font-black text-red-700 mb-3">ඔබ දැනටමත් මෙම විභාගයට මුහුණ දී ඇත!</h3>
+                <p className="text-sm md:text-base text-red-900/70 font-bold mb-6">එක් සිසුවෙකුට එක් විභාගයක් සඳහා පිළිතුරු සැපයිය හැක්කේ එක් වරක් පමණි.</p>
+                
+                <div className="inline-block bg-white border-2 border-red-100 rounded-2xl px-8 py-4 shadow-sm">
+                  <p className="text-sm text-slate-500 font-bold mb-1">ඔබ ලබාගත් ලකුණු ප්‍රමාණය</p>
+                  <p className="text-3xl font-black text-blue-600">{previousScore}</p>
+                </div>
               </div>
-              <p className="text-sm font-bold text-blue-900 select-none">මම ඉහත උපදෙස් කියවා තේරුම් ගත්තෙමි. විභාගය ආරම්භ කිරීමට මම එකඟ වෙමි.</p>
-            </div>
+            ) : (
+              <>
+                <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl flex items-start gap-3 mb-8 cursor-pointer" onClick={() => setHasAgreed(!hasAgreed)}>
+                  <div className={`w-6 h-6 rounded border flex items-center justify-center flex-shrink-0 mt-0.5 transition-colors ${hasAgreed ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white border-slate-300'}`}>
+                    {hasAgreed && <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
+                  </div>
+                  <p className="text-sm font-bold text-blue-900 select-none">මම ඉහත උපදෙස් කියවා තේරුම් ගත්තෙමි. විභාගය ආරම්භ කිරීමට මම එකඟ වෙමි.</p>
+                </div>
 
-            <button 
-              onClick={() => setStep("playing")}
-              disabled={!hasAgreed}
-              className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-bold py-4 rounded-xl shadow-md transition-all text-lg"
-            >
-              🚀 විභාගය අරඹන්න (Start Quiz)
-            </button>
+                <button 
+                  onClick={() => setStep("playing")}
+                  disabled={!hasAgreed}
+                  className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-bold py-4 rounded-xl shadow-md transition-all text-lg"
+                >
+                  🚀 විභාගය අරඹන්න (Start Quiz)
+                </button>
+              </>
+            )}
 
             {quiz.pdfUrl && (
               <a 
@@ -199,9 +238,7 @@ export default function StudentExamPage({ params }: PageProps) {
           </div>
         )}
 
-        {/* =========================================
-            පියවර 2 & 3: විභාගය කිරීම සහ ප්‍රතිඵල
-           ========================================= */}
+        {/* විභාගය කිරීම සහ ප්‍රතිඵල */}
         {step !== "instructions" && (
           <>
             {step === "results" && (
