@@ -27,8 +27,8 @@ export default function HomePage() {
 
   // 🔴 අලුත් ප්‍රතිඵල 2 මෙතැන මුලටම එකතු කර ඇත
   const resultsData = [
-    { id: 9, img: "/results6.jpeg", name: "විශිෂ්ට ප්‍රතිඵල", rank: "අධිකරණ ලිපිකරු" },
-    { id: 10, img: "/results7.jpeg", name: "විශිෂ්ට ප්‍රතිඵල", rank: "කළමණාකරණ" },
+    { id: 9, img: "/results6.jpg", name: "විශිෂ්ට ප්‍රතිඵල", rank: "අධිකරණ ලිපිකරු" },
+    { id: 10, img: "/results7.jpg", name: "විශිෂ්ට ප්‍රතිඵල", rank: "කළමණාකරණ" },
     { id: 8, img: "/openit.jpeg", name: "විශිෂ්ට ප්‍රතිඵල", rank: "තොරතුරු තාක්ෂණ" },
     { id: 7, img: "/results5.jpeg", name: "විශිෂ්ට ප්‍රතිඵල", rank: "ග්‍රාම නිලධාරී" },
     { id: 6, img: "/results3.jpeg", name: "විශිෂ්ට ප්‍රතිඵල", rank: "ඖෂධවේදී" },
