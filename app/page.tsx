@@ -25,7 +25,10 @@ export default function HomePage() {
   const [apiCourses, setApiCourses] = useState<any[]>([]);
   const [isLoadingCourses, setIsLoadingCourses] = useState(true);
 
+  // 🔴 අලුත් ප්‍රතිඵල 2 මෙතැන මුලටම එකතු කර ඇත
   const resultsData = [
+    { id: 9, img: "/results6.jpeg", name: "විශිෂ්ට ප්‍රතිඵල", rank: "අධිකරණ ලිපිකරු" },
+    { id: 10, img: "/results7.jpeg", name: "විශිෂ්ට ප්‍රතිඵල", rank: "කළමණාකරණ" },
     { id: 8, img: "/openit.jpeg", name: "විශිෂ්ට ප්‍රතිඵල", rank: "තොරතුරු තාක්ෂණ" },
     { id: 7, img: "/results5.jpeg", name: "විශිෂ්ට ප්‍රතිඵල", rank: "ග්‍රාම නිලධාරී" },
     { id: 6, img: "/results3.jpeg", name: "විශිෂ්ට ප්‍රතිඵල", rank: "ඖෂධවේදී" },
@@ -58,7 +61,6 @@ export default function HomePage() {
   const resultRef = useRef<HTMLDivElement>(null);
   const testiRef = useRef<HTMLDivElement>(null);
 
-  // 🔴 අලුත්: ලින්ක් එකේ #login හෝ #register තිබුණොත් ඉබේම අදාළ ෆෝම් එක පෙන්වීම
   useEffect(() => {
     const hash = window.location.hash;
     if (hash === "#login") {
@@ -112,7 +114,6 @@ export default function HomePage() {
     setPhone("");
     window.scrollTo({ top: 0, behavior: "smooth" });
     
-    // 🔴 අලුත්: URL එකේ තියෙන Hash එකත් වෙනස් කිරීම (Share කරන්න ලේසි වෙන්න)
     if (view === "carousel") {
       window.history.pushState(null, "", "/");
     } else {
