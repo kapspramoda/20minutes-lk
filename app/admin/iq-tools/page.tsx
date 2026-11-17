@@ -67,48 +67,83 @@ export default function IQToolsPage() {
   const [patternRotation, setPatternRotation] = useState(0);
 
   // --- 4. Cube Counter Tool ---
-  const [gridSize, setGridSize] = useState(3);
-  const [cubeColors, setCubeColors] = useState<Record<string, string>>({});
+  const [gridSize, setGridSize] = useState(5);
   const [activeCubeColor, setActiveCubeColor] = useState("bg-red-500");
   const [cubeRotX, setCubeRotX] = useState(-20);
   const [cubeRotY, setCubeRotY] = useState(30);
 
-  const handleCubeClick = (x: number, y: number, z: number) => {
-    setCubeColors(prev => {
-      const key = `${x}-${y}-${z}`;
-      if (prev[key] === activeCubeColor) {
-        const newColors = { ...prev };
-        delete newColors[key];
-        return newColors;
-      }
-      return { ...prev, [key]: activeCubeColor };
-    });
-  };
+  // Structure to hold blocks. Each block has a start coordinate (x,y,z), a size, and a color.
+  // Using an array of objects to represent arbitrary block arrangements.
+  // Initially, we will set it up somewhat similar to the drawing.
+  const initialBlocks = [
+    // Bottom layer (y=0,1) front right large block (2x2x2)
+    { id: 'b1', x: 2, y: 0, z: 2, size: 2, color: 'bg-slate-300' },
+    // A small block
+    { id: 'b2', x: 0, y: 0, z: 0, size: 1, color: 'bg-slate-300' },
+    // Let's generate a 5x5 grid by default, but we'll manage blocks individually to allow resizing
+  ];
 
-  const colorCubeGroup = (type: "edges" | "corners" | "faces" | "all" | "clear") => {
-    if (type === "clear") {
-      setCubeColors({});
-      return;
-    }
-    const newColors = { ...cubeColors };
-    for (let x = 0; x < gridSize; x++) {
-      for (let y = 0; y < gridSize; y++) {
-        for (let z = 0; z < gridSize; z++) {
-          const isEdgeX = x === 0 || x === gridSize - 1 ? 1 : 0;
-          const isEdgeY = y === 0 || y === gridSize - 1 ? 1 : 0;
-          const isEdgeZ = z === 0 || z === gridSize - 1 ? 1 : 0;
-          const edgeCount = isEdgeX + isEdgeY + isEdgeZ;
-          
-          if (type === "corners" && edgeCount === 3) newColors[`${x}-${y}-${z}`] = activeCubeColor;
-          if (type === "edges" && edgeCount === 2) newColors[`${x}-${y}-${z}`] = activeCubeColor;
-          if (type === "faces" && edgeCount === 1) newColors[`${x}-${y}-${z}`] = activeCubeColor;
-          if (type === "all") newColors[`${x}-${y}-${z}`] = activeCubeColor;
+  // To make it fully flexible like the drawing, let's represent the grid as a collection of unit blocks by default,
+  // but allow "merging" them into larger blocks.
+  // For simplicity in this implementation, we will define a set of specific blocks that match the 5x5 grid concept,
+  // where some areas are filled with 1x1x1 cubes and others with larger blocks.
+
+  // Let's define the layout based on the image:
+  // It looks like a 5x5x5 overall structure.
+  // Left side has small 1x1x1 blocks (2 columns wide)
+  // Right side has larger blocks (e.g., 2x2x2 or 3x3x3)
+  
+  const generateInitialBlocks = () => {
+    let generatedBlocks = [];
+    let idCounter = 0;
+    const gs = 5; // Fixed grid size for this specific layout
+
+    // We will leave a 3x3x3 space empty in the front-right corner and fill the rest with 1x1x1
+    for (let x = 0; x < gs; x++) {
+      for (let y = 0; y < gs; y++) {
+        for (let z = 0; z < gs; z++) {
+           // Define the area for the large block (e.g., x from 2 to 4, y from 0 to 2, z from 2 to 4)
+           const isInLargeBlockArea = x >= 2 && x <= 4 && y >= 0 && y <= 2 && z >= 2 && z <= 4;
+           const isInAnotherLargeArea = x >= 2 && x <= 4 && y >= 3 && y <= 4 && z >= 0 && z <= 4; // Top part
+
+           if (isInLargeBlockArea) {
+               // Add one large block at the origin of this area
+               if (x === 2 && y === 0 && z === 2) {
+                   generatedBlocks.push({ id: `block-${idCounter++}`, x, y, z, sizeX: 3, sizeY: 3, sizeZ: 3, color: 'bg-slate-300' });
+               }
+           } else if (isInAnotherLargeArea) {
+               // Another large block on top
+               if (x === 2 && y === 3 && z === 0) {
+                    generatedBlocks.push({ id: `block-${idCounter++}`, x, y, z, sizeX: 3, sizeY: 2, sizeZ: 5, color: 'bg-slate-300' });
+               }
+           } else {
+               // Small 1x1x1 blocks
+               generatedBlocks.push({ id: `block-${idCounter++}`, x, y, z, sizeX: 1, sizeY: 1, sizeZ: 1, color: 'bg-slate-300' });
+           }
         }
       }
     }
-    setCubeColors(newColors);
+    return generatedBlocks;
   };
 
+  const [blocks, setBlocks] = useState(generateInitialBlocks());
+
+  const handleBlockClick = (id: string) => {
+    setBlocks(prevBlocks => 
+      prevBlocks.map(block => {
+        if (block.id === id) {
+          // Toggle color: if it's already the active color, revert to default, else set to active
+          const newColor = block.color === activeCubeColor ? 'bg-slate-300' : activeCubeColor;
+          return { ...block, color: newColor };
+        }
+        return block;
+      })
+    );
+  };
+
+  const clearColors = () => {
+    setBlocks(prevBlocks => prevBlocks.map(block => ({ ...block, color: 'bg-slate-300' })));
+  };
 
   // Tools Menu View
   if (activeTool === "menu") {
@@ -160,7 +195,7 @@ export default function IQToolsPage() {
             >
               <div className="text-6xl mb-4 group-hover:scale-110 transition-transform origin-left">🧮</div>
               <h3 className="text-lg font-extrabold text-blue-900 mb-2">ඝනක ගණනය</h3>
-              <p className="text-xs text-blue-700 font-bold leading-relaxed">කුඩා ඝනක වලින් සැදුණු විශාල ඝනකයක දාර, මුහුණත් සහ කොන් වර්ණ ගැන්වීම.</p>
+              <p className="text-xs text-blue-700 font-bold leading-relaxed">කුඩා සහ විශාල ඝනක වලින් සැදුණු සංකීර්ණ ආකෘතියක් වර්ණ ගැන්වීම.</p>
             </div>
 
           </div>
@@ -299,22 +334,10 @@ export default function IQToolsPage() {
 
         {activeTool === "cube" && (
           <div className="w-full flex flex-col items-center">
-            <ToolHeader title="IQ ඝනක ගණනය (Cube Counter)" />
+            <ToolHeader title="සංකීර්ණ ඝනක ගණනය (Complex Cube Counter)" />
             
-            <div className="flex items-center gap-4 bg-slate-100 p-2 rounded-xl border border-slate-300 mb-8">
-              <button 
-                onClick={() => {setGridSize(s => Math.max(1, s - 1)); setCubeColors({});}} 
-                className="bg-white hover:bg-slate-200 w-10 h-10 rounded-lg font-bold text-xl shadow-sm border border-slate-200"
-              >-</button>
-              <span className="font-extrabold text-slate-700 min-w-[80px] text-center">{gridSize} x {gridSize} x {gridSize}</span>
-              <button 
-                onClick={() => {setGridSize(s => Math.min(5, s + 1)); setCubeColors({});}} 
-                className="bg-white hover:bg-slate-200 w-10 h-10 rounded-lg font-bold text-xl shadow-sm border border-slate-200"
-              >+</button>
-            </div>
-
             <div className="flex gap-2 mb-8">
-              {["bg-red-500", "bg-blue-500", "bg-yellow-400", "bg-green-500"].map(color => (
+              {["bg-red-500", "bg-blue-500", "bg-yellow-400", "bg-green-500", "bg-purple-500", "bg-orange-500"].map(color => (
                 <button 
                   key={color} 
                   onClick={() => setActiveCubeColor(color)}
@@ -323,69 +346,72 @@ export default function IQToolsPage() {
               ))}
             </div>
 
-            <div className="relative w-64 h-64 [perspective:1500px] mb-16 mt-8 flex items-center justify-center">
+            <div className="relative w-80 h-80 [perspective:2000px] mb-16 mt-8 flex items-center justify-center">
               <div 
                 className="relative transition-transform duration-500 ease-out [transform-style:preserve-3d]"
                 style={{ transform: `rotateX(${cubeRotX}deg) rotateY(${cubeRotY}deg)` }}
               >
-                {Array.from({ length: gridSize }).map((_, x) =>
-                  Array.from({ length: gridSize }).map((_, y) =>
-                    Array.from({ length: gridSize }).map((_, z) => {
-                      const offset = (gridSize - 1) / 2;
-                      const sizePx = 40;
-                      const gap = 2;
-                      const px = (x - offset) * (sizePx + gap);
-                      const py = (y - offset) * (sizePx + gap);
-                      const pz = (z - offset) * (sizePx + gap);
-                      
-                      const key = `${x}-${y}-${z}`;
-                      const color = cubeColors[key] || "bg-slate-300";
-                      
-                      return (
-                        <div 
-                          key={key} 
-                          className="absolute [transform-style:preserve-3d]" 
-                          style={{ transform: `translate3d(${px}px, ${py}px, ${pz}px)` }}
-                        >
-                          {/* Front Face */}
-                          <div onClick={() => handleCubeClick(x, y, z)} className={`absolute border border-black/30 cursor-pointer hover:brightness-110 transition-colors ${color}`} style={{ width: sizePx, height: sizePx, transform: `translate(-50%, -50%) rotateY(0deg) translateZ(${sizePx/2}px)` }} />
-                          {/* Back Face */}
-                          <div onClick={() => handleCubeClick(x, y, z)} className={`absolute border border-black/30 cursor-pointer hover:brightness-110 transition-colors ${color}`} style={{ width: sizePx, height: sizePx, transform: `translate(-50%, -50%) rotateY(180deg) translateZ(${sizePx/2}px)` }} />
-                          {/* Right Face */}
-                          <div onClick={() => handleCubeClick(x, y, z)} className={`absolute border border-black/30 cursor-pointer hover:brightness-110 transition-colors ${color}`} style={{ width: sizePx, height: sizePx, transform: `translate(-50%, -50%) rotateY(90deg) translateZ(${sizePx/2}px)` }} />
-                          {/* Left Face */}
-                          <div onClick={() => handleCubeClick(x, y, z)} className={`absolute border border-black/30 cursor-pointer hover:brightness-110 transition-colors ${color}`} style={{ width: sizePx, height: sizePx, transform: `translate(-50%, -50%) rotateY(-90deg) translateZ(${sizePx/2}px)` }} />
-                          {/* Top Face */}
-                          <div onClick={() => handleCubeClick(x, y, z)} className={`absolute border border-black/30 cursor-pointer hover:brightness-110 transition-colors ${color}`} style={{ width: sizePx, height: sizePx, transform: `translate(-50%, -50%) rotateX(90deg) translateZ(${sizePx/2}px)` }} />
-                          {/* Bottom Face */}
-                          <div onClick={() => handleCubeClick(x, y, z)} className={`absolute border border-black/30 cursor-pointer hover:brightness-110 transition-colors ${color}`} style={{ width: sizePx, height: sizePx, transform: `translate(-50%, -50%) rotateX(-90deg) translateZ(${sizePx/2}px)` }} />
-                        </div>
-                      );
-                    })
-                  )
-                )}
+                {blocks.map((block) => {
+                  const unitSizePx = 40;
+                  const gap = 2; // Gap between logical grid units
+                  
+                  // Calculate the center position of this block relative to the overall grid center
+                  // The grid is 5x5x5, so the offset for the center is 2 (from 0 to 4)
+                  const offset = 2; 
+                  
+                  // Center of this block in grid coordinates
+                  const centerX = block.x + (block.sizeX - 1) / 2;
+                  const centerY = block.y + (block.sizeY - 1) / 2;
+                  const centerZ = block.z + (block.sizeZ - 1) / 2;
+
+                  const px = (centerX - offset) * (unitSizePx + gap);
+                  const py = (centerY - offset) * (unitSizePx + gap);
+                  const pz = (centerZ - offset) * (unitSizePx + gap);
+                  
+                  // Actual dimensions in pixels, accounting for the gaps it covers
+                  const widthPx = block.sizeX * unitSizePx + (block.sizeX - 1) * gap;
+                  const heightPx = block.sizeY * unitSizePx + (block.sizeY - 1) * gap;
+                  const depthPx = block.sizeZ * unitSizePx + (block.sizeZ - 1) * gap;
+                  
+                  const colorClass = block.color;
+
+                  return (
+                    <div 
+                      key={block.id} 
+                      className="absolute [transform-style:preserve-3d]" 
+                      style={{ transform: `translate3d(${px}px, ${py}px, ${pz}px)` }}
+                    >
+                      {/* Front Face */}
+                      <div onClick={() => handleBlockClick(block.id)} className={`absolute border-2 border-black/80 cursor-pointer hover:brightness-110 transition-colors ${colorClass}`} style={{ width: widthPx, height: heightPx, transform: `translate(-50%, -50%) rotateY(0deg) translateZ(${depthPx/2}px)` }} />
+                      {/* Back Face */}
+                      <div onClick={() => handleBlockClick(block.id)} className={`absolute border-2 border-black/80 cursor-pointer hover:brightness-110 transition-colors ${colorClass}`} style={{ width: widthPx, height: heightPx, transform: `translate(-50%, -50%) rotateY(180deg) translateZ(${depthPx/2}px)` }} />
+                      {/* Right Face */}
+                      <div onClick={() => handleBlockClick(block.id)} className={`absolute border-2 border-black/80 cursor-pointer hover:brightness-110 transition-colors ${colorClass}`} style={{ width: depthPx, height: heightPx, transform: `translate(-50%, -50%) rotateY(90deg) translateZ(${widthPx/2}px)` }} />
+                      {/* Left Face */}
+                      <div onClick={() => handleBlockClick(block.id)} className={`absolute border-2 border-black/80 cursor-pointer hover:brightness-110 transition-colors ${colorClass}`} style={{ width: depthPx, height: heightPx, transform: `translate(-50%, -50%) rotateY(-90deg) translateZ(${widthPx/2}px)` }} />
+                      {/* Top Face */}
+                      <div onClick={() => handleBlockClick(block.id)} className={`absolute border-2 border-black/80 cursor-pointer hover:brightness-110 transition-colors ${colorClass}`} style={{ width: widthPx, height: depthPx, transform: `translate(-50%, -50%) rotateX(90deg) translateZ(${heightPx/2}px)` }} />
+                      {/* Bottom Face */}
+                      <div onClick={() => handleBlockClick(block.id)} className={`absolute border-2 border-black/80 cursor-pointer hover:brightness-110 transition-colors ${colorClass}`} style={{ width: widthPx, height: depthPx, transform: `translate(-50%, -50%) rotateX(-90deg) translateZ(${heightPx/2}px)` }} />
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full mt-4">
               <div className="flex flex-col gap-2">
-                <span className="text-sm font-bold text-slate-500 mb-1">කෙටිමං වර්ණ ගැන්වීම් (Quick Colors):</span>
-                <button onClick={() => colorCubeGroup("corners")} className="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2.5 rounded-xl font-bold text-sm shadow-sm transition-all active:scale-95">
-                  කොන් පමණක් පාට කරන්න (Corners)
+                <span className="text-sm font-bold text-slate-500 mb-1">වර්ණ ගැන්වීම්:</span>
+                <button onClick={clearColors} className="bg-red-100 hover:bg-red-200 text-red-700 px-4 py-2.5 rounded-xl font-bold text-sm mt-2 transition-all active:scale-95">
+                  සියල්ල මකන්න (Clear Colors)
                 </button>
-                <button onClick={() => colorCubeGroup("edges")} className="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2.5 rounded-xl font-bold text-sm shadow-sm transition-all active:scale-95">
-                  දාර පමණක් පාට කරන්න (Edges)
-                </button>
-                <button onClick={() => colorCubeGroup("faces")} className="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2.5 rounded-xl font-bold text-sm shadow-sm transition-all active:scale-95">
-                  මැද මුහුණත් පාට කරන්න (Centers)
-                </button>
-                <button onClick={() => colorCubeGroup("clear")} className="bg-red-100 hover:bg-red-200 text-red-700 px-4 py-2.5 rounded-xl font-bold text-sm mt-2 transition-all active:scale-95">
-                  සියල්ල මකන්න (Clear)
-                </button>
+                <p className="text-xs text-slate-500 mt-2 font-bold">
+                  * ඝනකයක ඕනෑම මුහුණතක් මත ක්ලික් කිරීමෙන් ඔබ තෝරාගත් වර්ණයෙන් එය පාට කළ හැක.
+                </p>
               </div>
 
               <div className="flex flex-col items-center justify-center bg-slate-100 p-4 rounded-3xl border border-slate-200">
-                <span className="text-sm font-bold text-slate-500 mb-3">ඝනකය කරකවන්න (Rotate):</span>
+                <span className="text-sm font-bold text-slate-500 mb-3">ආකෘතිය කරකවන්න (Rotate):</span>
                 <div className="grid grid-cols-3 gap-2">
                   <div></div>
                   <button onClick={() => setCubeRotX(p => p + 30)} className="bg-blue-600 hover:bg-blue-700 text-white w-12 h-10 rounded-lg font-bold shadow-md transition-all active:scale-95">⬆</button>
